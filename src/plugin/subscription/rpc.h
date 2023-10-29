@@ -1,0 +1,7 @@
+#ifndef ONM_TC_PLUGIN_SUBSCRIPTION_RPC_H
+#define ONM_TC_PLUGIN_SUBSCRIPTION_RPC_H
+
+#include <sysrepo_types.h>
+
+
+#endif // ONM_TC_PLUGIN_SUBSCRIPTION_RPC_H
