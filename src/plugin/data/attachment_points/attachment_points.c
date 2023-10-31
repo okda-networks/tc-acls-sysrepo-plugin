@@ -182,7 +182,7 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
                         SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_ingress_acl_set_element, lyd_get_value(aps_acl_name)), error_out);
                     }
                     // add ingress acl_set list to main interfaces list
-                    ONM_TC_APS_ACL_SET_ADD_ELEMENT(new_element->interface.ingress.acl_sets.acl_set, aps_ingress_acl_set_list_node);
+                    ONM_TC_APS_ACL_SET_ADD_ELEMENT(new_element->interface.ingress.acl_sets.acl_set, new_ingress_acl_set_element);
                     new_ingress_acl_set_element = NULL;
 
                     aps_ingress_acl_set_list_node = srpc_ly_tree_get_list_next(aps_ingress_acl_set_list_node);
@@ -205,7 +205,7 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
                         SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_egress_acl_set_element, lyd_get_value(aps_acl_name)), error_out);
                     }
 
-                    ONM_TC_APS_ACL_SET_ADD_ELEMENT(new_element->interface.egress.acl_sets.acl_set, aps_egress_acl_set_list_node);
+                    ONM_TC_APS_ACL_SET_ADD_ELEMENT(new_element->interface.egress.acl_sets.acl_set, new_egress_acl_set_element);
                     new_egress_acl_set_element = NULL;
 
                     aps_egress_acl_set_list_node = srpc_ly_tree_get_list_next(aps_egress_acl_set_list_node);
@@ -237,11 +237,28 @@ out:
 void onm_tc_aps_interface_hash_print_debug(const onm_tc_aps_interface_hash_element_t* aps_interface_hash)
 {
     const onm_tc_aps_interface_hash_element_t *iter = NULL, *tmp = NULL;
-    
-
+    onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
+    SRPLG_LOG_INF(PLUGIN_NAME, "+ attachment-points: ");
     HASH_ITER(hh, aps_interface_hash, iter, tmp)
     {
-        SRPLG_LOG_INF(PLUGIN_NAME, "+ Interface-ID %s:", iter->interface.interface_id);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ interface %s: ", iter->interface.interface_id);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tinterface-id = %s", iter->interface.interface_id);
+
+        if (iter->interface.ingress.acl_sets.acl_set){
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ingress:");
+            LL_FOREACH(iter->interface.ingress.acl_sets.acl_set, acl_set_iter)
+            {
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s", acl_set_iter->acl_set.name);
+            }
+        }
+        if (iter->interface.egress.acl_sets.acl_set){
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+egress:");
+            LL_FOREACH(iter->interface.egress.acl_sets.acl_set, acl_set_iter)
+            {
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s", acl_set_iter->acl_set.name);
+            }
+        }
+
     }
 }
 

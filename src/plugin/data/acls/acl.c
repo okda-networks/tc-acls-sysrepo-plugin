@@ -335,34 +335,34 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
 {
     const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
-
+    SRPLG_LOG_INF(PLUGIN_NAME, "+ ACLs: ");
     HASH_ITER(hh, acl_hash, iter, tmp)
     {
-        SRPLG_LOG_INF(PLUGIN_NAME, "+ ACL %s:", iter->acl.name);
-        SRPLG_LOG_INF(PLUGIN_NAME, "|\tName = %s", iter->acl.name);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tName = %s", iter->acl.name);
         if(iter->acl.type){
-            SRPLG_LOG_INF(PLUGIN_NAME, "|\tType = %s", iter->acl.type);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tType = %s", iter->acl.type);
         }
         
-        SRPLG_LOG_INF(PLUGIN_NAME, "|\tACEs:");
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tACEs:");
         LL_FOREACH(iter->acl.aces.ace, ace_iter)
         {
-            SRPLG_LOG_INF(PLUGIN_NAME, "|\t+ ACE %s", ace_iter->ace.name);
-            SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     ACE Name = %s", ace_iter->ace.name);
-            SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     + Matches:");
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s", ace_iter->ace.name);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.ipv4.source_ipv4_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     |---- Source-Network = %s", ace_iter->ace.matches.ipv4.source_ipv4_network);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source-Network = %s", ace_iter->ace.matches.ipv4.source_ipv4_network);
             }
             if(ace_iter->ace.matches.ipv4.destination_ipv4_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     |---- Destination-Network = %s", ace_iter->ace.matches.ipv4.destination_ipv4_network);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination-Network = %s", ace_iter->ace.matches.ipv4.destination_ipv4_network);
             }
             if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
-                SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     + Actions:");
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
                 if(ace_iter->ace.actions.forwarding){
-                    SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     |---- Action-Forwarding = %s", ace_iter->ace.actions.forwarding);
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %s", ace_iter->ace.actions.forwarding);
                 }
                 if(ace_iter->ace.actions.logging){
-                    SRPLG_LOG_INF(PLUGIN_NAME, "|\t|     |---- Action-Logging = %s", ace_iter->ace.actions.logging);
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %s", ace_iter->ace.actions.logging);
                 }
             }
             
