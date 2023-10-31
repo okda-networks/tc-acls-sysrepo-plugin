@@ -38,6 +38,11 @@
 
 onm_tc_acl_hash_element_t* onm_tc_acl_hash_new(void)
 {
+    return NULL;
+}
+
+onm_tc_acl_hash_element_t* onm_tc_acl_hash_element_new(void)
+{
     onm_tc_acl_hash_element_t* new_element = NULL;
 
     new_element = xmalloc(sizeof(onm_tc_acl_hash_element_t));
@@ -49,6 +54,7 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_new(void)
 
     return new_element;
 }
+
 
 int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name)
 {
@@ -130,11 +136,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
     struct lyd_node *icmp_code_node = NULL;
     struct lyd_node *action_forwarding_node = NULL, *action_logging_node = NULL;
 
-    //attachment point:
-    struct lyd_node *attachment_points_container_node = NULL;
-    struct lyd_node *attachment_interface_id_node = NULL;
-    struct lyd_node *attachment_ingress_interface_container_node = NULL, *attachment_egress_interface_container_node = NULL;
-    struct lyd_node *attachment_interface_acl_node = NULL;
 
     // internal DS
     onm_tc_acl_hash_element_t* new_element = NULL;
@@ -410,16 +411,3 @@ void onm_tc_acl_hash_free(onm_tc_acl_hash_element_t** hash)
     *hash = NULL;
 }
 
-onm_tc_acl_hash_element_t* onm_tc_acl_hash_element_new(void)
-{
-    onm_tc_acl_hash_element_t* new_element = NULL;
-
-    new_element = xmalloc(sizeof(onm_tc_acl_hash_element_t));
-    if (!new_element)
-        return NULL;
-
-    // NULL all fields
-    new_element->acl = (onm_tc_acl_t) { 0 };
-
-    return new_element;
-}

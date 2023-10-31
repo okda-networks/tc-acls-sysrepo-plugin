@@ -179,7 +179,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			}
 			// successfully applied startup config on netlink tc
 			// copy contents of the startup ds to running ds
-			error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
+			//error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 				goto error_out;
@@ -262,10 +262,9 @@ void sr_plugin_cleanup_cb(sr_session_ctx_t *running_session, void *private_data)
 	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) private_data;
 
 	// save current running configuration into startup for next time when the plugin starts
-	error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+	//error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 	}
-
 	free(ctx);
 }

@@ -20,15 +20,17 @@ typedef struct onm_tc_ace_element onm_tc_ace_element_t;
 typedef struct onm_tc_aces onm_tc_aces_t;
 typedef struct onm_tc_acl onm_tc_acl_t;
 typedef struct onm_tc_acl_element onm_tc_acl_element_t;
-typedef struct onm_tc_ingress onm_tc_ingress_t;
-typedef struct onm_tc_acl_set onm_tc_acl_set_t;
-typedef struct onm_tc_acl_set_element onm_tc_acl_set_element_t;
-typedef struct onm_tc_acl_sets onm_tc_acl_sets_t;
-typedef struct onm_tc_egress onm_tc_egress_t;
-typedef struct onm_tc_interface onm_tc_interface_t;
-typedef struct onm_tc_interface_element onm_tc_interface_element_t;
-typedef struct onm_tc_attachment_points onm_tc_attachment_points_t;
 typedef struct onm_tc_acls onm_tc_acls_t;
+
+typedef struct onm_tc_aps_ingress onm_tc_aps_ingress_t;
+typedef struct onm_tc_aps_egress onm_tc_aps_egress_t;
+typedef struct onm_tc_aps_acl_sets onm_tc_aps_acl_sets_t;
+typedef struct onm_tc_aps_acl_set onm_tc_aps_acl_set_t;
+typedef struct onm_tc_aps_acl_set_element onm_tc_aps_acl_set_element_t;
+typedef struct onm_tc_aps_interface onm_tc_aps_interface_t;
+typedef struct onm_tc_aps_interface_element onm_tc_aps_interface_element_t;
+typedef struct onm_tc_aps onm_tc_aps_t;
+
 
 
 typedef struct ietf_interface ietf_interface_t;
@@ -38,8 +40,7 @@ typedef struct onm_tc_actions onm_tc_actions_t;
 typedef enum onm_tc_acl_type onm_tc_acl_type_t;
 
 typedef struct onm_tc_acl_hash_element onm_tc_acl_hash_element_t;
-
-typedef struct onm_tc_attachament_point_hash_element onm_tc_attachament_point_hash_element_t;
+typedef struct onm_tc_aps_interface_hash_element onm_tc_aps_interface_hash_element_t;
 
 
 //TODO Add more details to interface definition
@@ -193,48 +194,48 @@ struct onm_tc_acl_element {
     onm_tc_acl_element_t* next;
 };
 
-struct onm_tc_acl_set {
+struct onm_tc_aps_acl_set {
     char * name;
 };
 
-struct onm_tc_acl_sets {
-    onm_tc_acl_set_element_t* acl_set;
+struct onm_tc_aps_acl_sets {
+    onm_tc_aps_acl_set_element_t* acl_set;
 };
 
-struct onm_tc_ingress {
-    onm_tc_acl_sets_t acl_sets;
+struct onm_tc_aps_ingress {
+    onm_tc_aps_acl_sets_t acl_sets;
 };
 
-struct onm_tc_acl_set_element {
-    onm_tc_acl_set_t acl_set;
-    onm_tc_acl_set_element_t* next;
+struct onm_tc_aps_acl_set_element {
+    onm_tc_aps_acl_set_t acl_set;
+    onm_tc_aps_acl_set_element_t* next;
 };
 
 
 
-struct onm_tc_egress {
-    onm_tc_acl_sets_t acl_sets;
+struct onm_tc_aps_egress {
+    onm_tc_aps_acl_sets_t acl_sets;
 };
 
-struct onm_tc_interface {
+struct onm_tc_aps_interface {
     //TODO review interface_id type (referes to interface name)
     char * interface_id;
-    onm_tc_ingress_t ingress;
-    onm_tc_egress_t egress;
+    onm_tc_aps_ingress_t ingress;
+    onm_tc_aps_egress_t egress;
 };
 
-struct onm_tc_interface_element {
-    onm_tc_interface_t interface;
-    onm_tc_interface_element_t* next;
+struct onm_tc_aps_interface_element {
+    onm_tc_aps_interface_t interface;
+    onm_tc_aps_interface_element_t* next;
 };
 
-struct onm_tc_attachment_points {
-    onm_tc_interface_element_t* interface;
+struct onm_tc_aps {
+    onm_tc_aps_interface_element_t* interface;
 };
 
 struct onm_tc_acls {
     onm_tc_acl_element_t* acl;
-    onm_tc_attachment_points_t attachment_points;
+    onm_tc_aps_t attachment_points;
 };
 
 struct onm_tc_acl_hash_element {
@@ -242,8 +243,8 @@ struct onm_tc_acl_hash_element {
     UT_hash_handle hh;
 };
 
-struct onm_tc_attachament_point_hash_element {
-    onm_tc_attachment_points_t attachment_point;
+struct onm_tc_aps_interface_hash_element {
+    onm_tc_aps_interface_t interface;
     UT_hash_handle hh;
 };
 

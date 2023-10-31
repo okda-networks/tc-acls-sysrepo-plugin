@@ -20,9 +20,12 @@ set(
     src/plugin/data/acls/acl.c
     src/plugin/data/acls/acl.h
     src/plugin/data/acls/acl/linked_list.h
+    src/plugin/data/attachment_points/attachment_points.c
+    src/plugin/data/attachment_points/attachment_points.h
+    src/plugin/data/attachment_points/linked_list.h
+
     src/plugin/data/acls/acl/aces.c
     src/plugin/data/acls/acl/aces.h
-
     src/plugin/startup/load.c
     src/plugin/startup/store.c
     src/plugin/running/load.c
