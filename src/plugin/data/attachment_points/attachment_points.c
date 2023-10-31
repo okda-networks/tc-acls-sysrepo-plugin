@@ -1,3 +1,16 @@
+/*
+ * okda-networks / onm-tc-acls
+ *
+ * This program is made available under the terms of the
+ * BSD 3-Clause license which is available at
+ * https://opensource.org/licenses/BSD-3-Clause
+ *
+ * SPDX-FileCopyrightText: 2023 Okda Networks
+ * SPDX-FileContributor: Sartura Ltd, Deutsche Telekom AG.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "libyang/log.h"
 #include "libyang/tree_data.h"
 #include "plugin/common.h"

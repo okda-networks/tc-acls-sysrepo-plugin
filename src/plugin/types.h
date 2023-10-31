@@ -31,8 +31,6 @@ typedef struct onm_tc_aps_interface onm_tc_aps_interface_t;
 typedef struct onm_tc_aps_interface_element onm_tc_aps_interface_element_t;
 typedef struct onm_tc_aps onm_tc_aps_t;
 
-
-
 typedef struct ietf_interface ietf_interface_t;
 typedef enum forwarding_action forwarding_action_t;
 typedef enum logging_action logging_action_t;
