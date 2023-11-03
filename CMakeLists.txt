@@ -12,18 +12,17 @@ set(PLUGIN 0 CACHE BOOL "Build a plugin")
 
 set(
     SOURCES
+
     src/utils/memory.h
     src/utils/memory.c
     src/plugin.c
     src/plugin/ly_tree.c
-
     src/plugin/data/acls/acl.c
     src/plugin/data/acls/acl.h
     src/plugin/data/acls/acl/linked_list.h
     src/plugin/data/attachment_points/attachment_points.c
     src/plugin/data/attachment_points/attachment_points.h
     src/plugin/data/attachment_points/linked_list.h
-
     src/plugin/data/acls/acl/aces.c
     src/plugin/data/acls/acl/aces.h
     src/plugin/startup/load.c
@@ -33,7 +32,6 @@ set(
     src/plugin/subscription/change.c
     src/plugin/subscription/operational.c
     src/plugin/subscription/rpc.c
-
     src/plugin/api/check.c
     src/plugin/api/load.c
     src/plugin/api/store.c
@@ -73,19 +71,11 @@ add_library(
     ${SOURCES}
 )
 
-# link plugin library
-target_link_libraries(
-    ${PLUGIN_LIBRARY_NAME}
-
-    ${SYSREPO_LIBRARIES}
-    ${LIBYANG_LIBRARIES}
-    ${SRPC_LIBRARIES}
-)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
 find_package(SYSREPO REQUIRED)
 find_package(LIBYANG REQUIRED)
 find_package(SRPC REQUIRED)
+find_package(NL REQUIRED)
 find_package(LIBSYSTEMD)
 find_package(AUGYANG)
 
@@ -100,6 +90,7 @@ if(PLUGIN)
         ${SYSREPO_LIBRARIES}
         ${LIBYANG_LIBRARIES}
         ${SRPC_LIBRARIES}
+        ${NL_LIBRARIES}
     )
 else()
     add_executable(
@@ -111,10 +102,10 @@ else()
 
         # link plugin library with executable
         ${PLUGIN_LIBRARY_NAME}
-
-        ${SYSREPO_LIBRARIES}
         ${LIBYANG_LIBRARIES}
+        ${SYSREPO_LIBRARIES}
         ${SRPC_LIBRARIES}
+        ${NL_LIBRARIES}
     )
 endif()
 
@@ -122,6 +113,7 @@ include_directories(
     ${SYSREPO_INCLUDE_DIRS}
     ${LIBYANG_INCLUDE_DIRS}
     ${SRPC_INCLUDE_DIRS}
+    ${NL_INCLUDE_DIRS}
 )
 
 # augyang support
