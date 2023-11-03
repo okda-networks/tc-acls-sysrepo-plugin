@@ -2,6 +2,7 @@
 #include "plugin/common.h"
 #include "plugin/data/acls/acl.h"
 #include "plugin/data/attachment_points/attachment_points.h"
+#include "plugin/api/store.h"
 #include <libyang/libyang.h>
 #include <sysrepo.h>
 #include <srpc.h>
@@ -22,18 +23,18 @@ int onm_tc_startup_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 
 	srpc_startup_store_t store_values[] = {
 		{
-			"/ietf-access-control-list:acls/attachment-points/interface[interface-id='%s']",
-			onm_tc_startup_store_attachment_points,
-		},
-		{
-			"/ietf-access-control-list:acls/acl[name='%s']",
+			"/ietf-access-control-list:acls/acl",
 			onm_tc_startup_store_acl,
 		},
+		{
+			"/ietf-access-control-list:acls/attachment-points",
+			onm_tc_startup_store_attachment_points,
+		},		
 	};
 
 	for (size_t i = 0; i < ARRAY_SIZE(store_values); i++) {
 		const srpc_startup_store_t *store = &store_values[i];
-
+		SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
 		error = store->cb(ctx, subtree->tree);
 		if (error != 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
@@ -41,6 +42,8 @@ int onm_tc_startup_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
+	// apply to netlink through api store fuction.
+	acls_store_api(ctx);
 	goto out;
 
 error_out:
@@ -49,6 +52,17 @@ error_out:
 out:
 	if (subtree) {
 		sr_release_data(subtree);
+	}
+
+	if(ctx->attachment_points_interface_hash_element)
+	{
+		//TODO define hash free function
+		//onm_tc_acl_hash_free(&ctx->attachment_points_interface_hash_element);
+	}
+	if(ctx->acl_hash_element)
+	{
+		//TODO define hash free function
+		//onm_tc_acl_hash_free(&ctx->attachment_points_interface_hash_element);
 	}
 
 	return error;
@@ -75,9 +89,8 @@ static int onm_tc_startup_store_attachment_points(void *priv, const struct lyd_n
 
     onm_tc_aps_interface_hash_print_debug(aps_interface_hash);
 
+	ctx->attachment_points_interface_hash_element = aps_interface_hash;
     // check startup data
-
-    // apply aps_interface_hash and acl_hash to netlink here
 
     goto out;
 
@@ -85,12 +98,6 @@ error_out:
     error = -1;
 
 out:
-    if (aps_interface_hash) {
-        //TODO remove return error and define hash free function
-		//onm_tc_acl_hash_free(&acl_hash);
-		//return error;
-    }
-
 	return error;
 }
 
@@ -115,20 +122,18 @@ static int onm_tc_startup_store_acl(void *priv, const struct lyd_node *parent_co
 
     // check startup data
 
-    // if needed, apply acl_hash to netlink here
-
+    // apply acl_hash to netlink here
+	// since there is no way for tc to defind a tc block without assigning it to an interfaces,
+	// we pass acl_hash to context so that it gets processed after processing the attachment points,
+	// at that point we get both acls and attachment_points hash tables we get a list of interfaces and their acl blocks,
+	// this allows us to define netling tc (acl_hash) blocks to the interfaces (aps_interface_hash).
+	ctx->acl_hash_element = acl_hash;
     goto out;
 
 error_out:
     error = -1;
 
 out:
-    if (acl_hash) {
-        //TODO remove return error and define hash free function
-		//onm_tc_acl_hash_free(&acl_hash);
-		//return error;
-    }
-
 	return error;
 }
 

@@ -34,9 +34,9 @@ set(
     src/plugin/subscription/operational.c
     src/plugin/subscription/rpc.c
 
-    src/plugin/api/acls/check.c
-    src/plugin/api/acls/load.c
-    src/plugin/api/acls/store.c
+    src/plugin/api/check.c
+    src/plugin/api/load.c
+    src/plugin/api/store.c
     src/plugin/api/acls/change.c
     src/plugin/api/acls/attachment-points/check.c
     src/plugin/api/acls/attachment-points/load.c
