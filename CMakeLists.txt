@@ -32,6 +32,7 @@ set(
     src/plugin/subscription/change.c
     src/plugin/subscription/operational.c
     src/plugin/subscription/rpc.c
+    src/plugin/api/tcnl.c
     src/plugin/api/check.c
     src/plugin/api/load.c
     src/plugin/api/store.c
