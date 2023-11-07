@@ -57,15 +57,14 @@ int acls_store_api(onm_tc_ctx_t *ctx)
             int if_idx = rtnl_link_get_ifindex(link);
             LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
             {
-
                 ingress_acl_name = acl_set_iter->acl_set.name;
-                
-                printf("ACL name %s\n",ingress_acl_name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s to be applied on interface %s\n",ingress_acl_name,interface_id);
+
                 // TODO use safe sysrepo call
                 tcnl_modify_ingress_qdisc_shared_block(if_idx,djb2_hash(ingress_acl_name));
 
                 // TODO 
-                // check ifshared block already exists:
+                // check if shared block already exists:
                 // if yes, then just apply the same acl name to interface_id.
                 // if no, get ACL content and apply it on interface_name via netlink.
                 
