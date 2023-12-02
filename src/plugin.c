@@ -206,7 +206,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	// subscribe every module change
 	for (size_t i = 0; i < ARRAY_SIZE(module_changes); i++) {
 		const srpc_module_change_t *change = &module_changes[i];
-
+		SRPLG_LOG_INF(PLUGIN_NAME, "Subscribing module change callback %s", change->path);
 		// in case of work on a specific callback set it to NULL
 		if (change->cb) {
 			error = sr_module_change_subscribe(running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
