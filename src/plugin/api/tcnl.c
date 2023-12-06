@@ -210,13 +210,10 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
     {   
         if (acl_name2id(iter->acl.name)==acl_id)
         {
-            printf("ACL matched %s ID %d\n", iter->acl.name,acl_id);
             block_index = acl_id;
 
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
-            {
-                printf("New ACE, ACE name %s: IPv4 %d IPv6 %d EHT %d\n",ace_iter->ace.name,sizeof(ace_iter->ace.matches.ipv4),sizeof(ace_iter->ace.matches.ipv6),sizeof(ace_iter->ace.matches.eth));
-                
+            {   
                 if(ace_iter->ace.matches.eth.source_mac_address)
                 {
                     SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Source mac address = %s",ace_iter->ace.name, ace_iter->ace.matches.eth.source_mac_address);

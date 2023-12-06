@@ -241,18 +241,14 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
 
                 // set match data
                 if(eth_src_mac_addr_node){
-                    printf("a %s\n",new_ace_element->ace.name);
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr(&new_ace_element, lyd_get_value(eth_src_mac_addr_node)), error_out);
                     eth_src_mac_addr_node = NULL;
                 }
                 if(eth_dst_mac_addr_node){
-                    printf("b %s\n",new_ace_element->ace.name);
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr(&new_ace_element, lyd_get_value(eth_dst_mac_addr_node)), error_out);
                     eth_dst_mac_addr_node = NULL;
-                    //printf("h %s\n",new_ace_element->ace.matches.eth.destination_mac_address);
                 }
                 if(ipv4_src_network_node){
-                    printf("c %s\n",new_ace_element->ace.name);
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv4_src_network(&new_ace_element, lyd_get_value(ipv4_src_network_node)), error_out);
                     ipv4_src_network_node = NULL;
                 }
