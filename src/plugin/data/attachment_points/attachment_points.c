@@ -177,22 +177,26 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
         //set data
         //TODO set netlink TC configuration
         if (aps_interface_id_node){
-            SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_interface_id(&new_element, lyd_get_value(aps_interface_id_node)), error_out);  
+            SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_interface_id(&new_element, lyd_get_value(aps_interface_id_node)), error_out);
+            aps_interface_id_node = NULL;
         }
 
         // ingress container node
         if (aps_ingress_interface_container_node){
             aps_acl_sets_ingress_container_node = srpc_ly_tree_get_child_container(aps_ingress_interface_container_node, "acl-sets");
+            aps_ingress_interface_container_node = NULL;
 
             if (aps_acl_sets_ingress_container_node){
                 aps_ingress_acl_set_list_node = srpc_ly_tree_get_child_list(aps_acl_sets_ingress_container_node, "acl-set");
                 ONM_TC_APS_ACL_SET_NEW(new_element->interface.ingress.acl_sets.acl_set);
+                aps_acl_sets_ingress_container_node = NULL;
 
                 while(aps_ingress_acl_set_list_node){
                     new_ingress_acl_set_element = onm_tc_aps_acl_set_hash_element_new();
                     SRPC_SAFE_CALL_PTR(aps_acl_name, srpc_ly_tree_get_child_leaf(aps_ingress_acl_set_list_node, "name"), error_out);
                     if (aps_acl_name){
                         SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_ingress_acl_set_element, lyd_get_value(aps_acl_name)), error_out);
+                        aps_acl_name = NULL;
                     }
                     // add ingress acl_set list to main interfaces list
                     ONM_TC_APS_ACL_SET_ADD_ELEMENT(new_element->interface.ingress.acl_sets.acl_set, new_ingress_acl_set_element);
@@ -216,6 +220,7 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
                     SRPC_SAFE_CALL_PTR(aps_acl_name, srpc_ly_tree_get_child_leaf(aps_egress_acl_set_list_node, "name"), error_out);                 
                     if (aps_acl_name){
                         SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_egress_acl_set_element, lyd_get_value(aps_acl_name)), error_out);
+                        aps_acl_name = NULL;
                     }
 
                     ONM_TC_APS_ACL_SET_ADD_ELEMENT(new_element->interface.egress.acl_sets.acl_set, new_egress_acl_set_element);

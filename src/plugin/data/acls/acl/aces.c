@@ -5,12 +5,7 @@
 
 onm_tc_ace_element_t* onm_tc_ace_element_new(void)
 {
-    onm_tc_ace_element_t* new_element = NULL;
-
-    new_element = malloc(sizeof(onm_tc_ace_element_t));
-    new_element->ace = (onm_tc_ace_t) { 0 };
-
-    return new_element;
+    return NULL;
 }
 
 onm_tc_ace_element_t* onm_tc_ace_hash_element_new(void)

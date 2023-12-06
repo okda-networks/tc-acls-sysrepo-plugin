@@ -7,14 +7,11 @@
 #include <netlink/route/qdisc.h>
 #include <netlink/route/classifier.h>
 #include <netlink/route/rtnl.h>
-
 #include <netlink/route/tc.h>
-
 
 int acls_store_api(onm_tc_ctx_t *ctx)
 {
     int error = 0;
-    
     char* interface_id = NULL;
     char* ingress_acl_name = NULL;
     char* egress_acl_name = NULL;
@@ -47,7 +44,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
             LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
             {
                 ingress_acl_name = acl_set_iter->acl_set.name;
-                unsigned int acl_id = djb2_hash(ingress_acl_name);
+                unsigned int acl_id = acl_name2id(ingress_acl_name);
 
                 // Add interface qdisc with shared tc block for the acl name
                 // TODO use safe sysrepo call
@@ -55,15 +52,18 @@ int acls_store_api(onm_tc_ctx_t *ctx)
                 SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s is set to interface %s ingress",ingress_acl_name,interface_id);
 
                 // check if shared block already exists:
-                if (tcnl_tc_block_exists(acl_id) == 1)
+                if (tcnl_tc_block_exists(nl_ctx,acl_id) == 1)
                 {
-                    // if yes, then just apply the same acl name to interface_id.
+                    // if yes, no further action needed.
+                    // TODO evalulate if we need to iterate through acl aces and compair netlink config vs sysrepo config
                     SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d exists, no further action is needed",ingress_acl_name,acl_id);
                 }
                 else
                 {
-                    // if no, get ACL content and apply it on interface_name via netlink.
+                    // if no, get ACL content and apply it on netlink
                     SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
+                    tcnl_filter_flower_modify(acl_id,ctx->acl_hash_element);
+                    
                 }
                 
             }

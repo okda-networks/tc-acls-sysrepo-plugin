@@ -11,8 +11,10 @@
 #include <netlink/route/rtnl.h>
 #include <srpc.h>
 #include "plugin/common.h"
+#include "uthash.h"
+#include "utlist.h"
 
-unsigned int djb2_hash(const char *str) {
+unsigned int acl_name2id(const char *str) {
     unsigned int hash = 5381; // Initial hash value
     int c;
     while ((c = *str++)) {
@@ -66,7 +68,7 @@ int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, 
 
     // Send netlink message
     SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: applying acl %d for interface ID %d",tca_block_id, if_idx);
-    ret = nl_sendto(nl_ctx->socket, &req.nlh, req.nlh.nlmsg_len);
+    ret = nl_sendto(nl_ctx->socket, &req, req.nlh.nlmsg_len);
     if (ret == -1) {
         SRPLG_LOG_ERR(PLUGIN_NAME, "NETLINK: failed to apply acl %d for interface ID %d",tca_block_id, if_idx);
         return -1;
@@ -76,7 +78,7 @@ int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, 
 
 
 // TODO experimential
-int tcnl_tc_block_exists(unsigned int block_index)
+int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
 {
     int sockfd,ret;
     struct sockaddr_nl src_addr, dest_addr;
@@ -111,7 +113,7 @@ int tcnl_tc_block_exists(unsigned int block_index)
     req.tcm.tcm_parent = TC_H_UNSPEC;
 	req.tcm.tcm_family = AF_UNSPEC;
     req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
-	req.tcm.tcm_block_index = block_index;
+	req.tcm.tcm_block_index = tca_block_id;
 
     // Prepare the iov and msg structures for sending
     int status;
@@ -130,10 +132,11 @@ int tcnl_tc_block_exists(unsigned int block_index)
 
     // Send the Netlink message
     ret = sendmsg(sockfd, &msg_send, 0);
+    //ret = nl_sendto(nl_ctx->socket, &req, req.nlh.nlmsg_len);
     if (ret == -1) {
         perror("Error sending Netlink message");
     }
-
+    SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: request sent, get filter of tca block %d, return %d",tca_block_id,ret);
 
     // Receive the response
     memset(&msg_recv, 0, sizeof(msg_recv));
@@ -175,4 +178,93 @@ int tcnl_tc_block_exists(unsigned int block_index)
     close(sockfd);
 
     return ret;
+}
+
+
+int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl_hash){
+    int sockfd,ret;
+    struct sockaddr_nl src_addr, dest_addr;
+
+    struct nlmsghdr *nlh_recv;
+    struct iovec iov_send, iov_recv;
+    struct msghdr msg_send, msg_recv;
+    __u32 protocol, prio, block_index;
+    struct {
+		struct nlmsghdr	nlh;
+		struct tcmsg		tcm;
+		char			buf[MAX_MSG];
+	} req = {
+		.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
+		.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_REQUEST,
+		.nlh.nlmsg_type = RTM_NEWTFILTER,
+		.tcm.tcm_family = AF_UNSPEC,
+	};
+    
+
+    const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
+    onm_tc_ace_element_t* ace_iter = NULL;
+
+    
+
+    HASH_ITER(hh, acl_hash, iter, tmp)
+    {   
+        if (acl_name2id(iter->acl.name)==acl_id)
+        {
+            printf("ACL matched %s ID %d\n", iter->acl.name,acl_id);
+            block_index = acl_id;
+
+            LL_FOREACH(iter->acl.aces.ace, ace_iter)
+            {
+                printf("New ACE, ACE name %s: IPv4 %d IPv6 %d EHT %d\n",ace_iter->ace.name,sizeof(ace_iter->ace.matches.ipv4),sizeof(ace_iter->ace.matches.ipv6),sizeof(ace_iter->ace.matches.eth));
+                
+                if(ace_iter->ace.matches.eth.source_mac_address)
+                {
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Source mac address = %s",ace_iter->ace.name, ace_iter->ace.matches.eth.source_mac_address);
+                }
+                if(ace_iter->ace.matches.eth.destination_mac_address)
+                {
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Destination mac address = %s",ace_iter->ace.name, ace_iter->ace.matches.eth.destination_mac_address);
+                }
+                if(ace_iter->ace.matches.ipv4.source_ipv4_network)
+                {
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Source IPv4 Network = %s",ace_iter->ace.name, ace_iter->ace.matches.ipv4.source_ipv4_network);
+                }
+                if(ace_iter->ace.matches.ipv4.destination_ipv4_network)
+                {
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Destination IPv4 Network = %s",ace_iter->ace.name, ace_iter->ace.matches.ipv4.destination_ipv4_network);
+                }
+                
+            }
+        }
+        /*
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tName = %s", iter->acl.name);
+        if(iter->acl.type){
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tType = %s", iter->acl.type);
+        }
+        
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tACEs:");
+        LL_FOREACH(iter->acl.aces.ace, ace_iter)
+        {
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s", ace_iter->ace.name);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
+            if(ace_iter->ace.matches.ipv4.source_ipv4_network){
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source-Network = %s", ace_iter->ace.matches.ipv4.source_ipv4_network);
+            }
+            if(ace_iter->ace.matches.ipv4.destination_ipv4_network){
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination-Network = %s", ace_iter->ace.matches.ipv4.destination_ipv4_network);
+            }
+            if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
+                if(ace_iter->ace.actions.forwarding){
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %s", ace_iter->ace.actions.forwarding);
+                }
+                if(ace_iter->ace.actions.logging){
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %s", ace_iter->ace.actions.logging);
+                }
+            }
+        }
+        */
+    }
 }
