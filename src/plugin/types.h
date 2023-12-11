@@ -75,7 +75,8 @@ struct onm_tc_eth {
     char * destination_mac_address_mask;
     char * source_mac_address;
     char * source_mac_address_mask;
-    unsigned short ethertype;
+    uint16_t ethertype;
+    uint8_t _is_set;
 };
 
 struct onm_tc_ipv4 {
@@ -90,6 +91,7 @@ struct onm_tc_ipv4 {
     uint16_t identification;
     char * destination_ipv4_network;
     char * source_ipv4_network;
+    uint8_t _is_set;
 };
 
 struct onm_tc_ipv6 {
@@ -101,6 +103,7 @@ struct onm_tc_ipv6 {
     char * destination_ipv6_network;
     char * source_ipv6_network;
     uint32_t flow_label;
+    uint8_t _is_set;
 };
 
 struct onm_tc_source_port {
@@ -128,6 +131,7 @@ struct onm_tc_tcp {
     void * options;
     onm_tc_source_port_t source_port;
     onm_tc_destination_port_t destination_port;
+    uint8_t _is_set;
 };
 
 
@@ -135,12 +139,14 @@ struct onm_tc_udp {
     uint16_t length;
     onm_tc_source_port_t source_port;
     onm_tc_destination_port_t destination_port;
+    uint8_t _is_set;
 };
 
 struct onm_tc_icmp {
     uint8_t type;
     uint8_t code;
     void * rest_of_header;
+    uint8_t _is_set;
 };
 
 struct onm_tc_matches {

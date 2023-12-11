@@ -71,7 +71,22 @@ int onm_tc_ace_hash_element_set_match_src_mac_addr(onm_tc_ace_element_t** el, co
     }
     if (mac_addr) {
         (*el)->ace.matches.eth.source_mac_address = xstrdup(mac_addr);
+        (*el)->ace.matches.eth._is_set = 1;
         return (*el)->ace.matches.eth.source_mac_address == NULL;
+    }
+
+    return 0;
+}
+
+int onm_tc_ace_hash_element_set_match_src_mac_addr_mask(onm_tc_ace_element_t** el, const char* mask)
+{
+    if ((*el)->ace.matches.eth.source_mac_address_mask) {
+        FREE_SAFE((*el)->ace.matches.eth.source_mac_address_mask);
+    }
+    if (mask) {
+        (*el)->ace.matches.eth.source_mac_address_mask = xstrdup(mask);
+        (*el)->ace.matches.eth._is_set = 1;
+        return (*el)->ace.matches.eth.source_mac_address_mask == NULL;
     }
 
     return 0;
@@ -84,8 +99,28 @@ int onm_tc_ace_hash_element_set_match_dst_mac_addr(onm_tc_ace_element_t** el, co
     }
     if (mac_addr) {
         (*el)->ace.matches.eth.destination_mac_address = xstrdup(mac_addr);
+        (*el)->ace.matches.eth._is_set = 1;
         return (*el)->ace.matches.eth.destination_mac_address == NULL;
     }
+    return 0;
+}
+
+int onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(onm_tc_ace_element_t** el, const char* mask)
+{
+    if ((*el)->ace.matches.eth.destination_mac_address_mask) {
+        FREE_SAFE((*el)->ace.matches.eth.destination_mac_address_mask);
+    }
+    if (mask) {
+        (*el)->ace.matches.eth.destination_mac_address_mask = xstrdup(mask);
+        (*el)->ace.matches.eth._is_set = 1;
+        return (*el)->ace.matches.eth.destination_mac_address_mask == NULL;
+    }
+    return 0;
+}
+
+int onm_tc_ace_hash_element_set_match_eth_ethertype(onm_tc_ace_element_t** el, uint16_t ethertype)
+{
+    (*el)->ace.matches.eth.ethertype = ethertype;
     return 0;
 }
 
@@ -96,6 +131,7 @@ int onm_tc_ace_hash_element_set_match_ipv4_src_network(onm_tc_ace_element_t** el
     }
     if (network_addr) {
         (*el)->ace.matches.ipv4.source_ipv4_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv4._is_set = 1;
         return (*el)->ace.matches.ipv4.source_ipv4_network == NULL;
     }
     return 0;
@@ -108,6 +144,7 @@ int onm_tc_ace_hash_element_set_match_ipv4_dst_network(onm_tc_ace_element_t** el
     }
     if (network_addr) {
         (*el)->ace.matches.ipv4.destination_ipv4_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv4._is_set = 1;
         return (*el)->ace.matches.ipv4.destination_ipv4_network == NULL;
     }
     return 0;
@@ -120,6 +157,7 @@ int onm_tc_ace_hash_element_set_match_ipv6_src_network(onm_tc_ace_element_t** el
     }
     if (network_addr) {
         (*el)->ace.matches.ipv6.source_ipv6_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv6._is_set = 1;
         return (*el)->ace.matches.ipv6.source_ipv6_network == NULL;
     }
     return 0;
@@ -132,6 +170,7 @@ int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el
     }
     if (network_addr) {
         (*el)->ace.matches.ipv6.destination_ipv6_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv6._is_set = 1;
         return (*el)->ace.matches.ipv6.destination_ipv6_network == NULL;
     }
     return 0;
@@ -141,6 +180,7 @@ int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el
 int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, uint16_t src_port)
 {
     (*el)->ace.matches.tcp.source_port.port = src_port;
+    (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
 
@@ -148,6 +188,7 @@ int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, ui
 int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port)
 {
     (*el)->ace.matches.tcp.destination_port.port= dst_port;
+    (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
 
@@ -155,6 +196,7 @@ int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, ui
 int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, uint16_t src_port)
 {
     (*el)->ace.matches.udp.source_port.port = src_port;
+    (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
 
@@ -162,12 +204,14 @@ int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, ui
 int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port)
 {
     (*el)->ace.matches.udp.destination_port.port = dst_port;
+    (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
 
 int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8_t icmp_code)
 {
     (*el)->ace.matches.icmp.code = icmp_code;
+    (*el)->ace.matches.icmp._is_set = 1;
     return 0;
 }
 

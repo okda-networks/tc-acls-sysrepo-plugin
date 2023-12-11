@@ -13,6 +13,10 @@
 #include "plugin/common.h"
 #include "uthash.h"
 #include "utlist.h"
+#include "utils/memory.h"
+#include <errno.h>
+#include <linux/pkt_cls.h>
+#include "plugin/types.h"
 
 unsigned int acl_name2id(const char *str) {
     unsigned int hash = 5381; // Initial hash value
@@ -45,6 +49,221 @@ int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,int ale
 int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data)
 {
 	return addattr_l(n, maxlen, type, &data, sizeof(__u32));
+}
+int addattr16(struct nlmsghdr *n, int maxlen, int type, __u16 data)
+{
+	return addattr_l(n, maxlen, type, &data, sizeof(__u16));
+}
+
+int addattr8(struct nlmsghdr *n, int maxlen, int type, __u8 data)
+{
+	return addattr_l(n, maxlen, type, &data, sizeof(__u8));
+}
+
+void print_netlink_message(struct nlmsghdr *nlmsg) {
+    printf("Received Netlink Message:\n");
+    printf("  Type: %u\n", nlmsg->nlmsg_type);
+    printf("  Flags: %u\n", nlmsg->nlmsg_flags);
+    printf("  Sequence Number: %u\n", nlmsg->nlmsg_seq);
+    printf("  PID: %u\n", nlmsg->nlmsg_pid);
+    printf("  Length: %d\n",nlmsg->nlmsg_len);
+
+
+    // Add more attributes to print as needed...
+    if (nlmsg->nlmsg_type != RTM_NEWTFILTER && //44
+	    nlmsg->nlmsg_type != RTM_GETTFILTER &&
+	    nlmsg->nlmsg_type != RTM_DELTFILTER &&
+	    nlmsg->nlmsg_type != RTM_NEWCHAIN &&
+	    nlmsg->nlmsg_type != RTM_GETCHAIN &&
+	    nlmsg->nlmsg_type != RTM_DELCHAIN) {
+		printf("Response is not a tc filter type %d\n", nlmsg->nlmsg_type);
+	}
+    else if (nlmsg->nlmsg_type == NLMSG_ERROR) {
+				struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nlmsg);
+				int error = err->error;
+                printf("error %s\n", nl_geterror(error));
+                
+    }
+    else {
+        printf("Response is a tc filter %d\n", nlmsg->nlmsg_type);
+    }
+
+
+}
+
+int get_u16(__u16 *val, const char *arg, int base)
+{
+	unsigned long res;
+	char *ptr;
+
+	if (!arg || !*arg)
+		return -1;
+	res = strtoul(arg, &ptr, base);
+
+	/* empty string or trailing non-digits */
+	if (!ptr || ptr == arg || *ptr)
+		return -1;
+
+	/* overflow */
+	if (res == ULONG_MAX && errno == ERANGE)
+		return -1;
+
+	if (res > 0xFFFFUL)
+		return -1;
+
+	*val = res;
+	return 0;
+}
+
+int get_be16(__be16 *val, const char *arg, int base)
+{
+	__u16 v;
+	int ret = get_u16(&v, arg, base);
+
+	if (!ret)
+		*val = htons(v);
+
+	return ret;
+}
+
+int get_u32(__u32 *val, const char *arg, int base)
+{
+	unsigned long res;
+	char *ptr;
+
+	if (!arg || !*arg)
+		return -1;
+	res = strtoul(arg, &ptr, base);
+
+	/* empty string or trailing non-digits */
+	if (!ptr || ptr == arg || *ptr)
+		return -1;
+
+	/* overflow */
+	if (res == ULONG_MAX && errno == ERANGE)
+		return -1;
+
+	/* in case UL > 32 bits */
+	if (res > 0xFFFFFFFFUL)
+		return -1;
+
+	*val = res;
+	return 0;
+}
+
+int proto_a2n(unsigned short *id, const char *buf, const struct proto *proto_tb, size_t tb_len)
+{
+	int i;
+	for (i = 0; i < tb_len; i++) {
+		if (strcasecmp(proto_tb[i].name, buf) == 0) {
+			*id = htons(proto_tb[i].id);
+			return 0;
+		}
+	}
+	if (get_be16(id, buf, 0))
+		return -1;
+
+	return 0;
+}
+
+int ll_proto_a2n(unsigned short *id, const char *buf)
+{
+	size_t len_tb = ARRAY_SIZE(llproto_names);
+	return proto_a2n(id, buf, llproto_names, len_tb);
+}
+
+void ipv4_prefix_to_netmask(struct in_addr *netmask, int prefix_length) {
+    // Check for valid prefix length, TODO error handling
+    if (prefix_length > 32) {
+        return;
+        }
+    netmask->s_addr = htonl(prefix_length ? (0xFFFFFFFF << (32 - prefix_length)) : 0);
+}
+
+void ipv6_prefix_to_netmask(struct in6_addr *netmask, uint8_t prefix_length) {
+    // TODO error handling
+    // Initialize netmask to zero
+    memset(netmask, 0, sizeof(*netmask));
+
+    for (int i = 0; i < 16; i++) {
+        if (prefix_length >= 8) {
+            netmask->s6_addr[i] = 0xFF;
+            prefix_length -= 8;
+        } 
+        else
+        {
+            netmask->s6_addr[i] |= (0xFF >> (8 - prefix_length));
+            break;
+        }
+    }
+}
+
+static int __flower_parse_ip_addr(char *str, int family,
+				  int addr4_type, int mask4_type,
+				  int addr6_type, int mask6_type,
+				  struct nlmsghdr *nlh)
+{
+    int prefix_length;
+    char ip_str[INET6_ADDRSTRLEN];
+
+    if (sscanf(str, "%[^/]/%d", ip_str, &prefix_length) != 2) {
+        SRPLG_LOG_ERR(PLUGIN_NAME, "Invalid ADDR/CIDR format: %s, failed to set network address",str);
+        return EXIT_FAILURE;
+    }
+
+    // ipv4
+    if (family == AF_INET)
+    {
+        struct in_addr addr,netmask;
+        if (inet_pton(AF_INET, ip_str, &addr) <= 0) {
+            SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to parse IPv4 Network Address: %s",ip_str);
+            return EXIT_FAILURE;
+        }
+        ipv4_prefix_to_netmask(&netmask,prefix_length);
+
+        addattr_l(nlh, MAX_MSG, family == AF_INET ? addr4_type : addr6_type,
+                &addr, sizeof(struct in_addr));
+        addattr_l(nlh, MAX_MSG, family == AF_INET ? mask4_type : mask6_type,
+                &netmask, sizeof(struct in_addr));
+    }
+    // ipv6
+    else if (family == AF_INET6)
+    {
+        struct in6_addr addr6, netmask;
+        
+        if (inet_pton(AF_INET6, ip_str, &addr6) <= 0) {
+            perror("inet_pton");
+            SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to parse IPv6 Network Address: %s",ip_str);
+            return EXIT_FAILURE;
+        }
+        ipv6_prefix_to_netmask(&netmask,prefix_length);
+        addattr_l(nlh, MAX_MSG, family == AF_INET ? addr4_type : addr6_type,
+                    &addr6, sizeof(struct in6_addr));
+        addattr_l(nlh, MAX_MSG, family == AF_INET ? mask4_type : mask6_type,
+                    &netmask, sizeof(struct in6_addr));
+
+    }
+	return 0;
+}
+
+
+static int flower_parse_ip_addr(char *str, __be16 eth_type,
+				int addr4_type, int mask4_type,
+				int addr6_type, int mask6_type,
+				struct nlmsghdr *n)
+{
+	int family;
+	if (eth_type == htons(ETH_P_IP)) {
+		family = AF_INET;
+	} else if (eth_type == htons(ETH_P_IPV6)) {
+		family = AF_INET6;
+	} else if (!eth_type) {
+		family = AF_UNSPEC;
+	} else {
+		return -1;
+	}
+	return __flower_parse_ip_addr(str, family, addr4_type, mask4_type,
+				      addr6_type, mask6_type, n);
 }
 
 // add or update ingress qdisc block id for a given interface.
@@ -82,7 +301,6 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
 {
     int sockfd,ret;
     struct sockaddr_nl src_addr, dest_addr;
-
     struct nlmsghdr *nlh_recv;
     struct iovec iov_send, iov_recv;
     struct msghdr msg_send, msg_recv;
@@ -169,7 +387,7 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
         ret = -1; 
     }
     else {
-        //printf("Response is not a tc filter %d\n", nlh_recv->nlmsg_type);
+        printf("[FIX ME] Response is not a tc filter %d\n", nlh_recv->nlmsg_type);
         ret = -1;
     }
 
@@ -180,6 +398,114 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
     return ret;
 }
 
+/// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
+static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
+{
+    struct rtattr *tail;
+    struct tcmsg *tcm = NLMSG_DATA(nlh);
+    int ret;
+
+    tail = (struct rtattr *) (((void *) nlh) + NLMSG_ALIGN(nlh->nlmsg_len));
+    addattr_l(nlh, MAX_MSG, TCA_OPTIONS, NULL, 0);
+
+    //addattr32(nlh, MAX_MSG, TCA_FLOWER_FLAGS, TCA_CLS_FLAGS_SKIP_HW);
+
+    __be16 eth_type = TC_H_MIN(tcm->tcm_info);
+    if (eth_type == htons(ETH_P_8021Q))
+    {
+
+    }
+    else if (eth_type != htons(ETH_P_ALL)) 
+    {
+        ret = addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_ETH_TYPE, eth_type);
+        if (ret)
+            SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s failed to set EtherType",ace->ace.name);
+    }
+
+    if(ace->ace.matches.eth.source_mac_address)
+    {
+        SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Source mac address = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address);
+    }
+    if(ace->ace.matches.eth.destination_mac_address)
+    {
+        SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Destination mac address = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address);
+    }
+    if(ace->ace.matches.ipv4.source_ipv4_network)
+    {
+        SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_ipv4_network);
+        flower_parse_ip_addr(ace->ace.matches.ipv4.source_ipv4_network, eth_type,
+						   TCA_FLOWER_KEY_IPV4_SRC,
+						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
+						   TCA_FLOWER_KEY_IPV6_SRC,
+						   TCA_FLOWER_KEY_IPV6_SRC_MASK,
+						   nlh);
+    }
+    if(ace->ace.matches.ipv4.destination_ipv4_network)
+    {
+        SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Destination IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.destination_ipv4_network);
+        //flower_parse_ipv4_addr(ace->ace.matches.ipv4.destination_ipv4_network,nlh);
+        flower_parse_ip_addr(ace->ace.matches.ipv4.destination_ipv4_network, eth_type,
+						   TCA_FLOWER_KEY_IPV4_DST,
+						   TCA_FLOWER_KEY_IPV4_DST_MASK,
+						   TCA_FLOWER_KEY_IPV6_DST,
+						   TCA_FLOWER_KEY_IPV6_DST_MASK,
+						   nlh);
+    }
+    if(ace->ace.matches.ipv6.source_ipv6_network)
+    {
+        SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Source IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.source_ipv6_network);
+        flower_parse_ip_addr(ace->ace.matches.ipv6.source_ipv6_network, eth_type,
+						   TCA_FLOWER_KEY_IPV4_SRC,
+						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
+						   TCA_FLOWER_KEY_IPV6_SRC,
+						   TCA_FLOWER_KEY_IPV6_SRC_MASK,
+						   nlh);
+    }
+    if(ace->ace.matches.ipv6.destination_ipv6_network)
+    {
+        SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_ipv6_network);
+        flower_parse_ip_addr(ace->ace.matches.ipv6.destination_ipv6_network, eth_type,
+						   TCA_FLOWER_KEY_IPV4_DST,
+						   TCA_FLOWER_KEY_IPV4_DST_MASK,
+						   TCA_FLOWER_KEY_IPV6_DST,
+						   TCA_FLOWER_KEY_IPV6_DST_MASK,
+						   nlh);
+    }
+    if (ace->ace.matches.tcp.source_port.port != 0)
+    {
+        __u8 ip_proto = IPPROTO_TCP;
+        __be16 port = htons(ace->ace.matches.tcp.source_port.port);
+
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_SRC, port);
+    }
+    if (ace->ace.matches.tcp.destination_port.port != 0)
+    {
+        __u8 ip_proto = IPPROTO_TCP;
+        __be16 port = htons(ace->ace.matches.tcp.destination_port.port);
+        
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_DST, port);
+    }
+    if (ace->ace.matches.udp.source_port.port != 0)
+    {
+        __u8 ip_proto = IPPROTO_UDP;
+        __be16 port = htons(ace->ace.matches.udp.source_port.port);
+        
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_SRC, port);
+    }
+    if (ace->ace.matches.udp.destination_port.port != 0)
+    {
+        __u8 ip_proto = IPPROTO_UDP;
+        __be16 port = htons(ace->ace.matches.udp.destination_port.port);
+        
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_DST, port);
+    }
+
+    tail->rta_len = (((void *)nlh)+nlh->nlmsg_len) - (void *)tail;
+}
 
 int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl_hash){
     int sockfd,ret;
@@ -188,7 +514,6 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
     struct nlmsghdr *nlh_recv;
     struct iovec iov_send, iov_recv;
     struct msghdr msg_send, msg_recv;
-    __u32 protocol, prio, block_index;
     struct {
 		struct nlmsghdr	nlh;
 		struct tcmsg		tcm;
@@ -203,33 +528,140 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
 
     const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
-
-    
-
     HASH_ITER(hh, acl_hash, iter, tmp)
     {   
         if (acl_name2id(iter->acl.name)==acl_id)
         {
+            __u32 prio, block_index,tcm_handle;
+            __u16 proto_id;
             block_index = acl_id;
+            prio = 0;
+            tcm_handle = 1;
 
+            // set priority and get the appropriate ip protocol version
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
-            {   
-                if(ace_iter->ace.matches.eth.source_mac_address)
+            {
+                prio += 10;
+                char *proto_buf = NULL;
+                if(ace_iter->ace.matches.ipv6._is_set == 1)
+                    proto_buf = "ipv6";
+                else if (ace_iter->ace.matches.ipv4._is_set == 1)
+                    proto_buf = "ipv4";
+                else if (ace_iter->ace.matches.icmp._is_set == 1)
                 {
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Source mac address = %s",ace_iter->ace.name, ace_iter->ace.matches.eth.source_mac_address);
+                    //ipv4 or ipv6 ? look at acl type
                 }
-                if(ace_iter->ace.matches.eth.destination_mac_address)
+                else if (ace_iter->ace.matches.tcp._is_set == 1)
                 {
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Destination mac address = %s",ace_iter->ace.name, ace_iter->ace.matches.eth.destination_mac_address);
+                    //ipv4 or ipv6 ? TODO look at acl type
+                    proto_buf = "ipv4";
                 }
-                if(ace_iter->ace.matches.ipv4.source_ipv4_network)
+                else if (ace_iter->ace.matches.udp._is_set == 1)
                 {
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Source IPv4 Network = %s",ace_iter->ace.name, ace_iter->ace.matches.ipv4.source_ipv4_network);
+                    //ipv4 or ipv6 ? TODO look at acl type
+                    proto_buf = "ipv4";
                 }
-                if(ace_iter->ace.matches.ipv4.destination_ipv4_network)
+                
+                SRPLG_LOG_DBG(PLUGIN_NAME, "ACE Name %s Protocol Buffer = %s",ace_iter->ace.name,proto_buf);
+                req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
+	            req.tcm.tcm_block_index = block_index;
+                req.tcm.tcm_handle = tcm_handle;
+                // set ip protocol version
+                if (proto_buf)
                 {
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |%s---- Destination IPv4 Network = %s",ace_iter->ace.name, ace_iter->ace.matches.ipv4.destination_ipv4_network);
+                    if (ll_proto_a2n(&proto_id, proto_buf))
+                    {
+                        SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s failed to set specified EtherType, setting it to ALL",ace_iter->ace.name);
+                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, htons(ETH_P_ALL));
+                    }
+                    else {
+                        SRPLG_LOG_DBG(PLUGIN_NAME, "ACE Name %s protocol is not specified, set EtherType to %d",ace_iter->ace.name,htons(proto_id));
+                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, proto_id);
+                    }
                 }
+                else
+                {
+                    // ethertype is not specified in ACE config
+                    // check if ethertype is specified in ethernet match.
+                    if (ace_iter->ace.matches.eth.ethertype != 0)
+                    {
+                        SRPLG_LOG_DBG(PLUGIN_NAME, "ACE Name %s L2 match ethertype %d",ace_iter->ace.name,ace_iter->ace.matches.eth.ethertype);
+                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, ace_iter->ace.matches.eth.ethertype);
+                    }
+                    else
+                    {
+                        SRPLG_LOG_DBG(PLUGIN_NAME, "ACE Name %s protocol is not specified, set EtherType to ALL",ace_iter->ace.name);
+                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, htons(ETH_P_ALL));
+                    } 
+                }
+
+                addattr_l(&req.nlh,sizeof(req),TCA_KIND,"flower",strlen("flower")+1);
+                
+                nl_put_flower_options(&req.nlh,ace_iter);
+
+                // Create a socket
+                sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+                if (sockfd == -1) {
+                    perror("Error creating socket");
+                }
+
+                // Fill in the source and destination addresses
+                memset(&src_addr, 0, sizeof(src_addr));
+                src_addr.nl_family = AF_NETLINK;
+                src_addr.nl_pid = getpid();  // Use the process ID as the source port
+
+                // Bind the socket
+                if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
+                    perror("Error binding socket");
+                }
+
+                // Prepare the iov and msg structures for sending
+                int status;
+                iov_send.iov_base = &req;
+                iov_send.iov_len = req.nlh.nlmsg_len;
+
+                memset(&dest_addr, 0, sizeof(dest_addr));
+                dest_addr.nl_family = AF_NETLINK;
+                dest_addr.nl_pid = 0;  // Send to kernel
+
+                memset(&msg_send, 0, sizeof(msg_send));
+                msg_send.msg_name = (void *)&dest_addr;
+                msg_send.msg_namelen = sizeof(dest_addr);
+                msg_send.msg_iov = &iov_send;
+                msg_send.msg_iovlen = 1;
+
+                // Send the Netlink message
+                ret = sendmsg(sockfd, &msg_send, 0);
+                if (ret == -1) {
+                    perror("Error sending Netlink message");
+                }
+                //printf("return of send %d\n",ret);
+
+
+                // Receive the response
+                memset(&msg_recv, 0, sizeof(msg_recv));
+                iov_recv.iov_base = malloc(MAX_MSG);
+                iov_recv.iov_len = MAX_MSG;
+                msg_recv.msg_name = (void *)&src_addr;
+                msg_recv.msg_namelen = sizeof(src_addr);
+                msg_recv.msg_iov = &iov_recv;
+                msg_recv.msg_iovlen = 1;
+
+                
+                status = recvmsg(sockfd, &msg_recv, MSG_DONTWAIT);
+                if (status < 0) {
+                    perror("Error receiving Netlink message");
+                    //printf("rcv error %d\n", status);
+                }
+
+                // Process and print the response
+                nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
+                // Extract and process the response based on your application needs
+                //print_netlink_message(nlh_recv);
+
+                // Clean up
+                free(iov_recv.iov_base);
+                close(sockfd);
                 
             }
         }

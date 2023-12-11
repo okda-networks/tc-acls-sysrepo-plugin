@@ -42,7 +42,7 @@ int onm_tc_startup_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-	// apply to netlink through api store fuction.
+	// apply to netlink through api store function.
 	acls_store_api(ctx);
 	goto out;
 

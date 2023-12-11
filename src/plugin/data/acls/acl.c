@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "plugin/api/tcnl.h"
+
 /*
     Libyang conversion functions.
 */
@@ -126,7 +128,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
     struct lyd_node *matches_container_node = NULL, *actions_container_node = NULL;
 
     struct lyd_node *match_eth_container_node = NULL, *match_ipv4_container_node = NULL, *match_ipv6_container_node = NULL, *match_tcp_container_node = NULL, *match_udp_container_node = NULL, *match_icmp_container_node = NULL;
-    struct lyd_node *eth_dst_mac_addr_node = NULL, *eth_src_mac_addr_node = NULL, *eth_ethtype_node = NULL;
+    struct lyd_node *eth_dst_mac_addr_node = NULL, *eth_dst_mac_addr_mask_node = NULL, *eth_src_mac_addr_node = NULL, *eth_src_mac_addr_mask_node = NULL, *eth_ethtype_node = NULL;
     struct lyd_node *ipv4_src_network_node = NULL, *ipv4_dst_network_node = NULL;
     struct lyd_node *ipv6_src_network_node = NULL, *ipv6_dst_network_node = NULL;
     struct lyd_node *tcp_src_port_container_node = NULL, *tcp_dst_port_container_node = NULL;
@@ -189,7 +191,10 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     matches_container_node = NULL;
                     if (match_eth_container_node){
                         eth_src_mac_addr_node = srpc_ly_tree_get_child_leaf(match_eth_container_node, "source-mac-address");
+                        eth_src_mac_addr_mask_node = srpc_ly_tree_get_child_leaf(match_eth_container_node, "source-mac-address-mask");
                         eth_dst_mac_addr_node = srpc_ly_tree_get_child_leaf(match_eth_container_node, "destination-mac-address");
+                        eth_dst_mac_addr_mask_node = srpc_ly_tree_get_child_leaf(match_eth_container_node, "destination-mac-address-mask");
+                        eth_ethtype_node = srpc_ly_tree_get_child_leaf(match_eth_container_node, "ethertype");
                         match_eth_container_node = NULL;
                     }
 
@@ -209,6 +214,16 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                         tcp_src_port_container_node = srpc_ly_tree_get_child_container(match_tcp_container_node, "source-port");
                         tcp_dst_port_container_node = srpc_ly_tree_get_child_container(match_tcp_container_node, "destination-port");
                         match_tcp_container_node = NULL;
+                        if (tcp_src_port_container_node){
+                            //TODO add support for port range
+                            tcp_src_port_node = srpc_ly_tree_get_child_leaf(tcp_src_port_container_node, "port");
+                            tcp_src_port_container_node = NULL;
+                        }
+                        if (tcp_dst_port_container_node){
+                            //TODO add support for port range
+                            tcp_dst_port_node = srpc_ly_tree_get_child_leaf(tcp_dst_port_container_node, "port");
+                            tcp_dst_port_container_node = NULL;
+                        }
                     }
 
                     if (match_udp_container_node){
@@ -220,10 +235,10 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                             udp_src_port_node = srpc_ly_tree_get_child_leaf(udp_src_port_container_node, "port");
                             udp_src_port_container_node = NULL;
                         }
-                        if (tcp_dst_port_container_node){
+                        if (udp_dst_port_container_node){
                             //TODO add support for port range
                             udp_dst_port_node = srpc_ly_tree_get_child_leaf(udp_dst_port_container_node, "port");
-                            tcp_dst_port_container_node = NULL;
+                            udp_dst_port_container_node = NULL;
                         }
                     }
 
@@ -244,9 +259,28 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr(&new_ace_element, lyd_get_value(eth_src_mac_addr_node)), error_out);
                     eth_src_mac_addr_node = NULL;
                 }
+                if(eth_src_mac_addr_mask_node){
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&new_ace_element, lyd_get_value(eth_src_mac_addr_mask_node)), error_out);
+                    eth_src_mac_addr_mask_node = NULL;
+                }
                 if(eth_dst_mac_addr_node){
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr(&new_ace_element, lyd_get_value(eth_dst_mac_addr_node)), error_out);
                     eth_dst_mac_addr_node = NULL;
+                }
+                if(eth_dst_mac_addr_mask_node){
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&new_ace_element, lyd_get_value(eth_dst_mac_addr_mask_node)), error_out);
+                    eth_dst_mac_addr_mask_node = NULL;
+                }
+                if(eth_ethtype_node){
+                    const char* ethertype_str = NULL;
+                    SRPC_SAFE_CALL_PTR(ethertype_str, lyd_get_value(eth_ethtype_node), error_out);
+                    uint16_t ether_type;
+                    if (ll_proto_a2n(&ether_type, ethertype_str))
+                    {
+                        SRPLG_LOG_ERR(PLUGIN_NAME, "ACE %s Failed to set specified EtherType for L2 match",new_ace_element->ace.name);
+                    }
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&new_ace_element, ether_type), error_out);
+                    eth_ethtype_node = NULL;
                 }
                 if(ipv4_src_network_node){
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv4_src_network(&new_ace_element, lyd_get_value(ipv4_src_network_node)), error_out);
@@ -261,7 +295,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     ipv6_src_network_node = NULL;
                 }
                 if(ipv6_dst_network_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_dst_network(&new_ace_element, lyd_get_value(ipv6_src_network_node)), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_dst_network(&new_ace_element, lyd_get_value(ipv6_dst_network_node)), error_out);
                     ipv6_dst_network_node = NULL;
                 }
                 if(tcp_src_port_node){
@@ -296,7 +330,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(udp_dst_port_str, lyd_get_value(udp_dst_port_node), error_out);
                     const uint16_t dst_port = (uint16_t)atoi(udp_dst_port_str);
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_port(&new_ace_element, dst_port), error_out);
-                    udp_src_port_node = NULL;
+                    udp_dst_port_node = NULL;
                 }
                 if(icmp_code_node){
                     const char* icmp_code_str = NULL;
@@ -370,31 +404,39 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s", ace_iter->ace.name);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.eth.source_mac_address)
-            {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s", ace_iter->ace.matches.eth.source_mac_address);
-            }
+            if(ace_iter->ace.matches.eth.source_mac_address_mask)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address mask = %s", ace_iter->ace.matches.eth.source_mac_address_mask);
             if(ace_iter->ace.matches.eth.destination_mac_address)
-            {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination mac address = %s", ace_iter->ace.matches.eth.destination_mac_address);
-            }
-            if(ace_iter->ace.matches.ipv4.source_ipv4_network){
+            if(ace_iter->ace.matches.eth.destination_mac_address_mask)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination mac address mask = %s", ace_iter->ace.matches.eth.destination_mac_address_mask);
+            if(ace_iter->ace.matches.eth.ethertype != 0)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- EtherType = %d", ace_iter->ace.matches.eth.ethertype);
+            if(ace_iter->ace.matches.ipv4.source_ipv4_network)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source IPv4 Network = %s", ace_iter->ace.matches.ipv4.source_ipv4_network);
-            }
-            if(ace_iter->ace.matches.ipv4.destination_ipv4_network){
+            if(ace_iter->ace.matches.ipv4.destination_ipv4_network)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination IPv4 Network = %s", ace_iter->ace.matches.ipv4.destination_ipv4_network);
-            }
+            if(ace_iter->ace.matches.ipv6.source_ipv6_network)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source IPv6 Network = %s", ace_iter->ace.matches.ipv6.source_ipv6_network);
+            if(ace_iter->ace.matches.ipv6.destination_ipv6_network)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination IPv6 Network = %s", ace_iter->ace.matches.ipv6.destination_ipv6_network);
+            if(ace_iter->ace.matches.tcp.source_port.port != 0)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port = %d", ace_iter->ace.matches.tcp.source_port.port);
+            if(ace_iter->ace.matches.tcp.destination_port.port != 0)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port = %d", ace_iter->ace.matches.tcp.destination_port.port);
+            if(ace_iter->ace.matches.udp.source_port.port != 0)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port = %d", ace_iter->ace.matches.udp.source_port.port);
+            if(ace_iter->ace.matches.udp.destination_port.port != 0)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port = %d", ace_iter->ace.matches.udp.destination_port.port);
             
             if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
-                if(ace_iter->ace.actions.forwarding){
+                if(ace_iter->ace.actions.forwarding)
                     SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %s", ace_iter->ace.actions.forwarding);
-                }
-                if(ace_iter->ace.actions.logging){
+                if(ace_iter->ace.actions.logging)
                     SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %s", ace_iter->ace.actions.logging);
-                }
             }
-            
-            
         }
     }
 }

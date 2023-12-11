@@ -43,10 +43,11 @@ int acls_store_api(onm_tc_ctx_t *ctx)
             int if_idx = rtnl_link_get_ifindex(link);
             LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
             {
+                
                 ingress_acl_name = acl_set_iter->acl_set.name;
                 unsigned int acl_id = acl_name2id(ingress_acl_name);
 
-                // Add interface qdisc with shared tc block for the acl name
+                //  Add interface qdisc with shared tc block for the acl name
                 // TODO use safe sysrepo call
                 tcnl_modify_ingress_qdisc_shared_block(nl_ctx,if_idx,acl_id);
                 SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s is set to interface %s ingress",ingress_acl_name,interface_id);
