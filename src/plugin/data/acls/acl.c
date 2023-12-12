@@ -342,6 +342,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                 // set actions data
                 if(action_forwarding_node){
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_forwarding(&new_ace_element, lyd_get_value(action_forwarding_node)), error_out);
+                    printf("set action to of %s to %s\n",new_ace_element->ace.name,lyd_get_value(action_forwarding_node));
                     action_forwarding_node = NULL;
                 }
                 if(action_logging_node){
@@ -430,13 +431,13 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             if(ace_iter->ace.matches.udp.destination_port.port != 0)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port = %d", ace_iter->ace.matches.udp.destination_port.port);
             
-            if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
+            //if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
-                if(ace_iter->ace.actions.forwarding)
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %s", ace_iter->ace.actions.forwarding);
-                if(ace_iter->ace.actions.logging)
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %s", ace_iter->ace.actions.logging);
-            }
+            //    if(ace_iter->ace.actions.forwarding)
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %d", ace_iter->ace.actions.forwarding);
+                if(ace_iter->ace.actions.logging == 0)
+                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %d", ace_iter->ace.actions.logging);
+            //}
         }
     }
 }

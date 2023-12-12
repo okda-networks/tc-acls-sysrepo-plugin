@@ -151,6 +151,32 @@ int get_u32(__u32 *val, const char *arg, int base)
 	return 0;
 }
 
+int get_unsigned(unsigned int *val, const char *arg, int base)
+{
+	unsigned long res;
+	char *ptr;
+
+	if (!arg || !*arg)
+		return -1;
+
+	res = strtoul(arg, &ptr, base);
+
+	/* empty string or trailing non-digits */
+	if (!ptr || ptr == arg || *ptr)
+		return -1;
+
+	/* overflow */
+	if (res == ULONG_MAX && errno == ERANGE)
+		return -1;
+
+	/* out side range of unsigned */
+	if (res > UINT_MAX)
+		return -1;
+
+	*val = res;
+	return 0;
+}
+
 int proto_a2n(unsigned short *id, const char *buf, const struct proto *proto_tb, size_t tb_len)
 {
 	int i;
@@ -170,6 +196,35 @@ int ll_proto_a2n(unsigned short *id, const char *buf)
 {
 	size_t len_tb = ARRAY_SIZE(llproto_names);
 	return proto_a2n(id, buf, llproto_names, len_tb);
+}
+
+int ll_addr_a2n(char *lladdr, int len, const char *lladdr_str)
+{
+    int i;
+    char *arg = strdup(lladdr_str);
+    for (i = 0; i < len; i++) {
+        int temp;
+        char *cp = strchr(arg, ':');
+        if (cp) {
+            *cp = 0;
+            cp++;
+        }
+        if (sscanf(arg, "%x", &temp) != 1) {
+            fprintf(stderr, "\"%s\" is invalid lladdr.\n",
+                arg);
+            return -1;
+        }
+        if (temp < 0 || temp > 255) {
+            fprintf(stderr, "\"%s\" is invalid lladdr.\n",
+                arg);
+            return -1;
+        }
+        lladdr[i] = temp;
+        if (!cp)
+            break;
+        arg = cp;
+    }
+    return i + 1;
 }
 
 void ipv4_prefix_to_netmask(struct in_addr *netmask, int prefix_length) {
@@ -295,7 +350,6 @@ int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, 
     return 0;
 }
 
-
 // TODO experimential
 int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
 {
@@ -398,6 +452,17 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
     return ret;
 }
 
+// TODO delete this, its for debugging only
+void print_lladdr(const char *lladdr, int len) {
+    for (int i = 0; i < len; i++) {
+        printf("%02X", (unsigned char)lladdr[i]);  // Print each byte in hexadecimal format
+        if (i < len - 1) {
+            printf(":");  // Print colon between bytes (except for the last byte)
+        }
+    }
+    printf("\n");
+}
+
 /// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
 static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
@@ -425,11 +490,44 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     if(ace->ace.matches.eth.source_mac_address)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Source mac address = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address);
+        char addr[ETH_ALEN];
+        ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.source_mac_address);
+        if (ret < 0)
+           SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address); 
+        else{
+            addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_SRC,addr,sizeof(addr));
+            if (ace->ace.matches.eth.source_mac_address_mask)
+            {
+                ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_mac_address_mask);
+                if( ret < 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address_mask);
+                }
+                else
+                    addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_SRC_MASK,addr,sizeof(addr));
+            }
+        }
     }
     if(ace->ace.matches.eth.destination_mac_address)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Destination mac address = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address);
+        char addr[ETH_ALEN];
+        ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.destination_mac_address);
+        if (ret < 0)
+           SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address); 
+        else{
+            addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_DST,addr,sizeof(addr));
+            if (ace->ace.matches.eth.destination_mac_address_mask)
+            {
+                ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.destination_mac_address_mask);
+                if( ret < 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address_mask);
+                }
+                else
+                    addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_DST_MASK,addr,sizeof(addr));
+            }
+        }
     }
+
     if(ace->ace.matches.ipv4.source_ipv4_network)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_ipv4_network);
@@ -549,7 +647,8 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
                     proto_buf = "ipv4";
                 else if (ace_iter->ace.matches.icmp._is_set == 1)
                 {
-                    //ipv4 or ipv6 ? look at acl type
+                    //ipv4 or ipv6 ? TODO look at acl type
+                    proto_buf = "ipv4";
                 }
                 else if (ace_iter->ace.matches.tcp._is_set == 1)
                 {

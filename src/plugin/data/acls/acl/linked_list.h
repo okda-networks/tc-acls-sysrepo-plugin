@@ -21,10 +21,10 @@
 /*
     Linked list operations
 */
-/* prepend since ordering doesn't matter - O(1) */
+/* use append not prepend since ordering matters */
 #define ONM_TC_ACL_LIST_ADD_ELEMENT(ll_ptr, new_element_ptr) \
     do {                                                     \
-        LL_PREPEND(ll_ptr, new_element_ptr);                 \
+        LL_APPEND(ll_ptr, new_element_ptr);                 \
     } while (0)
     
 #define ONM_TC_ACL_LIST_NEW(ll_ptr) \

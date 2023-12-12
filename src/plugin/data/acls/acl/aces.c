@@ -3,6 +3,11 @@
 #include "aces.h"
 #include "utils/memory.h"
 
+
+
+//For testing
+#include<stdio.h>
+
 onm_tc_ace_element_t* onm_tc_ace_element_new(void)
 {
     return NULL;
@@ -219,15 +224,21 @@ int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action)
 {
     //TODO: fix data type
-    /*
-    if ((*el)->ace.actions.forwarding) {
-        FREE_SAFE((*el)->ace.actions.forwarding);
-    }
     if (action) {
-        (*el)->ace.actions.forwarding = xstrdup(action);
-        return (*el)->ace.actions.forwarding == NULL;
+        if (strcmp(action,"accept") == 0)
+        {
+            (*el)->ace.actions.forwarding = ACCEPT;
+        }
+        else if (strcmp(action,"drop") == 0)
+        {
+            (*el)->ace.actions.forwarding = DROP;
+        }
+        else if (strcmp(action,"reject") == 0)
+        {
+            (*el)->ace.actions.forwarding = REJECT;
+        }
     }
-    */
+    
     return 0;
 }
 

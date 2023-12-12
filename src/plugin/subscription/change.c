@@ -95,7 +95,7 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
 	} else if (event == SR_EV_DONE) {
-		error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
+		//error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
 			goto error_out;
