@@ -1,3 +1,10 @@
+/*
+Many of the code is stolen from iproute2
+https://github.com/iproute2/iproute2/blob/main/tc/tc_util.c
+
+*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -452,17 +459,6 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
     return ret;
 }
 
-// TODO delete this, its for debugging only
-void print_lladdr(const char *lladdr, int len) {
-    for (int i = 0; i < len; i++) {
-        printf("%02X", (unsigned char)lladdr[i]);  // Print each byte in hexadecimal format
-        if (i < len - 1) {
-            printf(":");  // Print colon between bytes (except for the last byte)
-        }
-    }
-    printf("\n");
-}
-
 /// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
 static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
@@ -577,6 +573,17 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
         addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_SRC, port);
     }
+    else if(ace->ace.matches.tcp.source_port.lower_port != 0){
+        __u8 ip_proto = IPPROTO_TCP;
+        __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
+
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
+		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
+    }
+
     if (ace->ace.matches.tcp.destination_port.port != 0)
     {
         __u8 ip_proto = IPPROTO_TCP;
@@ -585,6 +592,17 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
         addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_DST, port);
     }
+    else if (ace->ace.matches.tcp.destination_port.lower_port != 0){
+        __u8 ip_proto = IPPROTO_TCP;
+        __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
+
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
+		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
+    }
+
     if (ace->ace.matches.udp.source_port.port != 0)
     {
         __u8 ip_proto = IPPROTO_UDP;
@@ -593,6 +611,17 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
         addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_SRC, port);
     }
+    else if (ace->ace.matches.udp.source_port.lower_port != 0){
+        __u8 ip_proto = IPPROTO_UDP;
+        __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
+
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
+		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
+    }
+
     if (ace->ace.matches.udp.destination_port.port != 0)
     {
         __u8 ip_proto = IPPROTO_UDP;
@@ -600,6 +629,16 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         
         addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
         addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_DST, port);
+    }
+    else if (ace->ace.matches.udp.destination_port.lower_port != 0){
+        __u8 ip_proto = IPPROTO_UDP;
+        __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
+
+        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
+		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
     }
 
     tail->rta_len = (((void *)nlh)+nlh->nlmsg_len) - (void *)tail;

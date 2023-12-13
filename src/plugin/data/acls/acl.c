@@ -131,10 +131,14 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
     struct lyd_node *eth_dst_mac_addr_node = NULL, *eth_dst_mac_addr_mask_node = NULL, *eth_src_mac_addr_node = NULL, *eth_src_mac_addr_mask_node = NULL, *eth_ethtype_node = NULL;
     struct lyd_node *ipv4_src_network_node = NULL, *ipv4_dst_network_node = NULL;
     struct lyd_node *ipv6_src_network_node = NULL, *ipv6_dst_network_node = NULL;
+    //tcp
     struct lyd_node *tcp_src_port_container_node = NULL, *tcp_dst_port_container_node = NULL;
-    struct lyd_node *tcp_src_port_node = NULL, *tcp_dst_port_node = NULL;
+    struct lyd_node *tcp_src_port_node = NULL, *tcp_dst_port_node = NULL,*tcp_src_range_lower_port_node = NULL,*tcp_dst_range_lower_port_node = NULL, *tcp_src_range_upper_port_node = NULL, *tcp_dst_range_upper_port_node = NULL;
+    //udp
     struct lyd_node *udp_src_port_container_node = NULL, *udp_dst_port_container_node = NULL;
-    struct lyd_node *udp_src_port_node = NULL, *udp_dst_port_node = NULL;
+    struct lyd_node *udp_src_port_node = NULL, *udp_dst_port_node = NULL,*udp_src_range_lower_port_node = NULL,*udp_dst_range_lower_port_node = NULL, *udp_src_range_upper_port_node = NULL, *udp_dst_range_upper_port_node = NULL;
+    // tcp or udp
+    struct lyd_node *src_port_operation_node = NULL, *dst_port_operation_node = NULL;
     struct lyd_node *icmp_code_node = NULL;
     struct lyd_node *action_forwarding_node = NULL, *action_logging_node = NULL;
 
@@ -215,13 +219,17 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                         tcp_dst_port_container_node = srpc_ly_tree_get_child_container(match_tcp_container_node, "destination-port");
                         match_tcp_container_node = NULL;
                         if (tcp_src_port_container_node){
-                            //TODO add support for port range
+                            //TODO add support for port range and port operation
                             tcp_src_port_node = srpc_ly_tree_get_child_leaf(tcp_src_port_container_node, "port");
+                            tcp_src_range_lower_port_node = srpc_ly_tree_get_child_leaf(tcp_src_port_container_node, "lower-port");
+                            tcp_src_range_upper_port_node = srpc_ly_tree_get_child_leaf(tcp_src_port_container_node, "upper-port");
                             tcp_src_port_container_node = NULL;
                         }
                         if (tcp_dst_port_container_node){
-                            //TODO add support for port range
+                            //TODO add support for port range and port operation
                             tcp_dst_port_node = srpc_ly_tree_get_child_leaf(tcp_dst_port_container_node, "port");
+                            tcp_dst_range_lower_port_node = srpc_ly_tree_get_child_leaf(tcp_dst_port_container_node, "lower-port");
+                            tcp_dst_range_upper_port_node = srpc_ly_tree_get_child_leaf(tcp_dst_port_container_node, "upper-port");
                             tcp_dst_port_container_node = NULL;
                         }
                     }
@@ -231,13 +239,17 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                         udp_dst_port_container_node = srpc_ly_tree_get_child_container(match_udp_container_node, "destination-port");
                         match_udp_container_node = NULL;
                         if (udp_src_port_container_node){
-                            //TODO add support for port range
+                            //TODO add support for port range and port operation
                             udp_src_port_node = srpc_ly_tree_get_child_leaf(udp_src_port_container_node, "port");
+                            udp_src_range_lower_port_node = srpc_ly_tree_get_child_leaf(udp_src_port_container_node, "lower-port");
+                            udp_src_range_upper_port_node = srpc_ly_tree_get_child_leaf(udp_src_port_container_node, "upper-port");
                             udp_src_port_container_node = NULL;
                         }
                         if (udp_dst_port_container_node){
-                            //TODO add support for port range
+                            //TODO add support for port range and port operation
                             udp_dst_port_node = srpc_ly_tree_get_child_leaf(udp_dst_port_container_node, "port");
+                            udp_dst_range_lower_port_node = srpc_ly_tree_get_child_leaf(udp_dst_port_container_node, "lower-port");
+                            udp_dst_range_upper_port_node = srpc_ly_tree_get_child_leaf(udp_dst_port_container_node, "upper-port");
                             udp_dst_port_container_node = NULL;
                         }
                     }
@@ -298,8 +310,8 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_dst_network(&new_ace_element, lyd_get_value(ipv6_dst_network_node)), error_out);
                     ipv6_dst_network_node = NULL;
                 }
+
                 if(tcp_src_port_node){
-                    //TODO Add support for port range
                     const char* tcp_src_port_str = NULL;
                     SRPC_SAFE_CALL_PTR(tcp_src_port_str, lyd_get_value(tcp_src_port_node), error_out);
                     const uint16_t src_port = (uint16_t)atoi(tcp_src_port_str);
@@ -307,7 +319,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     tcp_src_port_node = NULL;
                 }
                 if(tcp_dst_port_node){
-                    //TODO Add support for port range
+                    //TODO Add support for port range and port operation
                     const char* tcp_dst_port_str = NULL;
                     SRPC_SAFE_CALL_PTR(tcp_dst_port_str, lyd_get_value(tcp_dst_port_node), error_out);
 
@@ -315,8 +327,29 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_dst_port(&new_ace_element, dst_port), error_out);
                     tcp_dst_port_node = NULL;
                 }
+                if(tcp_src_range_lower_port_node){
+                    const char* lower_str = NULL, *upper_str = NULL;
+                    SRPC_SAFE_CALL_PTR(lower_str, lyd_get_value(tcp_src_range_lower_port_node), error_out);
+                    SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(tcp_src_range_upper_port_node), error_out);
+                    const uint16_t lower_port = (uint16_t)atoi(lower_str);
+                    const uint16_t upper_port = (uint16_t)atoi(upper_str);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_src_range(&new_ace_element, lower_port,upper_port), error_out);
+                    tcp_src_range_lower_port_node = NULL;
+                    tcp_src_range_upper_port_node = NULL;
+                }
+                if(tcp_dst_range_lower_port_node){
+                    const char* lower_str = NULL, *upper_str = NULL;
+                    SRPC_SAFE_CALL_PTR(lower_str, lyd_get_value(tcp_dst_range_lower_port_node), error_out);
+                    SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(tcp_dst_range_upper_port_node), error_out);
+                    const uint16_t lower_port = (uint16_t)atoi(lower_str);
+                    const uint16_t upper_port = (uint16_t)atoi(upper_str);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_dst_range(&new_ace_element, lower_port,upper_port), error_out);
+                    tcp_dst_range_lower_port_node = NULL;
+                    tcp_dst_range_upper_port_node = NULL;
+                }
+
                 if(udp_src_port_node){
-                    //TODO Add support for port range
+                    //TODO Add support for port range and port operaton
                     const char* udp_src_port_str = NULL;
                     SRPC_SAFE_CALL_PTR(udp_src_port_str, lyd_get_value(udp_src_port_node), error_out);
 
@@ -332,6 +365,29 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_port(&new_ace_element, dst_port), error_out);
                     udp_dst_port_node = NULL;
                 }
+                if(udp_src_range_lower_port_node){
+                    const char* lower_str = NULL, *upper_str = NULL;
+                    SRPC_SAFE_CALL_PTR(lower_str, lyd_get_value(udp_src_range_lower_port_node), error_out);
+                    SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(udp_src_range_upper_port_node), error_out);
+                    const uint16_t lower_port = (uint16_t)atoi(lower_str);
+                    const uint16_t upper_port = (uint16_t)atoi(upper_str);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_src_range(&new_ace_element, lower_port,upper_port), error_out);
+                    udp_src_range_lower_port_node = NULL;
+                    udp_src_range_upper_port_node = NULL;
+                }
+                if(udp_dst_range_lower_port_node){
+                    const char* lower_str = NULL, *upper_str = NULL;
+                    SRPC_SAFE_CALL_PTR(lower_str, lyd_get_value(udp_dst_range_lower_port_node), error_out);
+                    SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(udp_dst_range_upper_port_node), error_out);
+                    const uint16_t lower_port = (uint16_t)atoi(lower_str);
+                    const uint16_t upper_port = (uint16_t)atoi(upper_str);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_range(&new_ace_element, lower_port,upper_port), error_out);
+                    udp_dst_range_lower_port_node = NULL;
+                    udp_dst_range_upper_port_node = NULL;
+                }
+
+
+
                 if(icmp_code_node){
                     const char* icmp_code_str = NULL;
                     SRPC_SAFE_CALL_PTR(icmp_code_str, lyd_get_value(icmp_code_node), error_out);
@@ -424,13 +480,30 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination IPv6 Network = %s", ace_iter->ace.matches.ipv6.destination_ipv6_network);
             if(ace_iter->ace.matches.tcp.source_port.port != 0)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port = %d", ace_iter->ace.matches.tcp.source_port.port);
-            if(ace_iter->ace.matches.tcp.destination_port.port != 0)
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port = %d", ace_iter->ace.matches.tcp.destination_port.port);
+            if(ace_iter->ace.matches.tcp.source_port.lower_port != 0)
+            {
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port Range = (%d-%d)", ace_iter->ace.matches.tcp.source_port.lower_port, ace_iter->ace.matches.tcp.source_port.upper_port);
+            }
             if(ace_iter->ace.matches.udp.source_port.port != 0)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port = %d", ace_iter->ace.matches.udp.source_port.port);
+            if(ace_iter->ace.matches.udp.source_port.lower_port != 0)
+            {
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port Range = (%d-%d)", ace_iter->ace.matches.udp.source_port.lower_port, ace_iter->ace.matches.udp.source_port.upper_port);
+            }
+            
+            if(ace_iter->ace.matches.tcp.destination_port.port != 0)
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port = %d", ace_iter->ace.matches.tcp.destination_port.port);
+            if(ace_iter->ace.matches.tcp.destination_port.lower_port != 0)
+            {
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Range = (%d-%d)", ace_iter->ace.matches.tcp.destination_port.lower_port, ace_iter->ace.matches.tcp.destination_port.upper_port);
+            }
             if(ace_iter->ace.matches.udp.destination_port.port != 0)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port = %d", ace_iter->ace.matches.udp.destination_port.port);
-            
+            if(ace_iter->ace.matches.udp.destination_port.lower_port != 0)
+            {
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Range = (%d-%d)", ace_iter->ace.matches.udp.destination_port.lower_port, ace_iter->ace.matches.udp.destination_port.upper_port);
+            }
+
             //if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
             //    if(ace_iter->ace.actions.forwarding)

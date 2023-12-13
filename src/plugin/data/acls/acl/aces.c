@@ -181,34 +181,58 @@ int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el
     return 0;
 }
 
-//TODO Add support for port range
+//TCP
 int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, uint16_t src_port)
 {
     (*el)->ace.matches.tcp.source_port.port = src_port;
     (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
-
-//TODO Add support for port range
 int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port)
 {
     (*el)->ace.matches.tcp.destination_port.port= dst_port;
     (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
+int onm_tc_ace_hash_element_set_match_tcp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+{
+    (*el)->ace.matches.tcp.source_port.lower_port= lower_port;
+    (*el)->ace.matches.tcp.source_port.upper_port= upper_port;
+    (*el)->ace.matches.tcp._is_set = 1;
+    return 0;
+}
+int onm_tc_ace_hash_element_set_match_tcp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+{
+    (*el)->ace.matches.tcp.destination_port.lower_port= lower_port;
+    (*el)->ace.matches.tcp.destination_port.upper_port= upper_port;
+    (*el)->ace.matches.tcp._is_set = 1;
+    return 0;
+}
 
-//TODO Add support for port range
+//UDP
 int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, uint16_t src_port)
 {
     (*el)->ace.matches.udp.source_port.port = src_port;
     (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
-
-//TODO Add support for port range
 int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port)
 {
     (*el)->ace.matches.udp.destination_port.port = dst_port;
+    (*el)->ace.matches.udp._is_set = 1;
+    return 0;
+}
+int onm_tc_ace_hash_element_set_match_udp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+{
+    (*el)->ace.matches.udp.source_port.lower_port= lower_port;
+    (*el)->ace.matches.udp.source_port.upper_port= upper_port;
+    (*el)->ace.matches.udp._is_set = 1;
+    return 0;
+}
+int onm_tc_ace_hash_element_set_match_udp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+{
+    (*el)->ace.matches.udp.destination_port.lower_port= lower_port;
+    (*el)->ace.matches.udp.destination_port.upper_port= upper_port;
     (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
