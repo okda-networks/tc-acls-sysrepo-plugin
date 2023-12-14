@@ -53,7 +53,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
                 SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s is set to interface %s ingress",ingress_acl_name,interface_id);
 
                 // check if shared block already exists:
-                if (tcnl_tc_block_exists(nl_ctx,acl_id) == 1)
+                if (tcnl_tc_block_exists(nl_ctx,acl_id) == true)
                 {
                     // if yes, no further action needed.
                     // TODO evalulate if we need to iterate through acl aces and compair netlink config vs sysrepo config

@@ -361,7 +361,7 @@ int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, 
     addattr32(&req.nlh,sizeof(req),TCA_INGRESS_BLOCK,tca_block_id);
 
     // Send netlink message
-    SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: applying acl %d for interface ID %d",tca_block_id, if_idx);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "NETLINK: applying acl %d for interface ID %d",tca_block_id, if_idx);
     ret = nl_sendto(nl_ctx->socket, &req, req.nlh.nlmsg_len);
     if (ret == -1) {
         SRPLG_LOG_ERR(PLUGIN_NAME, "NETLINK: failed to apply acl %d for interface ID %d",tca_block_id, if_idx);
@@ -370,10 +370,9 @@ int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, 
     return 0;
 }
 
-// TODO experimential
-int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
-{
-    int sockfd,ret;
+bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx, unsigned int tca_block_id) {
+    int sockfd, ret;
+    bool result = false;
     struct sockaddr_nl src_addr, dest_addr;
     struct nlmsghdr *nlh_recv;
     struct iovec iov_send, iov_recv;
@@ -383,38 +382,35 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
     sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if (sockfd == -1) {
         perror("Error creating socket");
+        return false;
     }
 
     // Fill in the source and destination addresses
     memset(&src_addr, 0, sizeof(src_addr));
     src_addr.nl_family = AF_NETLINK;
-    src_addr.nl_pid = getpid();  // Use the process ID as the source port
+    src_addr.nl_pid = getpid();
 
-    // Bind the socket
     if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
         perror("Error binding socket");
+        close(sockfd);
+        return false;
     }
 
-
     struct nl_request req;
-    // Prepare netlink message
     memset(&req, 0, sizeof(req));
     req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
-	req.nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-	req.nlh.nlmsg_type = RTM_GETTFILTER;
+    req.nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+    req.nlh.nlmsg_type = RTM_GETTFILTER;
     req.tcm.tcm_parent = TC_H_UNSPEC;
-	req.tcm.tcm_family = AF_UNSPEC;
+    req.tcm.tcm_family = AF_UNSPEC;
     req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
-	req.tcm.tcm_block_index = tca_block_id;
+    req.tcm.tcm_block_index = tca_block_id;
 
-    // Prepare the iov and msg structures for sending
-    int status;
     iov_send.iov_base = &req;
     iov_send.iov_len = req.nlh.nlmsg_len;
 
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.nl_family = AF_NETLINK;
-    dest_addr.nl_pid = 0;  // Send to kernel
 
     memset(&msg_send, 0, sizeof(msg_send));
     msg_send.msg_name = (void *)&dest_addr;
@@ -422,54 +418,62 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
     msg_send.msg_iov = &iov_send;
     msg_send.msg_iovlen = 1;
 
-    // Send the Netlink message
     ret = sendmsg(sockfd, &msg_send, 0);
-    //ret = nl_sendto(nl_ctx->socket, &req, req.nlh.nlmsg_len);
     if (ret == -1) {
         perror("Error sending Netlink message");
+        close(sockfd);
+        return false;
     }
-    SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: request sent, get filter of tca block %d, return %d",tca_block_id,ret);
 
-    // Receive the response
-    memset(&msg_recv, 0, sizeof(msg_recv));
     iov_recv.iov_base = malloc(MAX_MSG);
+    if (!iov_recv.iov_base) {
+        perror("Error allocating memory");
+        close(sockfd);
+        return false;
+    }
     iov_recv.iov_len = MAX_MSG;
-    msg_recv.msg_name = (void *)&src_addr;
-    msg_recv.msg_namelen = sizeof(src_addr);
-    msg_recv.msg_iov = &iov_recv;
-    msg_recv.msg_iovlen = 1;
 
-    
-    status = recvmsg(sockfd, &msg_recv,0);
-    if (status < 0) {
-        perror("Error receiving Netlink message");
-        //printf("rcv error %d\n", status);
+    bool done = false;
+    while (!done) {
+        memset(&msg_recv, 0, sizeof(msg_recv));
+        msg_recv.msg_name = (void *)&src_addr;
+        msg_recv.msg_namelen = sizeof(src_addr);
+        msg_recv.msg_iov = &iov_recv;
+        msg_recv.msg_iovlen = 1;
+
+        ret = recvmsg(sockfd, &msg_recv, 0);
+        if (ret < 0) {
+            perror("Error receiving Netlink message");
+            free(iov_recv.iov_base);
+            close(sockfd);
+            return false;
+        }
+
+        for (nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
+            NLMSG_OK(nlh_recv, ret);
+            nlh_recv = NLMSG_NEXT(nlh_recv, ret)) {
+            SRPLG_LOG_DBG(PLUGIN_NAME, "tcnl_tc_block_exists: block ID %d rcv msg type %d",tca_block_id, nlh_recv->nlmsg_type);
+            if (nlh_recv->nlmsg_type == NLMSG_DONE) {
+                done = true;
+                break;
+            }
+
+            if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
+                free(iov_recv.iov_base);
+                close(sockfd);
+                return false;
+            }
+
+            if (nlh_recv->nlmsg_type == RTM_NEWTFILTER) {
+                result = true;
+                break;
+            }
+        }
     }
 
-    // Process and print the response
-    nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
-    // Extract and process the response based on your application needs
-
-    if (nlh_recv->nlmsg_type == RTM_NEWTFILTER) {
-        // Block Exists
-		ret = 1;
-	}
-    else if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
-        struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nlh_recv);
-        int error = err->error;
-        //printf("error parsing shared block dump: %s\n", nl_geterror(error));      
-        ret = -1; 
-    }
-    else {
-        printf("[FIX ME] Response is not a tc filter %d\n", nlh_recv->nlmsg_type);
-        ret = -1;
-    }
-
-    // Clean up
     free(iov_recv.iov_base);
     close(sockfd);
-
-    return ret;
+    return result;
 }
 
 int tcnl_parse_action(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)

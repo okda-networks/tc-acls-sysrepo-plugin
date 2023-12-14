@@ -175,7 +175,6 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
         aps_egress_interface_container_node = srpc_ly_tree_get_child_container(interfaces_iter, "egress");
 
         //set data
-        //TODO set netlink TC configuration
         if (aps_interface_id_node){
             SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_interface_id(&new_element, lyd_get_value(aps_interface_id_node)), error_out);
             aps_interface_id_node = NULL;

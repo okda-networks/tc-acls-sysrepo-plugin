@@ -289,9 +289,11 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     uint16_t ether_type;
                     if (ll_proto_a2n(&ether_type, ethertype_str))
                     {
+                        // TODO revise: currently this failure will set ethertype to ALL
                         SRPLG_LOG_ERR(PLUGIN_NAME, "ACE %s Failed to set specified EtherType for L2 match",new_ace_element->ace.name);
                     }
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&new_ace_element, ether_type), error_out);
+                    else
+                        SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&new_ace_element, ether_type), error_out);
                     eth_ethtype_node = NULL;
                 }
                 if(ipv4_src_network_node){
@@ -385,8 +387,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     udp_dst_range_lower_port_node = NULL;
                     udp_dst_range_upper_port_node = NULL;
                 }
-
-
 
                 if(icmp_code_node){
                     const char* icmp_code_str = NULL;
