@@ -10,7 +10,6 @@ typedef struct onm_tc_ipv4 onm_tc_ipv4_t;
 typedef struct onm_tc_ipv6 onm_tc_ipv6_t;
 typedef struct onm_tc_tcp onm_tc_tcp_t;
 typedef struct onm_tc_source_port onm_tc_source_port_t;
-typedef enum onm_tc_operator onm_tc_operator_t;
 typedef struct onm_tc_destination_port onm_tc_destination_port_t;
 typedef struct onm_tc_udp onm_tc_udp_t;
 typedef struct onm_tc_icmp onm_tc_icmp_t;
@@ -34,6 +33,7 @@ typedef struct onm_tc_aps onm_tc_aps_t;
 typedef struct ietf_interface ietf_interface_t;
 typedef enum forwarding_action forwarding_action_t;
 typedef enum logging_action logging_action_t;
+typedef enum port_operation port_operation_t;
 typedef struct onm_tc_actions onm_tc_actions_t;
 typedef enum onm_tc_acl_type onm_tc_acl_type_t;
 
@@ -47,9 +47,10 @@ struct ietf_interface {
 };
 
 enum forwarding_action{
-    ACCEPT,
-    DROP,
-    REJECT
+    FORWARD_NOOP,
+    FORWARD_ACCEPT,
+    FORWARD_DROP,
+    FORWARD_REJECT
 };
 
 enum logging_action{
@@ -57,17 +58,20 @@ enum logging_action{
     LOG_NONE
 };
 
+enum port_operation{
+    PORT_NOOP,
+    PORT_EQUAL,
+    PORT_LTE,
+    PORT_GTE,
+    PORT_NOT_EQUAL,
+    PORT_RANGE
+};
+
 struct onm_tc_actions {
     forwarding_action_t forwarding;
     forwarding_action_t logging;
 };
 
-enum onm_tc_operator {
-    onm_tc_operator_neq,
-    onm_tc_operator_eq,
-    onm_tc_operator_gte,
-    onm_tc_operator_lte,
-};
 
 
 struct onm_tc_eth {
@@ -109,15 +113,15 @@ struct onm_tc_ipv6 {
 struct onm_tc_source_port {
     uint16_t lower_port;
     uint16_t upper_port;
-    onm_tc_operator_t operator;
     uint16_t port;
+    port_operation_t operation;
 };
 
 struct onm_tc_destination_port {
     uint16_t lower_port;
     uint16_t upper_port;
-    onm_tc_operator_t operator;
     uint16_t port;
+    port_operation_t operation;
 };
 
 struct onm_tc_tcp {

@@ -317,7 +317,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     const char* tcp_src_port_str = NULL;
                     SRPC_SAFE_CALL_PTR(tcp_src_port_str, lyd_get_value(tcp_src_port_node), error_out);
                     const uint16_t src_port = (uint16_t)atoi(tcp_src_port_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_src_port(&new_ace_element, src_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_src_port(&new_ace_element, src_port,PORT_EQUAL), error_out);
                     tcp_src_port_node = NULL;
                 }
                 if(tcp_dst_port_node){
@@ -326,7 +326,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(tcp_dst_port_str, lyd_get_value(tcp_dst_port_node), error_out);
 
                     const uint16_t dst_port = (uint16_t)atoi(tcp_dst_port_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_dst_port(&new_ace_element, dst_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_dst_port(&new_ace_element, dst_port,PORT_EQUAL), error_out);
                     tcp_dst_port_node = NULL;
                 }
                 if(tcp_src_range_lower_port_node){
@@ -335,7 +335,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(tcp_src_range_upper_port_node), error_out);
                     const uint16_t lower_port = (uint16_t)atoi(lower_str);
                     const uint16_t upper_port = (uint16_t)atoi(upper_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_src_range(&new_ace_element, lower_port,upper_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_src_range(&new_ace_element, lower_port,upper_port,PORT_RANGE), error_out);
                     tcp_src_range_lower_port_node = NULL;
                     tcp_src_range_upper_port_node = NULL;
                 }
@@ -345,7 +345,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(tcp_dst_range_upper_port_node), error_out);
                     const uint16_t lower_port = (uint16_t)atoi(lower_str);
                     const uint16_t upper_port = (uint16_t)atoi(upper_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_dst_range(&new_ace_element, lower_port,upper_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_tcp_dst_range(&new_ace_element, lower_port,upper_port,PORT_RANGE), error_out);
                     tcp_dst_range_lower_port_node = NULL;
                     tcp_dst_range_upper_port_node = NULL;
                 }
@@ -356,7 +356,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(udp_src_port_str, lyd_get_value(udp_src_port_node), error_out);
 
                     const uint16_t src_port = (uint16_t)atoi(udp_src_port_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_src_port(&new_ace_element, src_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_src_port(&new_ace_element, src_port,PORT_EQUAL), error_out);
                     udp_src_port_node = NULL;
                 }
                 if(udp_dst_port_node){
@@ -364,7 +364,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     const char* udp_dst_port_str = NULL;
                     SRPC_SAFE_CALL_PTR(udp_dst_port_str, lyd_get_value(udp_dst_port_node), error_out);
                     const uint16_t dst_port = (uint16_t)atoi(udp_dst_port_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_port(&new_ace_element, dst_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_port(&new_ace_element, dst_port,PORT_EQUAL), error_out);
                     udp_dst_port_node = NULL;
                 }
                 if(udp_src_range_lower_port_node){
@@ -373,7 +373,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(udp_src_range_upper_port_node), error_out);
                     const uint16_t lower_port = (uint16_t)atoi(lower_str);
                     const uint16_t upper_port = (uint16_t)atoi(upper_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_src_range(&new_ace_element, lower_port,upper_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_src_range(&new_ace_element, lower_port,upper_port,PORT_RANGE), error_out);
                     udp_src_range_lower_port_node = NULL;
                     udp_src_range_upper_port_node = NULL;
                 }
@@ -383,7 +383,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(udp_dst_range_upper_port_node), error_out);
                     const uint16_t lower_port = (uint16_t)atoi(lower_str);
                     const uint16_t upper_port = (uint16_t)atoi(upper_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_range(&new_ace_element, lower_port,upper_port), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_udp_dst_range(&new_ace_element, lower_port,upper_port,PORT_RANGE), error_out);
                     udp_dst_range_lower_port_node = NULL;
                     udp_dst_range_upper_port_node = NULL;
                 }

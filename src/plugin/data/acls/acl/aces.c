@@ -182,57 +182,65 @@ int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el
 }
 
 //TCP
-int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, uint16_t src_port)
+int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, uint16_t src_port,port_operation_t operation)
 {
     (*el)->ace.matches.tcp.source_port.port = src_port;
+    (*el)->ace.matches.tcp.source_port.operation = operation;
     (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
-int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port)
+int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port,port_operation_t operation)
 {
     (*el)->ace.matches.tcp.destination_port.port= dst_port;
+    (*el)->ace.matches.tcp.destination_port.operation = operation;
     (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
-int onm_tc_ace_hash_element_set_match_tcp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+int onm_tc_ace_hash_element_set_match_tcp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
 {
     (*el)->ace.matches.tcp.source_port.lower_port= lower_port;
     (*el)->ace.matches.tcp.source_port.upper_port= upper_port;
+    (*el)->ace.matches.tcp.source_port.operation = operation;
     (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
-int onm_tc_ace_hash_element_set_match_tcp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+int onm_tc_ace_hash_element_set_match_tcp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
 {
     (*el)->ace.matches.tcp.destination_port.lower_port= lower_port;
     (*el)->ace.matches.tcp.destination_port.upper_port= upper_port;
+    (*el)->ace.matches.tcp.destination_port.operation = operation;
     (*el)->ace.matches.tcp._is_set = 1;
     return 0;
 }
 
 //UDP
-int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, uint16_t src_port)
+int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, uint16_t src_port,port_operation_t operation)
 {
     (*el)->ace.matches.udp.source_port.port = src_port;
+    (*el)->ace.matches.udp.source_port.operation = operation;
     (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
-int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port)
+int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port,port_operation_t operation)
 {
     (*el)->ace.matches.udp.destination_port.port = dst_port;
+    (*el)->ace.matches.udp.destination_port.operation = operation;
     (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
-int onm_tc_ace_hash_element_set_match_udp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+int onm_tc_ace_hash_element_set_match_udp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
 {
     (*el)->ace.matches.udp.source_port.lower_port= lower_port;
     (*el)->ace.matches.udp.source_port.upper_port= upper_port;
+    (*el)->ace.matches.udp.source_port.operation = operation;
     (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
-int onm_tc_ace_hash_element_set_match_udp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port)
+int onm_tc_ace_hash_element_set_match_udp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
 {
     (*el)->ace.matches.udp.destination_port.lower_port= lower_port;
     (*el)->ace.matches.udp.destination_port.upper_port= upper_port;
+    (*el)->ace.matches.udp.destination_port.operation = operation;
     (*el)->ace.matches.udp._is_set = 1;
     return 0;
 }
@@ -244,21 +252,20 @@ int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8
     return 0;
 }
 
-// TODO add action str to identity enum translation
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action)
 {
     if (action) {
         if (strcmp(action,"accept") == 0)
         {
-            (*el)->ace.actions.forwarding = ACCEPT;
+            (*el)->ace.actions.forwarding = FORWARD_ACCEPT;
         }
         else if (strcmp(action,"drop") == 0)
         {
-            (*el)->ace.actions.forwarding = DROP;
+            (*el)->ace.actions.forwarding = FORWARD_DROP;
         }
         else if (strcmp(action,"reject") == 0)
         {
-            (*el)->ace.actions.forwarding = REJECT;
+            (*el)->ace.actions.forwarding = FORWARD_REJECT;
         }
     }
     

@@ -483,13 +483,13 @@ int tcnl_parse_action(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         // Define the action kind and gact parameters
         const char *action_kind = "gact";
         struct tc_gact gact_params = { 0 };
-        if (ace->ace.actions.forwarding == DROP)
+        if (ace->ace.actions.forwarding == FORWARD_DROP)
         {
             gact_params.action = TC_ACT_SHOT;
-        } else if (ace->ace.actions.forwarding == REJECT)
+        } else if (ace->ace.actions.forwarding == FORWARD_REJECT)
         {
             gact_params.action = TC_ACT_SHOT;
-        } else if (ace->ace.actions.forwarding == ACCEPT)
+        } else if (ace->ace.actions.forwarding == FORWARD_ACCEPT)
         {
             gact_params.action = TC_ACT_OK;
         } else 
@@ -637,79 +637,88 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   TCA_FLOWER_KEY_IPV6_DST_MASK,
 						   nlh);
     }
-    if (ace->ace.matches.tcp.source_port.port != 0)
+    if (ace->ace.matches.tcp.source_port.operation != PORT_NOOP)
     {
-        __u8 ip_proto = IPPROTO_TCP;
-        __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_SRC, port);
+        if (ace->ace.matches.tcp.source_port.operation != PORT_RANGE)
+        {
+            __u8 ip_proto = IPPROTO_TCP;
+            __be16 port = htons(ace->ace.matches.tcp.source_port.port);
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_SRC, port);
+        }
+        else if(ace->ace.matches.tcp.source_port.operation == PORT_RANGE){
+            __u8 ip_proto = IPPROTO_TCP;
+            __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
+
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
+        }
     }
-    else if(ace->ace.matches.tcp.source_port.lower_port != 0){
-        __u8 ip_proto = IPPROTO_TCP;
-        __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
-        __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
-
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
-		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
-    }
-
-    if (ace->ace.matches.tcp.destination_port.port != 0)
+    if (ace->ace.matches.tcp.destination_port.operation != PORT_NOOP)
     {
-        __u8 ip_proto = IPPROTO_TCP;
-        __be16 port = htons(ace->ace.matches.tcp.destination_port.port);
-        
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_DST, port);
+        if (ace->ace.matches.tcp.destination_port.operation != PORT_RANGE)
+        {
+            __u8 ip_proto = IPPROTO_TCP;
+            __be16 port = htons(ace->ace.matches.tcp.destination_port.port);
+            
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_DST, port);
+        }
+        else if (ace->ace.matches.tcp.destination_port.operation == PORT_RANGE){
+            __u8 ip_proto = IPPROTO_TCP;
+            __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
+
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
+        }
     }
-    else if (ace->ace.matches.tcp.destination_port.lower_port != 0){
-        __u8 ip_proto = IPPROTO_TCP;
-        __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
-        __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
-
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
-		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
-    }
-
-    if (ace->ace.matches.udp.source_port.port != 0)
+    if (ace->ace.matches.udp.source_port.operation != PORT_NOOP)
     {
-        __u8 ip_proto = IPPROTO_UDP;
-        __be16 port = htons(ace->ace.matches.udp.source_port.port);
-        
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_SRC, port);
+        if (ace->ace.matches.udp.source_port.operation !=  PORT_RANGE)
+        {
+            __u8 ip_proto = IPPROTO_UDP;
+            __be16 port = htons(ace->ace.matches.udp.source_port.port);
+            
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_SRC, port);
+        }
+        else if (ace->ace.matches.udp.source_port.operation == PORT_RANGE){
+            __u8 ip_proto = IPPROTO_UDP;
+            __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
+
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
+        }
     }
-    else if (ace->ace.matches.udp.source_port.lower_port != 0){
-        __u8 ip_proto = IPPROTO_UDP;
-        __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
-        __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
-
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
-		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
-    }
-
-    if (ace->ace.matches.udp.destination_port.port != 0)
+    if (ace->ace.matches.udp.destination_port.operation != PORT_NOOP)
     {
-        __u8 ip_proto = IPPROTO_UDP;
-        __be16 port = htons(ace->ace.matches.udp.destination_port.port);
-        
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_DST, port);
-    }
-    else if (ace->ace.matches.udp.destination_port.lower_port != 0){
-        __u8 ip_proto = IPPROTO_UDP;
-        __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
-        __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
+        if (ace->ace.matches.udp.destination_port.operation !=  PORT_RANGE)
+        {
+            __u8 ip_proto = IPPROTO_UDP;
+            __be16 port = htons(ace->ace.matches.udp.destination_port.port);
+            
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_DST, port);
+        }
+        else if (ace->ace.matches.udp.destination_port.operation == PORT_RANGE){
+            __u8 ip_proto = IPPROTO_UDP;
+            __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
 
-        addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
 
-        addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
-		addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
+            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
+        }
     }
 
     tail->rta_len = (((void *)nlh)+nlh->nlmsg_len) - (void *)tail;

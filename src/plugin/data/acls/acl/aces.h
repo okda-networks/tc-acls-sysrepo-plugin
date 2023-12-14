@@ -14,15 +14,15 @@ int onm_tc_ace_hash_element_set_match_ipv4_dst_network(onm_tc_ace_element_t** el
 int onm_tc_ace_hash_element_set_match_ipv6_src_network(onm_tc_ace_element_t** el, const char* ipv6_src_addr);
 int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el, const char* ipv6_dst_addr);
 
-int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, const uint16_t tcp_src_port);
-int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, const uint16_t tcp_dst_port);
-int onm_tc_ace_hash_element_set_match_tcp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port);
-int onm_tc_ace_hash_element_set_match_tcp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port);
+int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, const uint16_t tcp_src_port,port_operation_t operation);
+int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, const uint16_t tcp_dst_port,port_operation_t operation);
+int onm_tc_ace_hash_element_set_match_tcp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation);
+int onm_tc_ace_hash_element_set_match_tcp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation);
 
-int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, const uint16_t udp_src_port);
-int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, const uint16_t udp_dst_port);
-int onm_tc_ace_hash_element_set_match_udp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port);
-int onm_tc_ace_hash_element_set_match_udp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port);
+int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, const uint16_t udp_src_port,port_operation_t operation);
+int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, const uint16_t udp_dst_port,port_operation_t operation);
+int onm_tc_ace_hash_element_set_match_udp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation);
+int onm_tc_ace_hash_element_set_match_udp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation);
 
 int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, const uint8_t icmp_code);
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action);
