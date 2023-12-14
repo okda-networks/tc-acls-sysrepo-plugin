@@ -478,55 +478,52 @@ bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx, unsigned int tca_block_id) {
 
 int tcnl_parse_action(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
-//if (ace->ace.actions.forwarding)
+    // Define the action kind and gact parameters
+    const char *action_kind = "gact";
+    struct tc_gact gact_params = { 0 };
+    if (ace->ace.actions.forwarding == FORWARD_DROP)
     {
-        // Define the action kind and gact parameters
-        const char *action_kind = "gact";
-        struct tc_gact gact_params = { 0 };
-        if (ace->ace.actions.forwarding == FORWARD_DROP)
-        {
-            gact_params.action = TC_ACT_SHOT;
-        } else if (ace->ace.actions.forwarding == FORWARD_REJECT)
-        {
-            gact_params.action = TC_ACT_SHOT;
-        } else if (ace->ace.actions.forwarding == FORWARD_ACCEPT)
-        {
-            gact_params.action = TC_ACT_OK;
-        } else 
-        {
-            gact_params.action = TC_ACT_UNSPEC;
-        }
-        
+        gact_params.action = TC_ACT_SHOT;
+    } else if (ace->ace.actions.forwarding == FORWARD_REJECT)
+    {
+        gact_params.action = TC_ACT_SHOT;
+    } else if (ace->ace.actions.forwarding == FORWARD_ACCEPT)
+    {
+        gact_params.action = TC_ACT_OK;
+    } else //FORWARD_NOOP
+    {
+        gact_params.action = TC_ACT_UNSPEC;
+    }
 
-        // Start a nested attribute for TCA_FLOWER_ACT
-        struct rtattr *flower_act_nest = addattr_nest(nlh, MAX_MSG, TCA_FLOWER_ACT);
+    // Start a nested attribute for TCA_FLOWER_ACT
+    struct rtattr *flower_act_nest = addattr_nest(nlh, MAX_MSG, TCA_FLOWER_ACT);
 
-        // Start a nested attribute for each action
-        struct rtattr *act_nest = addattr_nest(nlh, MAX_MSG, TCA_ACT_KIND);
+    // Start a nested attribute for each action
+    struct rtattr *act_nest = addattr_nest(nlh, MAX_MSG, TCA_ACT_KIND);
 
-        // Set the action priority (index)
-        int action_priority = 1; // Example priority, adjust as necessary
-        addattr32(nlh, MAX_MSG, TCA_ACT_INDEX, action_priority);
+    // Set the action priority (index)
+    int action_priority = 1; // Example priority, adjust as necessary
+    addattr32(nlh, MAX_MSG, TCA_ACT_INDEX, action_priority);
 
-        // Add the TCA_ACT_KIND attribute
-        addattr_l(nlh, MAX_MSG, TCA_ACT_KIND, action_kind, strlen(action_kind) + 1);
+    // Add the TCA_ACT_KIND attribute
+    addattr_l(nlh, MAX_MSG, TCA_ACT_KIND, action_kind, strlen(action_kind) + 1);
 
-        // Start a nested attribute for TCA_ACT_OPTIONS
-        struct rtattr *options_nest = addattr_nest(nlh, MAX_MSG, TCA_ACT_OPTIONS);
+    // Start a nested attribute for TCA_ACT_OPTIONS
+    struct rtattr *options_nest = addattr_nest(nlh, MAX_MSG, TCA_ACT_OPTIONS);
 
-        // Add the TCA_GACT_PARMS attribute with gact parameters
-        addattr_l(nlh, MAX_MSG, TCA_GACT_PARMS, &gact_params, sizeof(gact_params));
+    // Add the TCA_GACT_PARMS attribute with gact parameters
+    addattr_l(nlh, MAX_MSG, TCA_GACT_PARMS, &gact_params, sizeof(gact_params));
 
-        // Close the TCA_ACT_OPTIONS nested attribute
-        addattr_nest_end(nlh, options_nest);
+    // Close the TCA_ACT_OPTIONS nested attribute
+    addattr_nest_end(nlh, options_nest);
 
-        // Close the nested attribute for the action
-        addattr_nest_end(nlh, act_nest);
+    // Close the nested attribute for the action
+    addattr_nest_end(nlh, act_nest);
 
-        // Close the TCA_FLOWER_ACT nested attribute
-        addattr_nest_end(nlh, flower_act_nest);
-    }  
+    // Close the TCA_FLOWER_ACT nested attribute
+    addattr_nest_end(nlh, flower_act_nest);
 }
+
 /// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
 static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
