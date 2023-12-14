@@ -247,7 +247,6 @@ int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8
 // TODO add action str to identity enum translation
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action)
 {
-    //TODO: fix data type
     if (action) {
         if (strcmp(action,"accept") == 0)
         {

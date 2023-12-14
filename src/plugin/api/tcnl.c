@@ -24,6 +24,7 @@ https://github.com/iproute2/iproute2/blob/main/tc/tc_util.c
 #include <errno.h>
 #include <linux/pkt_cls.h>
 #include "plugin/types.h"
+#include <linux/tc_act/tc_gact.h>
 
 unsigned int acl_name2id(const char *str) {
     unsigned int hash = 5381; // Initial hash value
@@ -65,6 +66,18 @@ int addattr16(struct nlmsghdr *n, int maxlen, int type, __u16 data)
 int addattr8(struct nlmsghdr *n, int maxlen, int type, __u8 data)
 {
 	return addattr_l(n, maxlen, type, &data, sizeof(__u8));
+}
+struct rtattr *addattr_nest(struct nlmsghdr *n, int maxlen, int type)
+{
+	struct rtattr *nest = NLMSG_TAIL(n);
+
+	addattr_l(n, maxlen, type, NULL, 0);
+	return nest;
+}
+int addattr_nest_end(struct nlmsghdr *n, struct rtattr *nest)
+{
+	nest->rta_len = (void *)NLMSG_TAIL(n) - (void *)nest;
+	return n->nlmsg_len;
 }
 
 void print_netlink_message(struct nlmsghdr *nlmsg) {
@@ -459,12 +472,64 @@ int tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int tca_block_id)
     return ret;
 }
 
+int tcnl_parse_action(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
+{
+//if (ace->ace.actions.forwarding)
+    {
+        // Define the action kind and gact parameters
+        const char *action_kind = "gact";
+        struct tc_gact gact_params = { 0 };
+        if (ace->ace.actions.forwarding == DROP)
+        {
+            gact_params.action = TC_ACT_SHOT;
+        } else if (ace->ace.actions.forwarding == REJECT)
+        {
+            gact_params.action = TC_ACT_SHOT;
+        } else if (ace->ace.actions.forwarding == ACCEPT)
+        {
+            gact_params.action = TC_ACT_OK;
+        } else 
+        {
+            gact_params.action = TC_ACT_UNSPEC;
+        }
+        
+
+        // Start a nested attribute for TCA_FLOWER_ACT
+        struct rtattr *flower_act_nest = addattr_nest(nlh, MAX_MSG, TCA_FLOWER_ACT);
+
+        // Start a nested attribute for each action
+        struct rtattr *act_nest = addattr_nest(nlh, MAX_MSG, TCA_ACT_KIND);
+
+        // Set the action priority (index)
+        int action_priority = 1; // Example priority, adjust as necessary
+        addattr32(nlh, MAX_MSG, TCA_ACT_INDEX, action_priority);
+
+        // Add the TCA_ACT_KIND attribute
+        addattr_l(nlh, MAX_MSG, TCA_ACT_KIND, action_kind, strlen(action_kind) + 1);
+
+        // Start a nested attribute for TCA_ACT_OPTIONS
+        struct rtattr *options_nest = addattr_nest(nlh, MAX_MSG, TCA_ACT_OPTIONS);
+
+        // Add the TCA_GACT_PARMS attribute with gact parameters
+        addattr_l(nlh, MAX_MSG, TCA_GACT_PARMS, &gact_params, sizeof(gact_params));
+
+        // Close the TCA_ACT_OPTIONS nested attribute
+        addattr_nest_end(nlh, options_nest);
+
+        // Close the nested attribute for the action
+        addattr_nest_end(nlh, act_nest);
+
+        // Close the TCA_FLOWER_ACT nested attribute
+        addattr_nest_end(nlh, flower_act_nest);
+    }  
+}
 /// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
 static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
-    struct rtattr *tail;
+    struct rtattr *tail,*tail2, *tail0;
     struct tcmsg *tcm = NLMSG_DATA(nlh);
     int ret;
+    struct tc_gact pa = { 0 };
 
     tail = (struct rtattr *) (((void *) nlh) + NLMSG_ALIGN(nlh->nlmsg_len));
     addattr_l(nlh, MAX_MSG, TCA_OPTIONS, NULL, 0);
@@ -482,6 +547,9 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         if (ret)
             SRPLG_LOG_ERR(PLUGIN_NAME, "ACE Name %s failed to set EtherType",ace->ace.name);
     }
+
+    //TODO revise this function
+    tcnl_parse_action(nlh,ace);
 
     if(ace->ace.matches.eth.source_mac_address)
     {
@@ -569,7 +637,6 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     {
         __u8 ip_proto = IPPROTO_TCP;
         __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-
         addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
         addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_SRC, port);
     }
