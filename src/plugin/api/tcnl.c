@@ -526,7 +526,7 @@ int tcnl_parse_action(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 /// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
 static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
-    struct rtattr *tail,*tail2, *tail0;
+    struct rtattr *tail;
     struct tcmsg *tcm = NLMSG_DATA(nlh);
     int ret;
     struct tc_gact pa = { 0 };
@@ -870,35 +870,5 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
                 
             }
         }
-        /*
-        SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
-        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tName = %s", iter->acl.name);
-        if(iter->acl.type){
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tType = %s", iter->acl.type);
-        }
-        
-        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tACEs:");
-        LL_FOREACH(iter->acl.aces.ace, ace_iter)
-        {
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s", ace_iter->ace.name);
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
-            if(ace_iter->ace.matches.ipv4.source_ipv4_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source-Network = %s", ace_iter->ace.matches.ipv4.source_ipv4_network);
-            }
-            if(ace_iter->ace.matches.ipv4.destination_ipv4_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Destination-Network = %s", ace_iter->ace.matches.ipv4.destination_ipv4_network);
-            }
-            if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
-                if(ace_iter->ace.actions.forwarding){
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %s", ace_iter->ace.actions.forwarding);
-                }
-                if(ace_iter->ace.actions.logging){
-                    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %s", ace_iter->ace.actions.logging);
-                }
-            }
-        }
-        */
     }
 }
