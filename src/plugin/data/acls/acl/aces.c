@@ -181,70 +181,6 @@ int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el
     return 0;
 }
 
-//TCP
-int onm_tc_ace_hash_element_set_match_tcp_src_port(onm_tc_ace_element_t** el, uint16_t src_port,port_operation_t operation)
-{
-    (*el)->ace.matches.tcp.source_port.port = src_port;
-    (*el)->ace.matches.tcp.source_port.operation = operation;
-    (*el)->ace.matches.tcp._is_set = 1;
-    return 0;
-}
-int onm_tc_ace_hash_element_set_match_tcp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port,port_operation_t operation)
-{
-    (*el)->ace.matches.tcp.destination_port.port= dst_port;
-    (*el)->ace.matches.tcp.destination_port.operation = operation;
-    (*el)->ace.matches.tcp._is_set = 1;
-    return 0;
-}
-int onm_tc_ace_hash_element_set_match_tcp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
-{
-    (*el)->ace.matches.tcp.source_port.lower_port= lower_port;
-    (*el)->ace.matches.tcp.source_port.upper_port= upper_port;
-    (*el)->ace.matches.tcp.source_port.operation = operation;
-    (*el)->ace.matches.tcp._is_set = 1;
-    return 0;
-}
-int onm_tc_ace_hash_element_set_match_tcp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
-{
-    (*el)->ace.matches.tcp.destination_port.lower_port= lower_port;
-    (*el)->ace.matches.tcp.destination_port.upper_port= upper_port;
-    (*el)->ace.matches.tcp.destination_port.operation = operation;
-    (*el)->ace.matches.tcp._is_set = 1;
-    return 0;
-}
-
-//UDP
-int onm_tc_ace_hash_element_set_match_udp_src_port(onm_tc_ace_element_t** el, uint16_t src_port,port_operation_t operation)
-{
-    (*el)->ace.matches.udp.source_port.port = src_port;
-    (*el)->ace.matches.udp.source_port.operation = operation;
-    (*el)->ace.matches.udp._is_set = 1;
-    return 0;
-}
-int onm_tc_ace_hash_element_set_match_udp_dst_port(onm_tc_ace_element_t** el, uint16_t dst_port,port_operation_t operation)
-{
-    (*el)->ace.matches.udp.destination_port.port = dst_port;
-    (*el)->ace.matches.udp.destination_port.operation = operation;
-    (*el)->ace.matches.udp._is_set = 1;
-    return 0;
-}
-int onm_tc_ace_hash_element_set_match_udp_src_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
-{
-    (*el)->ace.matches.udp.source_port.lower_port= lower_port;
-    (*el)->ace.matches.udp.source_port.upper_port= upper_port;
-    (*el)->ace.matches.udp.source_port.operation = operation;
-    (*el)->ace.matches.udp._is_set = 1;
-    return 0;
-}
-int onm_tc_ace_hash_element_set_match_udp_dst_range(onm_tc_ace_element_t** el, uint16_t lower_port, uint16_t upper_port,port_operation_t operation)
-{
-    (*el)->ace.matches.udp.destination_port.lower_port= lower_port;
-    (*el)->ace.matches.udp.destination_port.upper_port= upper_port;
-    (*el)->ace.matches.udp.destination_port.operation = operation;
-    (*el)->ace.matches.udp._is_set = 1;
-    return 0;
-}
-
 int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8_t icmp_code)
 {
     (*el)->ace.matches.icmp.code = icmp_code;
@@ -286,4 +222,94 @@ int onm_tc_ace_hash_element_set_action_logging(onm_tc_ace_element_t** el, const 
     }
     */
     return 0;
+}
+
+port_operation_t onm_tc_ace_port_oper_a2i(char * oper_str)
+{
+    port_operation_t operation = PORT_NOOP;
+    if (strcmp(oper_str,"eq") == 0)
+    {
+        operation = PORT_EQUAL;
+    }
+    else if (strcmp(oper_str,"lte") == 0)
+    {
+        operation = PORT_LTE;
+    }
+    else if (strcmp(oper_str,"gte") == 0)
+    {
+        operation = PORT_GTE;
+    }
+    else if (strcmp(oper_str,"neq") == 0)
+    {
+        operation = PORT_NOT_EQUAL;
+    }
+    else if (strcmp(oper_str,"range") == 0)
+    {
+        operation = PORT_RANGE;
+    }
+    return operation;
+}
+
+int set_ace_port_single(onm_tc_ace_element_t* el, port_operation_t operation, int direction, int proto, onm_tc_port_attributes_t* port_attr) {
+    if (proto == PORT_ATTR_PROTO_TCP) {
+        if (direction == PORT_ATTR_SRC) {
+            el->ace.matches.tcp.source_port.port = port_attr->port;
+            el->ace.matches.tcp.source_port.operation = operation;
+            el->ace.matches.tcp._is_set = 1;
+        } else {
+            el->ace.matches.tcp.destination_port.port = port_attr->port;
+            el->ace.matches.tcp.destination_port.operation = operation;
+            el->ace.matches.tcp._is_set = 1;
+        }
+    } else if (proto == PORT_ATTR_PROTO_UDP) {
+        if (direction == PORT_ATTR_SRC) {
+            el->ace.matches.udp.source_port.port = port_attr->port;
+            el->ace.matches.udp.source_port.operation = operation;
+            el->ace.matches.udp._is_set = 1;
+        } else {
+            el->ace.matches.udp.destination_port.port = port_attr->port;
+            el->ace.matches.udp.destination_port.operation = operation;
+            el->ace.matches.udp._is_set = 1;
+        }
+    }
+    return 0;
+}
+
+int set_ace_port_range(onm_tc_ace_element_t* el, port_operation_t operation, int direction, int proto, onm_tc_port_attributes_t* port_attr) {
+    if (proto == PORT_ATTR_PROTO_TCP) {
+        if (direction == PORT_ATTR_SRC) {
+            el->ace.matches.tcp.source_port.lower_port = port_attr->lower_port;
+            el->ace.matches.tcp.source_port.upper_port = port_attr->upper_port;
+            el->ace.matches.tcp.source_port.operation = operation;
+            el->ace.matches.tcp._is_set = 1;
+        } else {
+            el->ace.matches.tcp.destination_port.lower_port = port_attr->lower_port;
+            el->ace.matches.tcp.destination_port.upper_port = port_attr->upper_port;
+            el->ace.matches.tcp.destination_port.operation = operation;
+            el->ace.matches.tcp._is_set = 1;
+        }
+    } else if (proto == PORT_ATTR_PROTO_UDP) {
+        if (direction == PORT_ATTR_SRC) {
+            el->ace.matches.udp.source_port.lower_port = port_attr->lower_port;
+            el->ace.matches.udp.source_port.upper_port = port_attr->upper_port;
+            el->ace.matches.udp.source_port.operation = operation;
+            el->ace.matches.udp._is_set = 1;
+        } else {
+            el->ace.matches.udp.destination_port.lower_port = port_attr->lower_port;
+            el->ace.matches.udp.destination_port.upper_port = port_attr->upper_port;
+            el->ace.matches.udp.destination_port.operation = operation;
+            el->ace.matches.udp._is_set = 1;
+        }
+    }
+    return 0;
+}
+
+int onm_tc_ace_hash_element_set_match_port(onm_tc_ace_element_t** el, onm_tc_port_attributes_t* port_attr) {
+    port_operation_t operation = onm_tc_ace_port_oper_a2i(port_attr->operation_str);
+
+    if (operation != PORT_RANGE) {
+        return set_ace_port_single(*el, operation, port_attr->direction, port_attr->proto, port_attr);
+    } else {
+        return set_ace_port_range(*el, operation, port_attr->direction, port_attr->proto, port_attr);
+    }
 }

@@ -2,6 +2,9 @@
 #include "plugin/context.h"
 #include <linux/if_ether.h>
 
+#define MAX_PORT_NUMBER 65535
+#define MIN_PORT_NUMBER 1
+
 #define TCA_BUF_MAX	(64*1024)
 #define MAX_MSG 16384 // for tcmsg
 #define NLMSG_TAIL(nmsg) \

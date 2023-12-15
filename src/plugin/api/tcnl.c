@@ -524,6 +524,167 @@ int tcnl_parse_action(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     addattr_nest_end(nlh, flower_act_nest);
 }
 
+static int process_port_range(struct nlmsghdr *nlh, __u8 ip_proto, __be16 lower_port, __be16 upper_port, int port_min_key, int port_max_key) {
+    addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+    addattr16(nlh, MAX_MSG, port_min_key, lower_port);
+    addattr16(nlh, MAX_MSG, port_max_key, upper_port);
+
+    return 0;
+}
+
+static int process_port_operation(struct nlmsghdr *nlh, __u8 ip_proto, __be16 port, int port_key, int port_mask_key, int operation) {
+    addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
+    
+    __be16 port_lower, port_upper,port_middle;
+    __u16 port_mask = 0;
+    switch (operation) {
+        case PORT_GTE:
+            port_lower = port;
+            port_upper = htons(MAX_PORT_NUMBER);
+            if (port_upper == port_lower)
+            {
+                addattr16(nlh, MAX_MSG, port_key, port);
+                break;
+            }
+            else if (port_lower < MIN_PORT_NUMBER){
+                process_port_range(nlh,ip_proto,htons(MIN_PORT_NUMBER),htons(MAX_PORT_NUMBER),TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            }
+            else if (port_lower > MAX_PORT_NUMBER)
+            {
+                // TODO handle error bad port number (65536 or more)
+                break;
+            }
+            else {
+                process_port_range(nlh,ip_proto,port_lower,port_upper,TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            }
+            
+        case PORT_LTE:
+            port_lower = htons(MIN_PORT_NUMBER);
+            port_upper = port;
+            
+            if (port_upper == port_lower)
+            {
+                addattr16(nlh, MAX_MSG, port_key, port);
+                break;
+            }
+            else if (port_upper < MIN_PORT_NUMBER){
+                // TODO handle error bad port number
+                break;   
+            }
+            else if (port_upper > MAX_PORT_NUMBER)
+            {
+                process_port_range(nlh,ip_proto,htons(MIN_PORT_NUMBER),htons(MAX_PORT_NUMBER),TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            }
+            else
+            {
+                process_port_range(nlh,ip_proto,port_lower,port_upper,TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            }
+            
+        case PORT_NOT_EQUAL:
+            printf("port NOT equal %d\n\n\n",ntohs(port));
+            port_lower = htons(MIN_PORT_NUMBER);
+            port_middle = port;
+            port_upper = htons(MAX_PORT_NUMBER);
+            if (ntohs(port_middle) < MIN_PORT_NUMBER || ntohs(port_middle) > MAX_PORT_NUMBER){
+                process_port_range(nlh,ip_proto,port_lower,port_upper,TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            } else if (ntohs(port_middle) == ntohs(port_lower))
+            {
+                process_port_range(nlh,ip_proto,ntohs(ntohs(port_middle)+1),port_upper,TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            } else if (ntohs(port_middle) == ntohs(port_upper))
+            {
+                process_port_range(nlh,ip_proto,port_lower,htons(ntohs(port_middle)-1),TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                break;
+            }
+
+            process_port_range(nlh,ip_proto,port_lower,htons(ntohs(port_middle)-1),TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+            process_port_range(nlh,ip_proto,htons(ntohs(port_middle)+1),port_upper,TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+            break;
+
+        case PORT_EQUAL:
+            addattr16(nlh, MAX_MSG, port_key, port);
+            break;
+        default:
+            // Handle unknown operation...
+            break;
+    }
+
+    return 0;
+}
+
+static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
+    int ret = 0;
+
+    // Handle TCP source port
+    if (ace->ace.matches.tcp.source_port.operation != PORT_NOOP) {
+        __be16 port = htons(ace->ace.matches.tcp.source_port.port);
+        if (ace->ace.matches.tcp.source_port.operation != PORT_RANGE) {
+            ret = process_port_operation(nlh, IPPROTO_TCP, port, TCA_FLOWER_KEY_TCP_SRC, TCA_FLOWER_KEY_TCP_SRC_MASK, ace->ace.matches.tcp.source_port.operation);
+            if (ret) return ret;
+        } else {
+            __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
+            ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+            if (ret) return ret;
+        }
+    }
+
+    // Handle TCP destination port
+    if (ace->ace.matches.tcp.destination_port.operation != PORT_NOOP) {
+        __be16 port = htons(ace->ace.matches.tcp.destination_port.port);
+        if (ace->ace.matches.tcp.destination_port.operation != PORT_RANGE) {
+            ret = process_port_operation(nlh, IPPROTO_TCP, port, TCA_FLOWER_KEY_TCP_DST, TCA_FLOWER_KEY_TCP_DST_MASK, ace->ace.matches.tcp.destination_port.operation);
+            if (ret) return ret;
+        } else {
+            __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
+            ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
+            if (ret) return ret;
+        }
+    }
+
+    return ret;
+}
+
+static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
+    int ret = 0;
+
+    // Handle UDP source port
+    if (ace->ace.matches.udp.source_port.operation != PORT_NOOP) {
+        __be16 port = htons(ace->ace.matches.udp.source_port.port);
+        if (ace->ace.matches.udp.source_port.operation != PORT_RANGE) {
+            ret = process_port_operation(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_SRC, TCA_FLOWER_KEY_UDP_SRC_MASK, ace->ace.matches.udp.source_port.operation);
+            if (ret) return ret;
+        } else {
+            __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
+            ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+            if (ret) return ret;
+        }
+    }
+
+    // Handle UDP destination port
+    if (ace->ace.matches.udp.destination_port.operation != PORT_NOOP) {
+        __be16 port = htons(ace->ace.matches.udp.destination_port.port);
+        if (ace->ace.matches.udp.destination_port.operation != PORT_RANGE) {
+            ret = process_port_operation(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK, ace->ace.matches.udp.destination_port.operation);
+            if (ret) return ret;
+        } else {
+            __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
+            __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
+            ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
+            if (ret) return ret;
+        }
+    }
+
+    return ret;
+}
+
 /// @brief this function adds nlattr to nlh in the request message, it will parse each parameter in the ace and add its corresponding TCA_OPTION
 static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 {
@@ -592,7 +753,6 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
             }
         }
     }
-
     if(ace->ace.matches.ipv4.source_ipv4_network)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_ipv4_network);
@@ -634,89 +794,12 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   TCA_FLOWER_KEY_IPV6_DST_MASK,
 						   nlh);
     }
-    if (ace->ace.matches.tcp.source_port.operation != PORT_NOOP)
-    {
-        if (ace->ace.matches.tcp.source_port.operation != PORT_RANGE)
-        {
-            __u8 ip_proto = IPPROTO_TCP;
-            __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_SRC, port);
-        }
-        else if(ace->ace.matches.tcp.source_port.operation == PORT_RANGE){
-            __u8 ip_proto = IPPROTO_TCP;
-            __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
+    
+    ret = add_tcp_ports(nlh, ace);
+    if (ret) return ret;
 
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
-        }
-    }
-    if (ace->ace.matches.tcp.destination_port.operation != PORT_NOOP)
-    {
-        if (ace->ace.matches.tcp.destination_port.operation != PORT_RANGE)
-        {
-            __u8 ip_proto = IPPROTO_TCP;
-            __be16 port = htons(ace->ace.matches.tcp.destination_port.port);
-            
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_TCP_DST, port);
-        }
-        else if (ace->ace.matches.tcp.destination_port.operation == PORT_RANGE){
-            __u8 ip_proto = IPPROTO_TCP;
-            __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
-
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
-        }
-    }
-    if (ace->ace.matches.udp.source_port.operation != PORT_NOOP)
-    {
-        if (ace->ace.matches.udp.source_port.operation !=  PORT_RANGE)
-        {
-            __u8 ip_proto = IPPROTO_UDP;
-            __be16 port = htons(ace->ace.matches.udp.source_port.port);
-            
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_SRC, port);
-        }
-        else if (ace->ace.matches.udp.source_port.operation == PORT_RANGE){
-            __u8 ip_proto = IPPROTO_UDP;
-            __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
-
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MIN, lower_port);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_SRC_MAX, upper_port);
-        }
-    }
-    if (ace->ace.matches.udp.destination_port.operation != PORT_NOOP)
-    {
-        if (ace->ace.matches.udp.destination_port.operation !=  PORT_RANGE)
-        {
-            __u8 ip_proto = IPPROTO_UDP;
-            __be16 port = htons(ace->ace.matches.udp.destination_port.port);
-            
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_UDP_DST, port);
-        }
-        else if (ace->ace.matches.udp.destination_port.operation == PORT_RANGE){
-            __u8 ip_proto = IPPROTO_UDP;
-            __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
-
-            addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
-
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MIN, lower_port);
-            addattr16(nlh, MAX_MSG, TCA_FLOWER_KEY_PORT_DST_MAX, upper_port);
-        }
-    }
+    ret = add_udp_ports(nlh, ace);
+    if (ret) return ret;
 
     tail->rta_len = (((void *)nlh)+nlh->nlmsg_len) - (void *)tail;
 }

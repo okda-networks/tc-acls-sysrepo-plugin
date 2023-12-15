@@ -34,6 +34,11 @@ typedef struct ietf_interface ietf_interface_t;
 typedef enum forwarding_action forwarding_action_t;
 typedef enum logging_action logging_action_t;
 typedef enum port_operation port_operation_t;
+
+typedef struct onm_tc_port_attributes onm_tc_port_attributes_t;
+typedef enum onm_tc_port_attr_direction onm_tc_port_attr_direction_t;
+typedef enum onm_tc_port_attr_proto onm_tc_port_attr_proto_t;
+
 typedef struct onm_tc_actions onm_tc_actions_t;
 typedef enum onm_tc_acl_type onm_tc_acl_type_t;
 
@@ -70,6 +75,27 @@ enum port_operation{
 struct onm_tc_actions {
     forwarding_action_t forwarding;
     forwarding_action_t logging;
+};
+
+enum onm_tc_port_attr_proto{
+    PROT_ATTR_NOPROTO,
+    PORT_ATTR_PROTO_TCP,
+    PORT_ATTR_PROTO_UDP
+};
+
+enum onm_tc_port_attr_direction{
+    PROT_ATTR_NODIRECTION,
+    PORT_ATTR_SRC,
+    PORT_ATTR_DST
+};
+
+struct onm_tc_port_attributes{
+    onm_tc_port_attr_proto_t proto;
+    onm_tc_port_attr_direction_t direction;
+    char * operation_str;
+    uint16_t port;
+    uint16_t lower_port;
+    uint16_t upper_port;
 };
 
 
