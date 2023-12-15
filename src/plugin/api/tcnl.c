@@ -585,7 +585,6 @@ static int process_port_operation(struct nlmsghdr *nlh, __u8 ip_proto, __be16 po
             }
             
         case PORT_NOT_EQUAL:
-            printf("port NOT equal %d\n\n\n",ntohs(port));
             port_lower = htons(MIN_PORT_NUMBER);
             port_middle = port;
             port_upper = htons(MAX_PORT_NUMBER);
