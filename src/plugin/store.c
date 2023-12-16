@@ -7,10 +7,10 @@
 #include <sysrepo.h>
 #include <srpc.h>
 
-static int onm_tc_startup_store_attachment_points(void *priv, const struct lyd_node *parent_container);
-static int onm_tc_startup_store_acl(void *priv, const struct lyd_node *parent_container);
+static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *parent_container);
+static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container);
 
-int onm_tc_startup_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
+int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 {
 	int error = 0;
 	sr_data_t *subtree = NULL;
@@ -24,11 +24,11 @@ int onm_tc_startup_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 	srpc_startup_store_t store_values[] = {
 		{
 			"/ietf-access-control-list:acls/acl",
-			onm_tc_startup_store_acl,
+			onm_tc_store_acl,
 		},
 		{
 			"/ietf-access-control-list:acls/attachment-points",
-			onm_tc_startup_store_attachment_points,
+			onm_tc_store_attachment_points,
 		},		
 	};
 
@@ -68,7 +68,7 @@ out:
 	return error;
 }
 
-static int onm_tc_startup_store_attachment_points(void *priv, const struct lyd_node *parent_container)
+static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *parent_container)
 {
 	int error = 0;
     onm_tc_ctx_t* ctx = (onm_tc_ctx_t*)priv;
@@ -101,7 +101,7 @@ out:
 	return error;
 }
 
-static int onm_tc_startup_store_acl(void *priv, const struct lyd_node *parent_container)
+static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
 {
 	int error = 0;
     onm_tc_ctx_t* ctx = (onm_tc_ctx_t*)priv;

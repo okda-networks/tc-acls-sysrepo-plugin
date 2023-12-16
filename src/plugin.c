@@ -5,7 +5,7 @@
 
 // startup
 #include "plugin/startup/load.h"
-#include "plugin/startup/store.h"
+#include "plugin/store.h"
 
 // subscription
 #include "plugin/subscription/change.h"
@@ -172,7 +172,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			SRPLG_LOG_INF(PLUGIN_NAME, "Storing startup datastore data in the system");
 
 			// apply config data from startup DS to netlink tc
-			error = onm_tc_startup_store(ctx, startup_session);
+			error = onm_tc_store(ctx, startup_session);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 				goto error_out;
@@ -192,9 +192,15 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		SRPLG_LOG_INF(PLUGIN_NAME, "Running datastore contains data");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Reconfiguring running datastore data in the system");
 
+		error = onm_tc_store(ctx, running_session);
+		if (error) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
+			goto error_out;
+		}
 		/*
 		// apply config data from running DS to netlink tc
 		error = onm_tc_running_store(ctx, running_session);
+		
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 			goto error_out;
@@ -237,7 +243,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 		// in case of work on a specific callback set it to NULL
 		if (op->cb) {
-			error = sr_oper_get_subscribe(running_session, BASE_YANG_MODEL, op->path, op->cb, NULL, SR_SUBSCR_DEFAULT, &subscription);
+			//error = sr_oper_get_subscribe(running_session, BASE_YANG_MODEL, op->path, op->cb, NULL, SR_SUBSCR_DEFAULT, &subscription);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_oper_get_subscribe() error (%d): %s", error, sr_strerror(error));
 				goto error_out;

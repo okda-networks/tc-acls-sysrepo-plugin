@@ -26,7 +26,7 @@ set(
     src/plugin/data/acls/acl/aces.c
     src/plugin/data/acls/acl/aces.h
     src/plugin/startup/load.c
-    src/plugin/startup/store.c
+    src/plugin/store.c
     src/plugin/running/load.c
     src/plugin/running/store.c
     src/plugin/subscription/change.c
