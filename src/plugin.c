@@ -141,6 +141,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	}
 
 	ctx->startup_session = startup_session;
+	ctx->running_session = running_session;
 
 	error = srpc_check_empty_datastore(running_session, ONM_TC_ACLS_ACL_YANG_PATH, &empty_running_ds);
 	if (error) {
@@ -197,19 +198,9 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 			goto error_out;
 		}
-		/*
-		// apply config data from running DS to netlink tc
-		error = onm_tc_running_store(ctx, running_session);
-		
-		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
-			goto error_out;
-		}
-		// successfully applied running config on netlink tc
-		*/
 	}
 
-	// subscribe every module change
+	// subscribe every module change in running_session
 	for (size_t i = 0; i < ARRAY_SIZE(module_changes); i++) {
 		const srpc_module_change_t *change = &module_changes[i];
 		SRPLG_LOG_INF(PLUGIN_NAME, "Subscribing module change callback %s", change->path);
@@ -223,7 +214,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		}
 	}
 
-	// subscribe every rpc
+	// subscribe every rpc in running session
 	for (size_t i = 0; i < ARRAY_SIZE(rpcs); i++) {
 		const srpc_rpc_t *rpc = &rpcs[i];
 
