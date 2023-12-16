@@ -28,7 +28,6 @@ set(
     src/plugin/startup/load.c
     src/plugin/store.c
     src/plugin/running/load.c
-    src/plugin/running/store.c
     src/plugin/subscription/change.c
     src/plugin/subscription/operational.c
     src/plugin/subscription/rpc.c
