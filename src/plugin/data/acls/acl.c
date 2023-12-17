@@ -314,7 +314,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                 }
 
                 if(tcp_src_port_node){
-                    printf("doing source port tcp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str, *port_str = NULL;
                     SRPC_SAFE_CALL_PTR(port_oper_str, lyd_get_value(src_port_operation_node), error_out);
@@ -332,7 +331,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     free(port_attr);
                 }
                 if(tcp_dst_port_node){
-                    printf("doing dst port tcp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str, *port_str = NULL;
                     SRPC_SAFE_CALL_PTR(port_oper_str, lyd_get_value(dst_port_operation_node), error_out);
@@ -350,7 +348,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     free(port_attr);
                 }
                 if(tcp_src_range_lower_port_node){
-                    printf("doing source range tcp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str =NULL, * lower_str = NULL, *upper_str = NULL;
                     port_oper_str = "range";
@@ -372,7 +369,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     free(port_attr);
                 }
                 if(tcp_dst_range_lower_port_node){
-                    printf("doing dst range tcp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str =NULL, * lower_str = NULL, *upper_str = NULL;
                     port_oper_str = "range";
@@ -395,7 +391,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                 }
 
                 if(udp_src_port_node){
-                    printf("doing source port udp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str, *port_str = NULL;
                     SRPC_SAFE_CALL_PTR(port_oper_str, lyd_get_value(src_port_operation_node), error_out);
@@ -413,7 +408,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     free(port_attr);
                 }
                 if(udp_dst_port_node){
-                    printf("doing dst port udp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str, *port_str = NULL;
                     SRPC_SAFE_CALL_PTR(port_oper_str, lyd_get_value(dst_port_operation_node), error_out);
@@ -432,7 +426,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     free(port_attr);
                 }
                 if(udp_src_range_lower_port_node){
-                    printf("doing source range udp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str =NULL, * lower_str = NULL, *upper_str = NULL;
                     port_oper_str = "range";
@@ -454,7 +447,6 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     free(port_attr);
                 }
                 if(udp_dst_range_lower_port_node){
-                    printf("doing dst range udp\n");
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     const char* port_oper_str =NULL, * lower_str = NULL, *upper_str = NULL;
                     port_oper_str = "range";

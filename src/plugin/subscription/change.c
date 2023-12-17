@@ -31,8 +31,8 @@
 #include "plugin/api/acls/acl/aces/ace/change.h"
 #include "plugin/api/acls/acl/change.h"
 
-#include <limits.h>
-#include "../../../../../../../../usr/include/linux/limits.h"
+#include <linux/limits.h>
+
 
 int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
