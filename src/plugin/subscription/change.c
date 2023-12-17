@@ -5,7 +5,7 @@
 #include <libyang/libyang.h>
 #include <sysrepo.h>
 #include <srpc.h>
-#include <limits.h>
+
 
 // change API
 #include "plugin/api/acls/attachment-points/change.h"
@@ -30,6 +30,9 @@
 #include "plugin/api/acls/acl/aces/ace/matches/eth/change.h"
 #include "plugin/api/acls/acl/aces/ace/change.h"
 #include "plugin/api/acls/acl/change.h"
+
+#include <limits.h>
+#include "../../../../../../../../usr/include/linux/limits.h"
 
 int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subscription_id, const char *module_name, const char *xpath, sr_event_t event, uint32_t request_id, void *private_data)
 {
@@ -62,9 +65,49 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	} else if (event == SR_EV_CHANGE) {
 		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
 
-		// name
-        SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/name", xpath), error_out);
+		// acl name:
+        SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/*", xpath), error_out);
         SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		/*
+		// acl type
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/type", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+		
+		// ace name
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		// match eth
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/eth/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		// match ipv4
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/ipv4/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		// match ipv6
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/ipv6/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		
+		// match tcp
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/tcp/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		//match udp
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/udp/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		//match icmp
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/icmp/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+		//action forwarding
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/actions/forwarding", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+		
+		*/
 
 
 		// connect change API

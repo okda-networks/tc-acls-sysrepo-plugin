@@ -15,10 +15,13 @@ int acls_acl_aces_ace_change_name(void *priv, sr_session_ctx_t *session, const s
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
 
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
-
+	
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
+		if(node_value)
+		{
+			SRPLG_LOG_INF(PLUGIN_NAME, "ACE NAME CHANGE Node Name: %s; Value: %s; Operation: %d", node_name, node_value, change_ctx->operation);
+		}
 			break;
 		case SR_OP_MODIFIED:
 			break;

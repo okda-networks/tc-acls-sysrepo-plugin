@@ -109,6 +109,7 @@ else()
     )
 endif()
 
+
 include_directories(
     ${SYSREPO_INCLUDE_DIRS}
     ${LIBYANG_INCLUDE_DIRS}
