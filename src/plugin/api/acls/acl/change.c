@@ -1,6 +1,9 @@
 #include "change.h"
 #include "plugin/common.h"
 
+#include "plugin/data/acls/acl.h"
+#include <assert.h>
+
 #include <sysrepo.h>
 
 int acls_acl_change_type_init(void *priv)
@@ -15,7 +18,7 @@ int acls_acl_change_type(void *priv, sr_session_ctx_t *session, const srpc_chang
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
 
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
@@ -45,10 +48,20 @@ int acls_acl_change_name(void *priv, sr_session_ctx_t *session, const srpc_chang
 {
 	int error = 0;
 	const char *node_name = LYD_NAME(change_ctx->node);
+
 	const char *node_value = lyd_get_value(change_ctx->node);
 
-	SRPLG_LOG_DBG(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
+	SRPLG_LOG_INF(PLUGIN_NAME, "Node Name: %s; Previous Value: %s, Value: %s; Operation: %d", node_name, change_ctx->previous_value, node_value, change_ctx->operation);
 
+	// test code
+	//const struct lyd_node * acl_name_node = change_ctx->node;
+	//onm_tc_acl_hash_element_t* change_acl_hash = NULL;
+	//assert(change_acl_hash == NULL);
+	//SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&change_acl_hash, lyd_get_value(acl_name_node)), error_out);
+	//onm_tc_acl_hash_from_ly(&change_acl_hash,node);
+	//onm_tc_acl_hash_print_debug(change_acl_hash);
+
+	
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
 			break;
@@ -60,6 +73,9 @@ int acls_acl_change_name(void *priv, sr_session_ctx_t *session, const srpc_chang
 			break;
 	}
 
+	return error;
+	
+error_out:
 	return error;
 }
 

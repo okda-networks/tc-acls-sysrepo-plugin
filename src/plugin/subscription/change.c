@@ -5,7 +5,7 @@
 #include <libyang/libyang.h>
 #include <sysrepo.h>
 #include <srpc.h>
-#include <linux/limits.h>
+#include <limits.h>
 
 // change API
 #include "plugin/api/acls/attachment-points/change.h"
@@ -45,13 +45,11 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	const char *node_name = NULL;
 	const char *node_value = NULL;
 
-
 	char change_xpath_buffer[PATH_MAX] = { 0 };
 	int rc = 0;
-
 	// libyang
 	const struct lyd_node *node = NULL;
-	SRPLG_LOG_INF(PLUGIN_NAME, "EVENT %d on %s",event, xpath);
+
 	if (event == SR_EV_ABORT) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Aborting changes for %s", xpath);
 		goto error_out;
@@ -62,15 +60,15 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 			goto error_out;
 		}
 	} else if (event == SR_EV_CHANGE) {
-		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on %s", xpath);
-		// if change on name, set change_xpath_buffer to xpath/name
-		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/name", xpath), error_out);
+		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
 
-		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/type", xpath), error_out);
-		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", change_xpath_buffer);
-		goto error_out;
+		// name
+        SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/name", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, acls_change_acl, acls_change_acl_init, acls_change_acl_free), error_out);
+
+
 		// connect change API
-		error = srpc_iterate_changes(ctx, session, xpath, acls_change_acl, acls_change_acl_init, acls_change_acl_free);
+		//error = srpc_iterate_changes(ctx, session, xpath, acls_change_acl, acls_change_acl_init, acls_change_acl_free);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_iterate_changes() for acls_change_acl failed: %d", error);
 			goto error_out;
