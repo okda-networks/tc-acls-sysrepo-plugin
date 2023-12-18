@@ -7,27 +7,10 @@
 #include <srpc.h>
 
 // change API
-#include "plugin/api/acls/attachment-points/change.h"
-#include "plugin/api/acls/attachment-points/interface/egress/acl-sets/change.h"
-#include "plugin/api/acls/attachment-points/interface/egress/acl-sets/acl-set/change.h"
-#include "plugin/api/acls/attachment-points/interface/ingress/acl-sets/change.h"
-#include "plugin/api/acls/attachment-points/interface/ingress/acl-sets/acl-set/change.h"
-#include "plugin/api/acls/attachment-points/interface/change.h"
-#include "plugin/api/acls/change.h"
-#include "plugin/api/acls/acl/aces/change.h"
-#include "plugin/api/acls/acl/aces/ace/actions/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/icmp/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/udp/destination-port/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/udp/source-port/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/udp/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/tcp/destination-port/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/tcp/source-port/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/tcp/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/ipv6/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/ipv4/change.h"
-#include "plugin/api/acls/acl/aces/ace/matches/eth/change.h"
-#include "plugin/api/acls/acl/aces/ace/change.h"
+#include "plugin/api/attachment-points/attachment_points_change.h"
+#include "plugin/api/acls/acl_change.h"
+#include "plugin/api/acls/acl/ace_change.h"
+
 
 #include <linux/limits.h>
 #include "plugin/data/acls/acl.h"
@@ -82,6 +65,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 
 		// print changes acls list
 		onm_tc_acl_hash_print_debug(change_acl_list_hash);
+
 
 		// connect change API
 		// error = srpc_iterate_changes(ctx, session, xpath, acls_change_acl, acls_change_acl_init, acls_change_acl_free);

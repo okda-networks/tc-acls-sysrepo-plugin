@@ -1,15 +1,15 @@
-#include "change.h"
+#include "plugin/api/attachment-points/attachment_points_change.h"
 #include "plugin/common.h"
 
 #include <sysrepo.h>
 
-int acls_attachment_points_interface_ingress_acl_sets_acl_set_change_name_init(void *priv)
+int acls_attachment_points_change_interface_init(void *priv)
 {
 	int error = 0;
 	return error;
 }
 
-int acls_attachment_points_interface_ingress_acl_sets_acl_set_change_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+int acls_attachment_points_change_interface(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;
 	const char *node_name = LYD_NAME(change_ctx->node);
@@ -31,7 +31,7 @@ int acls_attachment_points_interface_ingress_acl_sets_acl_set_change_name(void *
 	return error;
 }
 
-void acls_attachment_points_interface_ingress_acl_sets_acl_set_change_name_free(void *priv)
+void acls_attachment_points_change_interface_free(void *priv)
 {
 }
 

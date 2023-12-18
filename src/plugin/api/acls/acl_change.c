@@ -1,9 +1,9 @@
-#include "change.h"
+#include "acl_change.h"
 #include "plugin/common.h"
 
 #include <sysrepo.h>
 #include "plugin/data/acls/acl.h"
-#include "plugin/api/acls/acl/aces/change.h"
+#include "plugin/api/acls/acl/ace_change.h"
 #include <stdio.h>
 #include <linux/limits.h>
 #include "plugin/context.h"
@@ -36,6 +36,7 @@ int onm_tc_change_acl(void *priv, sr_session_ctx_t *session, const srpc_change_c
 		//goto error_out;
 	}
 
+
 	switch (change_ctx->operation) {
 		case SR_OP_CREATED:
 			{
@@ -52,7 +53,7 @@ int onm_tc_change_acl(void *priv, sr_session_ctx_t *session, const srpc_change_c
 				{
 					SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_type(&change_acl_hash, node_value), error_out);
 				}
-				
+
 				if (strcmp(node_name,"aces") == 0 && change_ctx->node->schema->nodetype == LYS_CONTAINER)
 				{
 					onm_tc_ctx_t* ctx = (onm_tc_ctx_t*)priv;
