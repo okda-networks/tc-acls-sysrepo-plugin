@@ -21,4 +21,8 @@ struct onm_tc_ctx_s {
     onm_tc_nl_ctx_t nl_ctx;
 };
 
+extern onm_tc_acl_hash_element_t* change_acl_list_hash;
+extern onm_tc_acl_hash_element_t* change_acl_hash;
+extern onm_tc_ace_element_t* change_ace_element;
+
 #endif // ONM_TC_PLUGIN_CONTEXT_H

@@ -84,34 +84,6 @@ int onm_tc_acl_hash_element_set_type(onm_tc_acl_hash_element_t** el, const char*
     return 0;
 }
 
-void onm_tc_acl_hash_element_free(onm_tc_acl_hash_element_t** el)
-{
-    if (*el) {
-        // name
-        if ((*el)->acl.name) {
-            free((*el)->acl.name);
-        }
-
-        // type
-        //TODO fix data type
-        if ((*el)->acl.type) {
-            //free((*el)->acl.type);
-        }
-
-        //attachment points TODO handeld on a seperate function
-
-        // ace list
-        // TODO add all ACE entries
-        // TODO fix data type
-        if ((*el)->acl.aces.ace) {
-            ONM_TC_ACL_LIST_FREE((*el)->acl.aces.ace);
-        }
-        // element data
-        free(*el);
-        *el = NULL;
-    }
-}
-
 int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct lyd_node* acl_list_node)
 {
     int error = 0;
@@ -514,7 +486,7 @@ error_out:
 out:
     if (new_element) {
         //TODO fix this function not cause a memeory leak, not all data are freed now
-        onm_tc_acl_hash_element_free(&new_element);
+        onm_tc_acl_element_hash_free(&new_element);
     }
 
     return error;
@@ -582,7 +554,6 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Range = (%d-%d)", ace_iter->ace.matches.udp.destination_port.lower_port, ace_iter->ace.matches.udp.destination_port.upper_port);
             }
-
             //if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
             //    if(ace_iter->ace.actions.forwarding)
@@ -590,8 +561,11 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
                 if(ace_iter->ace.actions.logging == 0)
                     SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %d", ace_iter->ace.actions.logging);
             //}
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Done with ace");
         }
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Done with all aces");
     }
+    SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Done printing");
 }
 
 int onm_tc_acl_hash_add_element(onm_tc_acl_hash_element_t** hash, onm_tc_acl_hash_element_t* new_element)
@@ -621,14 +595,42 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_get_element(onm_tc_acl_hash_element_t
     return found_element;
 }
 
-void onm_tc_acl_hash_free(onm_tc_acl_hash_element_t** hash)
+void onm_tc_acl_element_hash_free(onm_tc_acl_hash_element_t** el)
+{
+    if (*el) {
+        // name
+        if ((*el)->acl.name) {
+            free((*el)->acl.name);
+        }
+
+        // type
+        //TODO fix data type
+        if ((*el)->acl.type) {
+            //free((*el)->acl.type);
+        }
+
+        //attachment points TODO handeld on a seperate function
+
+        // ace list
+        // TODO add all ACE entries
+        // TODO fix data type
+        if ((*el)->acl.aces.ace) {
+            ONM_TC_ACL_LIST_FREE((*el)->acl.aces.ace);
+        }
+        // element data
+        free(*el);
+        *el = NULL;
+    }
+}
+
+
+void onm_tc_acl_list_hash_free(onm_tc_acl_hash_element_t** hash)
 {
     onm_tc_acl_hash_element_t *tmp = NULL, *element = NULL;
-
     HASH_ITER(hh, *hash, element, tmp)
-    {
+    {   
         HASH_DEL(*hash, element);
-        onm_tc_acl_hash_element_free(&element);
+        onm_tc_acl_element_hash_free(&element);
     }
 
     *hash = NULL;

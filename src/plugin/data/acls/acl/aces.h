@@ -18,3 +18,5 @@ int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, const
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action);
 int onm_tc_ace_hash_element_set_action_logging(onm_tc_ace_element_t** el, const char* action);
 int onm_tc_ace_hash_element_set_match_port(onm_tc_ace_element_t** el,onm_tc_port_attributes_t * port_attr);
+
+void onm_tc_ace_element_free(onm_tc_ace_element_t** el);
