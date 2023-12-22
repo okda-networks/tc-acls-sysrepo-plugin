@@ -45,6 +45,16 @@ out:
 	return error;
 }
 
+int change_acls_list_order()
+{
+
+}
+
+int update_change_acls_list_element(void* priv, srpc_change_ctx_t * change_ctx)
+{
+	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+}
+
 int set_acl_element_hash_from_ctx_change_node
 (srpc_change_ctx_t * change_ctx, onm_tc_acl_hash_element_t** change_acl_hash, onm_tc_ace_element_t ** change_ace_element, char * acl_name)
 {
@@ -52,9 +62,13 @@ int set_acl_element_hash_from_ctx_change_node
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *parent_node_name = LYD_NAME(&change_ctx->node->parent->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
-
+	char change_path[PATH_MAX] = {0};
+	error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
+	
 	if (node_value)
 	{
+		//printf("ADD ACE DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
+
 		// set acl name and type
 		if (strcmp(parent_node_name,"acl") == 0)
 		{
@@ -62,7 +76,7 @@ int set_acl_element_hash_from_ctx_change_node
 			error = process_change_acl_top_level_leafs (change_ctx,(*change_acl_hash));
 		}
 		else{
-			printf("ADD ACE DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
+			//printf("ADD ACE DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
 			// parse aces
 			if (strcmp(parent_node_name,"ace") == 0 && strcmp(node_name,"name") ==0)
 			{
@@ -86,11 +100,28 @@ int set_acl_element_hash_from_ctx_change_node
 				// parsing ace name means a new ace to be parsed.
 				(*change_ace_element) = onm_tc_ace_hash_element_new();
 
-				// set ace name and operation
-				SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(change_ace_element, node_value), error_out);
-				onm_tc_ace_hash_element_set_operation(change_ace_element, change_ctx->operation);
+				
 			}
 
+			// case where change happens directly on individual leaf
+			if(!(*change_ace_element))
+			{
+				if (!(*change_acl_hash)->acl.name)
+				{
+					SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(change_acl_hash, acl_name), error_out);				
+					ONM_TC_ACL_LIST_NEW((*change_acl_hash)->acl.aces.ace);
+				}
+
+				(*change_ace_element) = onm_tc_ace_hash_element_new();
+				// get ace name
+				char ace_name_buffer[100] = { 0 };
+				SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer)), error_out);
+				
+				// set ace name only, don't set ace operation because the operation is happening only on child leaf
+				SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(change_ace_element, ace_name_buffer), error_out);
+				//onm_tc_ace_hash_element_set_operation(change_ace_element, change_ctx->operation);
+			}
+			
 			// parse the rest of ace leafs
 			if (strcmp(node_name,"source-mac-address") == 0)
 			{
@@ -108,6 +139,7 @@ int set_acl_element_hash_from_ctx_change_node
 	goto out;
 
 error_out:
+	SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to set change data, ACL Name: %s, Change Node Name: %s, Change Node Value: %s, Change Operation: %d.",acl_name,node_name, node_value,change_ctx->operation);
 	return error;
 
 out:
@@ -128,7 +160,6 @@ int acl_change_iterator(void *priv, sr_session_ctx_t *session, const char *xpath
 	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
 
 	onm_tc_acl_hash_element_t* change_acl_hash = NULL;
-	printf("main iterator set ace element to NULL\n");
     onm_tc_ace_element_t * change_ace_element = NULL;
 
 	SRPC_SAFE_CALL_ERR(error,sr_get_changes_iter(session, xpath, &changes_iterator), error_out);
@@ -142,71 +173,63 @@ int acl_change_iterator(void *priv, sr_session_ctx_t *session, const char *xpath
 								&change_ctx.previous_value, &change_ctx.previous_list,
 								&change_ctx.previous_default) == SR_ERR_OK)
 	{
-		// set iteration acl name buffer
-		error = (lyd_path(change_ctx.node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
-		SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
-		
-//		switch (change_ctx.operation) 
-//		{
-//			case SR_OP_CREATED:
-//			{
-				// first iteration of a change event (previous iter, current iter acl names are still empty)
-				// set current and previous acl name to acl_name_buffer
-				if (strcmp(previous_iter_acl_name, "") == 0)
-				{
-					printf("prev acl is empty\n");
-					strcpy(previous_iter_acl_name, acl_name_buffer);
-					current_iter_acl_name = acl_name_buffer;
-				}
-
-				// if iterating within the same acl, set the change data to temp acl element hash
-				if (strcmp(previous_iter_acl_name,current_iter_acl_name) == 0)
-				{
-					
-					printf("change path %s\n",change_path);
-					//printf("address of ace element %p\n",(void *)change_ace_element);
-					set_acl_element_hash_from_ctx_change_node(&change_ctx,&change_acl_hash,&change_ace_element,current_iter_acl_name);
-					current_iter_acl_name = acl_name_buffer;
-				}
-				
-				// first iteration of a new acl
-				// add temp acl element hash to acls list hash then set acl element hash to new
-				else
-				{
-					printf("\n\n\nadd acl element hash (name %s) to acl list \n\n",change_acl_hash->acl.name);
-					// add last ace element of the acl
-					printf("ADD LAST ACE ELEMENT %s TO ACL HASH %s\n",change_ace_element->ace.name,change_acl_hash->acl.name);
-					ONM_TC_ACL_LIST_ADD_ELEMENT(change_acl_hash->acl.aces.ace, change_ace_element);
-					change_ace_element = onm_tc_ace_element_new();
-
-					// add acl to acls_list
-					onm_tc_acls_list_hash_add_element(&ctx->change_acls_list, change_acl_hash);
-					change_acl_hash = onm_tc_acl_hash_element_new();
-
-					strcpy(previous_iter_acl_name, current_iter_acl_name);
-				}
-
-				//break;
-			//}
-			/*case SR_OP_MODIFIED:
+		switch (change_ctx.operation)
 			{
-				SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
-				if (!change_acl_hash->acl.name)
-				{
-					SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&change_acl_hash, acl_name_buffer), error_out);
-					onm_tc_acl_hash_element_set_operation(&change_acl_hash,change_ctx.operation);
-				}
-				break;*/
-			//}
+				case SR_OP_CREATED:
+				case SR_OP_DELETED:
+					printf("operation CREATED || DELETED\n");
+					
+					// set iteration acl name buffer
+					error = (lyd_path(change_ctx.node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
+					SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
+					printf("change path %s\n",change_path);
+					// first itereation only
+					if (strcmp(previous_iter_acl_name, "") == 0)
+					{
+						strcpy(previous_iter_acl_name, acl_name_buffer);
+						current_iter_acl_name = acl_name_buffer;
+					}
 
-		//}	
+					// if iterating within the same acl, set the change data to temp acl element hash
+					if (strcmp(previous_iter_acl_name,current_iter_acl_name) == 0)
+					{
+						SRPC_SAFE_CALL_ERR_COND(error, error < 0, set_acl_element_hash_from_ctx_change_node(&change_ctx,&change_acl_hash,&change_ace_element,current_iter_acl_name), error_out);
+						//error = set_acl_element_hash_from_ctx_change_node(&change_ctx,&change_acl_hash,&change_ace_element,current_iter_acl_name);
+						current_iter_acl_name = acl_name_buffer;
+					}
+					// first iteration of a new acl
+					else
+					{
+						//printf("ADD LAST ACE ELEMENT %s TO ACL HASH %s\n",change_ace_element->ace.name,change_acl_hash->acl.name);
+						// add last ace of previous acl to acl_hash
+						ONM_TC_ACL_LIST_ADD_ELEMENT(change_acl_hash->acl.aces.ace, change_ace_element);
+						change_ace_element = onm_tc_ace_element_new();
+
+						// add previous acl_hash to acls_list
+						onm_tc_acls_list_hash_add_element(&ctx->change_acls_list, change_acl_hash);
+						change_acl_hash = onm_tc_acl_hash_element_new();
+
+						strcpy(previous_iter_acl_name, current_iter_acl_name);
+					}
+					break;
+				case SR_OP_MODIFIED:
+					printf("operation MODIFIED\n");
+					break;
+				case SR_OP_MOVED:
+					printf("operation MOVED\n");
+					break;
+			
+			}
 	}
 
-	// add last ace element to last acl hash
-	ONM_TC_ACL_LIST_ADD_ELEMENT(change_acl_hash->acl.aces.ace, change_ace_element);
-	// add last acl hash to acls list
-	error = onm_tc_acls_list_hash_add_element(&ctx->change_acls_list, change_acl_hash);
-
+	if (change_ctx.operation == SR_OP_CREATED || change_ctx.operation == SR_OP_DELETED)
+	{
+		// add last ace element to last acl hash
+		ONM_TC_ACL_LIST_ADD_ELEMENT(change_acl_hash->acl.aces.ace, change_ace_element);
+		// add last acl hash to acls list
+		error = onm_tc_acls_list_hash_add_element(&ctx->change_acls_list, change_acl_hash);
+	}
+	
 	//TODO make sure to free change_ace_element, change_acl_hash and change_acls_list after compleing netlink operations.
 	goto out;
 
