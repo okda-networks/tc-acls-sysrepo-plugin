@@ -59,7 +59,7 @@ out:
 		//TODO define hash free function
 		//onm_tc_acl_hash_free(&ctx->attachment_points_interface_hash_element);
 	}
-	if(ctx->acl_hash_element)
+	if(ctx->running_acls_list)
 	{
 		//TODO define hash free function
 		//onm_tc_acl_hash_free(&ctx->attachment_points_interface_hash_element);
@@ -116,9 +116,9 @@ static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
     }
 
     // map libyang data to the acl hash
-    SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_from_ly(&acl_hash, acl_node), error_out);
+    SRPC_SAFE_CALL_ERR(error, onm_tc_acls_list_from_ly(&acl_hash, acl_node), error_out);
 
-    onm_tc_acl_hash_print_debug(acl_hash);
+    onm_tc_acls_list_print_debug(acl_hash);
 
     // check startup data
 
@@ -127,7 +127,7 @@ static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
 	// we pass acl_hash to context so that it gets processed after processing the attachment points,
 	// at that point we get both acls and attachment_points hash tables we get a list of interfaces and their acl blocks,
 	// this allows us to define netling tc (acl_hash) blocks to the interfaces (aps_interface_hash).
-	ctx->acl_hash_element = acl_hash;
+	ctx->running_acls_list = acl_hash;
     goto out;
 
 error_out:

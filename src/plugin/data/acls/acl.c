@@ -53,7 +53,7 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_element_new(void)
 
     // NULL all fields
     new_element->acl = (onm_tc_acl_t) { 0 };
-
+    new_element->operation = -1;
     return new_element;
 }
 
@@ -84,7 +84,7 @@ int onm_tc_acl_hash_element_set_type(onm_tc_acl_hash_element_t** el, const char*
     return 0;
 }
 
-int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct lyd_node* acl_list_node)
+int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct lyd_node* acl_list_node)
 {
     int error = 0;
 
@@ -263,6 +263,7 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
                     {
                         // TODO revise: currently this failure will set ethertype to ALL
                         SRPLG_LOG_ERR(PLUGIN_NAME, "ACE %s Failed to set specified EtherType for L2 match",new_ace_element->ace.name);
+                        error = -1;
                     }
                     else
                         SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&new_ace_element, ether_type), error_out);
@@ -469,8 +470,8 @@ int onm_tc_acl_hash_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct l
             }
         }
 
-        // add element to the hash
-        onm_tc_acl_hash_add_element(acl_hash, new_element);
+        // add acl element to acls list
+        error = onm_tc_acls_list_hash_add_element(acl_hash, new_element);
 
         // set to NULL
         new_element = NULL;
@@ -492,7 +493,7 @@ out:
     return error;
 }
 
-void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
+void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
 {
     const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
@@ -501,6 +502,7 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tName = %s", iter->acl.name);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tOperation = %d", iter->operation);
         if(iter->acl.type){
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tType = %s", iter->acl.type);
         }
@@ -510,6 +512,7 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
         {
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s", ace_iter->ace.name);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Operation = %d", ace_iter->operation);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.eth.source_mac_address)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s", ace_iter->ace.matches.eth.source_mac_address);
@@ -568,12 +571,17 @@ void onm_tc_acl_hash_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
     SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Done printing");
 }
 
-int onm_tc_acl_hash_add_element(onm_tc_acl_hash_element_t** hash, onm_tc_acl_hash_element_t* new_element)
+int onm_tc_acls_list_hash_add_element(onm_tc_acl_hash_element_t** hash, onm_tc_acl_hash_element_t* new_element)
 {
     onm_tc_acl_hash_element_t* found_element = NULL;
 
-    HASH_FIND_STR(*hash, new_element->acl.name, found_element);
-
+    if (new_element->acl.name)
+        HASH_FIND_STR(*hash, new_element->acl.name, found_element);
+    else
+    {
+        // element key is NULL
+        return -2;
+    }
     // element already exists
     if (found_element != NULL) {
         return -1;
@@ -595,6 +603,7 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_get_element(onm_tc_acl_hash_element_t
     return found_element;
 }
 
+//TODO compelete freeing elements
 void onm_tc_acl_element_hash_free(onm_tc_acl_hash_element_t** el)
 {
     if (*el) {
@@ -624,7 +633,7 @@ void onm_tc_acl_element_hash_free(onm_tc_acl_hash_element_t** el)
 }
 
 
-void onm_tc_acl_list_hash_free(onm_tc_acl_hash_element_t** hash)
+void onm_tc_acls_list_hash_free(onm_tc_acl_hash_element_t** hash)
 {
     onm_tc_acl_hash_element_t *tmp = NULL, *element = NULL;
     HASH_ITER(hh, *hash, element, tmp)
@@ -634,5 +643,12 @@ void onm_tc_acl_list_hash_free(onm_tc_acl_hash_element_t** hash)
     }
 
     *hash = NULL;
+}
+
+int onm_tc_acl_hash_element_set_operation(onm_tc_acl_hash_element_t** el,sr_change_oper_t operation)
+{
+    (*el)->operation = operation;
+
+    return 0;
 }
 

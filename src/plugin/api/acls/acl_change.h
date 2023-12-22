@@ -4,8 +4,7 @@
 #include <utarray.h>
 #include <srpc.h>
 
-int onm_tc_change_acl_init(void *priv);
-int onm_tc_change_acl(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
-void onm_tc_change_acl_free(void *priv);
-
+int change_acl_init(void *priv);
+void change_acl_free(void *priv);
+int acl_change_iterator(void *priv, sr_session_ctx_t *session, const char *xpath);
 #endif // ONM_TC_PLUGIN_API_ACLS_CHANGE_H

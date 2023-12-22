@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <uthash.h>
+#include <sysrepo.h>
 // typedefs
 typedef struct onm_tc_eth onm_tc_eth_t;
 typedef struct onm_tc_ipv4 onm_tc_ipv4_t;
@@ -19,7 +20,7 @@ typedef struct onm_tc_ace_element onm_tc_ace_element_t;
 typedef struct onm_tc_aces onm_tc_aces_t;
 typedef struct onm_tc_acl onm_tc_acl_t;
 typedef struct onm_tc_acl_element onm_tc_acl_element_t;
-typedef struct onm_tc_acls onm_tc_acls_t;
+//typedef struct onm_tc_acls onm_tc_acls_t;
 
 typedef struct onm_tc_aps_ingress onm_tc_aps_ingress_t;
 typedef struct onm_tc_aps_egress onm_tc_aps_egress_t;
@@ -203,6 +204,7 @@ struct onm_tc_ace {
 struct onm_tc_ace_element {
     onm_tc_ace_element_t* next;
     onm_tc_ace_t ace;
+    sr_change_oper_t operation;
 };
 
 
@@ -267,18 +269,21 @@ struct onm_tc_aps {
     onm_tc_aps_interface_element_t* interface;
 };
 
+/*
 struct onm_tc_acls {
     onm_tc_acl_element_t* acl;
     onm_tc_aps_t attachment_points;
 };
-
+*/
 struct onm_tc_acl_hash_element {
     onm_tc_acl_t acl;
+    sr_change_oper_t operation;
     UT_hash_handle hh;
 };
 
 struct onm_tc_aps_interface_hash_element {
     onm_tc_aps_interface_t interface;
+    sr_change_oper_t operation;
     UT_hash_handle hh;
 };
 

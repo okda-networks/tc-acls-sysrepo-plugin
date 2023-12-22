@@ -20,3 +20,4 @@ int onm_tc_ace_hash_element_set_action_logging(onm_tc_ace_element_t** el, const 
 int onm_tc_ace_hash_element_set_match_port(onm_tc_ace_element_t** el,onm_tc_port_attributes_t * port_attr);
 
 void onm_tc_ace_element_free(onm_tc_ace_element_t** el);
+int onm_tc_ace_hash_element_set_operation(onm_tc_ace_element_t** el,sr_change_oper_t operation);

@@ -23,7 +23,7 @@ onm_tc_ace_element_t* onm_tc_ace_hash_element_new(void)
 
     // NULL all fields
     new_ace_element->ace = (onm_tc_ace_t) { 0 };
-
+    new_ace_element->operation = -1;
     return new_ace_element;
 }
 
@@ -312,4 +312,10 @@ int onm_tc_ace_hash_element_set_match_port(onm_tc_ace_element_t** el, onm_tc_por
     } else {
         return set_ace_port_range(*el, operation, port_attr->direction, port_attr->proto, port_attr);
     }
+}
+
+int onm_tc_ace_hash_element_set_operation(onm_tc_ace_element_t** el,sr_change_oper_t operation)
+{
+    (*el)->operation = operation;
+    return 0;
 }
