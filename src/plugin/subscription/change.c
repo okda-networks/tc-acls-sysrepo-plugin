@@ -13,6 +13,7 @@
 
 // data
 #include "plugin/data/acls/acl.h"
+#include "plugin/data/acls/acl/aces.h"
 
 // TODO for debugging, remove later
 int change_path_print(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
@@ -76,7 +77,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	{
 		// error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
 		// Done with the change, free the change acls list
-		onm_tc_acls_list_hash_free(&ctx->change_acls_list);
+		onm_tc_acls_list_hash_free(&ctx->events_acls_list);
 		if (error)
 		{
 			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
@@ -88,13 +89,43 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	{
 		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
 
-		ctx->change_acls_list = onm_tc_acl_hash_new();
-		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s//.", xpath), error_out);
-		SRPC_SAFE_CALL_ERR(rc,acl_change_iterator(ctx,session,change_xpath_buffer), error_out);
-		//SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, change_path_print, change_acl_init, change_acl_free), error_out);
+		ctx->events_acls_list = onm_tc_acl_hash_new();
+
+		// acl  name (SR_OP_CREATED, SR_OP_DELETED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/*", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, onm_tc_events_acls_hash_add_acl_element,events_acl_init, events_acl_free), error_out);
+
+
+		// ace  name (SR_OP_CREATED, SR_OP_DELETED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_add_ace_element, events_acl_init, events_acl_free), error_out);
+
+		// match on eth (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/eth/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+
+		// match on ipv4 (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/ipv4/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+
+		// match on ipv6 (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/ipv6/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+
+		// match on tcp (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
+		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/tcp/*/*", xpath), error_out);
+		//SRPC_SAFE_CALL_ERR(rc,acl_change_iterator2(ctx,session,change_xpath_buffer), error_out);
 		
+		// match on udp (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
+		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/udp/*/*", xpath), error_out);
+		//SRPC_SAFE_CALL_ERR(rc,acl_change_iterator2(ctx,session,change_xpath_buffer), error_out);
+
+		// match on icmp (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
+		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/icmp/*/*", xpath), error_out);
+		//SRPC_SAFE_CALL_ERR(rc,acl_change_iterator2(ctx,session,change_xpath_buffer), error_out);
+
 		// print acl list
-		onm_tc_acls_list_print_debug(ctx->change_acls_list);
+		onm_tc_acls_list_print_debug(ctx->events_acls_list);
 		// apply change acl list changes.
 	}
 	goto out;

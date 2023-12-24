@@ -18,7 +18,7 @@ struct onm_tc_ctx_s {
     sr_session_ctx_t* running_session;
     onm_tc_aps_interface_hash_element_t* attachment_points_interface_hash_element;
     onm_tc_acl_hash_element_t* running_acls_list;
-    onm_tc_acl_hash_element_t* change_acls_list;
+    onm_tc_acl_hash_element_t* events_acls_list;
     onm_tc_nl_ctx_t nl_ctx;
 };
 

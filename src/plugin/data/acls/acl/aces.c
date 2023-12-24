@@ -2,9 +2,12 @@
 #include "../deps/uthash/utlist.h"
 #include "aces.h"
 #include "utils/memory.h"
+#include "plugin/context.h"
+#include "plugin/common.h"
+#include <linux/limits.h>
 
-
-
+#include "plugin/data/acls/acl/linked_list.h"
+#include "plugin/data/acls/acl.h"
 //For testing
 #include<stdio.h>
 
@@ -23,8 +26,215 @@ onm_tc_ace_element_t* onm_tc_ace_hash_element_new(void)
 
     // NULL all fields
     new_ace_element->ace = (onm_tc_ace_t) { 0 };
-    new_ace_element->operation = -1;
+    new_ace_element->change_operation = -1;
     return new_ace_element;
+}
+
+onm_tc_ace_element_t* get_ace_in_acl_list(const char* acl_name, const char* ace_name, onm_tc_acl_hash_element_t* acl_hash) 
+{
+    if (acl_name == NULL || ace_name == NULL || acl_hash == NULL) {
+        return NULL;
+    }
+
+    onm_tc_acl_hash_element_t* current_acl_element = onm_tc_acl_hash_get_element(&acl_hash,acl_name);
+    if (current_acl_element)
+    {
+        // Search for the ACE in this ACL
+        onm_tc_ace_element_t* current_ace_element;
+        for (current_ace_element = current_acl_element->acl.aces.ace; current_ace_element != NULL; current_ace_element = current_ace_element->next) {
+            if (strcmp(current_ace_element->ace.name, ace_name) == 0) {
+                return current_ace_element;
+            }
+        }
+        return NULL; // ace not found
+    }
+    else {
+        return NULL;// acl not found
+    }   
+}
+
+int ace_element_update_data(onm_tc_ace_element_t* updated_ace, const char * node_name, const char * node_value) {
+    if (updated_ace == NULL || node_name == NULL || node_value == NULL) {
+        return -1;
+    }
+    //L2 match
+    if (strcmp(node_name,"source-mac-address")==0)
+        onm_tc_ace_hash_element_set_match_src_mac_addr(&updated_ace, node_value);
+
+    if (strcmp(node_name,"source-mac-address-mask")==0)
+        onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&updated_ace, node_value);
+
+    if (strcmp(node_name,"destination-mac-address")==0)
+        onm_tc_ace_hash_element_set_match_dst_mac_addr(&updated_ace, node_value);
+
+    if (strcmp(node_name,"destination-mac-address-mask")==0)
+        onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&updated_ace, node_value);
+
+    if (strcmp(node_name,"ethertype")==0)
+    {
+        uint16_t ether_type;
+        //if (ll_proto_a2n(&ether_type, node_value))
+        {
+            // TODO revise: currently this failure will set ethertype to ALL
+            //SRPLG_LOG_ERR(PLUGIN_NAME, "ACE %s Failed to set specified EtherType for L2 match",new_ace_element->ace.name);
+            //error = -1;
+        }
+        //else
+        {
+        //    onm_tc_ace_hash_element_set_match_eth_ethertype(&updated_ace, ether_type);
+        }
+        
+    }
+
+    // L3
+    if (strcmp(node_name,"source-ipv4-network")==0)
+        onm_tc_ace_hash_element_set_match_ipv4_src_network(&updated_ace,node_value);
+
+    if (strcmp(node_name,"destination-ipv4-network")==0)
+        onm_tc_ace_hash_element_set_match_ipv4_dst_network(&updated_ace,node_value);
+
+    if (strcmp(node_name,"source-ipv6-network")==0)
+        onm_tc_ace_hash_element_set_match_ipv6_src_network(&updated_ace,node_value);
+
+    if (strcmp(node_name,"destination-ipv6-network")==0)
+        onm_tc_ace_hash_element_set_match_ipv6_dst_network(&updated_ace,node_value);
+    return 0; // Update successful
+}
+
+int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+    int error = 0;
+    const char *node_name = LYD_NAME(change_ctx->node);
+	const char *parent_node_name = LYD_NAME(&change_ctx->node->parent->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+    char change_path[PATH_MAX] = {0};
+    char acl_name_buffer[100] = {0};
+    char ace_name_buffer[100] = {0};
+
+    if (node_value)
+    {
+        error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
+        SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
+        SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer)), error_out);
+        printf("ADD ACL DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation: %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
+        onm_tc_ace_element_t* updated_ace = get_ace_in_acl_list(acl_name_buffer,ace_name_buffer,ctx->events_acls_list);
+        
+        // make sure acl exits in acls list
+        onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer);
+        if (!updated_acl)
+        {
+            printf("update on ace of an acl that is not present in change acl\n");
+            // add new acl data
+            updated_acl = onm_tc_acl_hash_element_new();
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer), error_out);
+		    onm_tc_acl_hash_element_set_operation(&updated_acl,change_ctx->operation);
+            ONM_TC_ACL_LIST_NEW(updated_acl->acl.aces.ace);
+
+            // add new ace data to new acl
+            updated_ace = onm_tc_ace_hash_element_new();
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer);
+            onm_tc_ace_hash_element_set_operation(&updated_ace,change_ctx->operation);
+            ONM_TC_ACL_LIST_ADD_ELEMENT(updated_acl->acl.aces.ace, updated_ace);
+            
+            // add updated_acl to change acls list
+            onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,updated_acl);
+        }
+
+        // acl exist, make sure ace exists
+        else if (!updated_ace)
+        {
+            printf("update on ace that is not present in change acl\n");
+            updated_ace = onm_tc_ace_hash_element_new();
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer);
+            onm_tc_ace_hash_element_set_operation(&updated_ace,change_ctx->operation);
+            
+            error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,updated_ace);
+        }
+        
+        //update ace in change acls list
+        ace_element_update_data(updated_ace,node_name, node_value);
+        
+        goto out;
+    }
+
+error_out:
+	return error;
+
+out:
+	return error;
+}
+
+int acls_list_add_ace_element(onm_tc_acl_hash_element_t** acl_hash, const char* acl_name, onm_tc_ace_element_t* new_ace) 
+{
+    if (acl_hash == NULL || acl_name == NULL || new_ace == NULL) {
+        printf("invalid input\n");
+        return -1; // Invalid input
+    }
+    if ( *acl_hash == NULL)
+    {
+        printf("desired acl_hash doesn't exist\n");
+    }
+
+    // Find the specified ACL in the hash
+    onm_tc_acl_hash_element_t* current_acl = onm_tc_acl_hash_get_element(acl_hash,acl_name);
+    if(current_acl)
+    {
+        ONM_TC_ACL_LIST_ADD_ELEMENT(current_acl->acl.aces.ace, new_ace);
+        printf("success\n");
+        return 0; // Success
+    }
+    else
+    {
+        return -1; // ACL not found
+    }
+}
+
+int events_acls_hash_add_ace_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+    int error = 0;
+    const char *node_name = LYD_NAME(change_ctx->node);
+	const char *parent_node_name = LYD_NAME(&change_ctx->node->parent->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+    char change_path[PATH_MAX] = {0};
+    char acl_name_buffer[100] = {0};
+    if (node_value)
+    {
+        error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
+        SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
+
+        printf("ADD ACL DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation: %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
+        onm_tc_ace_element_t* new_ace = NULL;
+        new_ace = onm_tc_ace_hash_element_new();
+
+        
+        if (strcmp(node_name,"name")==0)
+        {
+            SRPLG_LOG_INF(PLUGIN_NAME, "Adding new change ACE to Change ACLs list change, ACE Name: %s, Change operation: %d.",node_value,change_ctx->operation);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace, node_value), error_out);
+            onm_tc_ace_hash_element_set_operation(&new_ace,change_ctx->operation);
+        }
+        // make sure acl exits in acls list
+        if (!(onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer)))
+        {
+            onm_tc_acl_hash_element_t* temp_acl = onm_tc_acl_hash_element_new();
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&temp_acl, acl_name_buffer), error_out);
+		    onm_tc_acl_hash_element_set_operation(&temp_acl,change_ctx->operation);
+            onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,temp_acl);
+        }
+
+        
+        //add ace to acls list
+        error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,new_ace);
+        goto out;
+    }
+
+error_out:
+	return error;
+
+out:
+	return error;
 }
 
 void onm_tc_ace_element_free(onm_tc_ace_element_t** el)
@@ -316,6 +526,6 @@ int onm_tc_ace_hash_element_set_match_port(onm_tc_ace_element_t** el, onm_tc_por
 
 int onm_tc_ace_hash_element_set_operation(onm_tc_ace_element_t** el,sr_change_oper_t operation)
 {
-    (*el)->operation = operation;
+    (*el)->change_operation = operation;
     return 0;
 }

@@ -53,10 +53,9 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_element_new(void)
 
     // NULL all fields
     new_element->acl = (onm_tc_acl_t) { 0 };
-    new_element->operation = -1;
+    new_element->change_operation = -1;
     return new_element;
 }
-
 
 int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name)
 {
@@ -471,7 +470,7 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
         }
 
         // add acl element to acls list
-        error = onm_tc_acls_list_hash_add_element(acl_hash, new_element);
+        error = onm_tc_acls_hash_add_acl_element(acl_hash, new_element);
 
         // set to NULL
         new_element = NULL;
@@ -502,7 +501,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tName = %s", iter->acl.name);
-        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tOperation = %d", iter->operation);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tOperation = %d", iter->change_operation);
         if(iter->acl.type){
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tType = %s", iter->acl.type);
         }
@@ -512,7 +511,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
         {
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s", ace_iter->ace.name);
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Operation = %d", ace_iter->operation);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Operation = %d", ace_iter->change_operation);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.eth.source_mac_address)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s", ace_iter->ace.matches.eth.source_mac_address);
@@ -571,7 +570,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
     SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Done printing");
 }
 
-int onm_tc_acls_list_hash_add_element(onm_tc_acl_hash_element_t** hash, onm_tc_acl_hash_element_t* new_element)
+int onm_tc_acls_hash_add_acl_element(onm_tc_acl_hash_element_t** hash, onm_tc_acl_hash_element_t* new_element)
 {
     onm_tc_acl_hash_element_t* found_element = NULL;
 
@@ -592,7 +591,6 @@ int onm_tc_acls_list_hash_add_element(onm_tc_acl_hash_element_t** hash, onm_tc_a
 
     return 0;
 }
-
 
 onm_tc_acl_hash_element_t* onm_tc_acl_hash_get_element(onm_tc_acl_hash_element_t** hash, const char* name)
 {
@@ -632,7 +630,6 @@ void onm_tc_acl_element_hash_free(onm_tc_acl_hash_element_t** el)
     }
 }
 
-
 void onm_tc_acls_list_hash_free(onm_tc_acl_hash_element_t** hash)
 {
     onm_tc_acl_hash_element_t *tmp = NULL, *element = NULL;
@@ -647,8 +644,50 @@ void onm_tc_acls_list_hash_free(onm_tc_acl_hash_element_t** hash)
 
 int onm_tc_acl_hash_element_set_operation(onm_tc_acl_hash_element_t** el,sr_change_oper_t operation)
 {
-    (*el)->operation = operation;
+    (*el)->change_operation = operation;
 
     return 0;
 }
 
+int onm_tc_events_acls_hash_add_acl_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+	const char *node_name = LYD_NAME(change_ctx->node);
+	const char *parent_node_name = LYD_NAME(&change_ctx->node->parent->node);
+	const char *node_value = lyd_get_value(change_ctx->node);
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+	printf("ADD ACL DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation: %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
+	onm_tc_acl_hash_element_t* event_acl_hash = NULL;
+    event_acl_hash = onm_tc_acl_hash_element_new();
+
+	int error = 0;
+	if (strcmp(node_name,"name")==0)
+	{
+		SRPLG_LOG_INF(PLUGIN_NAME, "Processing new ACL change, ACL Name: %s, Change operation: %d.",node_value,change_ctx->operation);
+		SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&event_acl_hash, node_value), error_out);
+		onm_tc_acl_hash_element_set_operation(&event_acl_hash,change_ctx->operation);
+
+        //init aces list inside temp change acl hash element
+        ONM_TC_ACL_LIST_NEW(event_acl_hash->acl.aces.ace);
+
+        // add acl element to acls_list
+        onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list, event_acl_hash);
+        printf("added acl element %s change acl list\n",event_acl_hash->acl.name);
+	}
+	goto out;
+
+error_out:
+	return error;
+
+out:
+	return error;
+}
+
+int events_acl_init(void *priv)
+{
+	int error = 0;
+	return error;
+}
+
+void events_acl_free(void *priv)
+{
+}

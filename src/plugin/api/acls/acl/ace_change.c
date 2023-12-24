@@ -14,7 +14,8 @@
 
 #include "plugin/api/tcnl.h"
 
-
+// this code is no longer used, proper code are defined in /data/acls/*
+/*
 int process_change_ace_top_level_leafs
 (srpc_change_ctx_t * change_ctx,onm_tc_acl_hash_element_t * change_acl_hash, onm_tc_ace_element_t * change_ace_element, char * acl_name)
 {
@@ -47,7 +48,7 @@ int process_change_ace_top_level_leafs
 		SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&change_ace_element, node_value), error_out);
 		
 		onm_tc_ace_hash_element_set_operation(&change_ace_element, change_ctx->operation);
-		printf("added ACE name to ACE element, name: %s, operation: %d\n",change_ace_element->ace.name,change_ace_element->operation);
+		printf("added ACE name to ACE element, name: %s, operation: %d\n",change_ace_element->ace.name,change_ace_element->change_operation);
 	}
 
 	goto out;
@@ -117,104 +118,6 @@ out:
 }
 
 
-/*int ace_change_name(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
-{
-	int error = 0;
-	const char *node_name = LYD_NAME(change_ctx->node);
-	const char *node_value = lyd_get_value(change_ctx->node);
-
-	//onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
-	switch (change_ctx->operation) {
-		case SR_OP_CREATED:
-		if(node_value)
-		{
-			//SRPLG_LOG_INF(PLUGIN_NAME, "ACE NODE CHANGE: %s; Value: %s; Operation: %d", node_name, node_value, change_ctx->operation);
-			if (strcmp(node_name,"name")==0)
-			{
-				// initilize change ace element
-				change_ace_element = onm_tc_ace_hash_element_new();
-				SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&change_ace_element, node_value), error_out);
-			}
-		}
-			break;
-		case SR_OP_MODIFIED:
-			break;
-		case SR_OP_DELETED:
-			break;
-		case SR_OP_MOVED:
-			break;
-	}
-	goto out;
-error_out:
-	error = -1;
-
-out:
-	return error;
-}
-*/
-
-/*
-int ace_change_match_eth(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
-{
-	int error = 0;
-	const char *node_name = LYD_NAME(change_ctx->node);
-	const char *node_value = lyd_get_value(change_ctx->node);
-
-	//onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
-	//SRPLG_LOG_INF(PLUGIN_NAME, "ACE NODE CHANGE: %s; Value: %s; Operation: %d", node_name, node_value, change_ctx->operation);
-	switch (change_ctx->operation) {
-		case SR_OP_CREATED:
-			{
-			if(node_value)
-			{
-				//SRPLG_LOG_INF(PLUGIN_NAME, "ACE NODE CHANGE: %s; Value: %s; Operation: %d", node_name, node_value, change_ctx->operation);
-				if (strcmp(node_name,"ethertype")==0)
-				{
-					uint16_t ether_type;
-					if (ll_proto_a2n(&ether_type, node_value))
-					{
-						// TODO revise: currently this failure will set ethertype to ALL
-						SRPLG_LOG_ERR(PLUGIN_NAME, "ACE %s Change: Failed to set specified EtherType '%s' for L2 match",change_ace_element->ace.name,node_value);
-					}
-					else
-						SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&change_ace_element,ether_type), error_out);
-				}
-				if (strcmp(node_name,"source-mac-address")==0)
-				{
-					SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr(&change_ace_element, node_value), error_out);
-				}
-				if (strcmp(node_name,"source-mac-address-mask")==0)
-				{
-					SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&change_ace_element, node_value), error_out);
-				}
-				if (strcmp(node_name,"destination-mac-address")==0)
-				{
-					SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr(&change_ace_element, node_value), error_out);
-				}
-				if (strcmp(node_name,"destination-mac-address-mask")==0)
-				{
-					SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&change_ace_element, node_value), error_out);
-				}
-			}
-		
-			break;
-			}
-		case SR_OP_MODIFIED:
-			break;
-		case SR_OP_DELETED:
-			break;
-		case SR_OP_MOVED:
-			break;
-	}
-	goto out;
-error_out:
-	error = -1;
-
-out:
-	return error;
-}
-*/
-
 int change_ace_init(void *priv)
 {
 	int error = 0;
@@ -278,9 +181,9 @@ int change_ace(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *c
 error_out:
 	return error;
 }
-*/
+
 
 void change_ace_free(void *priv)
 {
 }
-
+*/

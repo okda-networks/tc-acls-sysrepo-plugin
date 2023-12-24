@@ -204,7 +204,7 @@ struct onm_tc_ace {
 struct onm_tc_ace_element {
     onm_tc_ace_element_t* next;
     onm_tc_ace_t ace;
-    sr_change_oper_t operation;
+    sr_change_oper_t change_operation;
 };
 
 
@@ -277,13 +277,13 @@ struct onm_tc_acls {
 */
 struct onm_tc_acl_hash_element {
     onm_tc_acl_t acl;
-    sr_change_oper_t operation;
+    sr_change_oper_t change_operation;
     UT_hash_handle hh;
 };
 
 struct onm_tc_aps_interface_hash_element {
     onm_tc_aps_interface_t interface;
-    sr_change_oper_t operation;
+    sr_change_oper_t change_operation;
     UT_hash_handle hh;
 };
 
