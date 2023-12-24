@@ -35,7 +35,7 @@
 #include "plugin/api/tcnl.h"
 
 /*
-    Libyang conversion functions.
+    Libyang and srpc conversion functions.
 */
 
 onm_tc_acl_hash_element_t* onm_tc_acl_hash_new(void)

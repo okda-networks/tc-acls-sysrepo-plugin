@@ -844,9 +844,10 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
             prio = 0;
             tcm_handle = 1;
 
-            // set priority and get the appropriate ip protocol version
+            // iterate over aces
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
             {
+                // set priority and get the appropriate ip protocol version
                 prio += 10;
                 char *proto_buf = NULL;
                 if(ace_iter->ace.matches.ipv6._is_set == 1)
