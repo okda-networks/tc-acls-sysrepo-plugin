@@ -8,8 +8,8 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_element_new(void);
 void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash);
 
 
-int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* type);
-int onm_tc_acl_hash_element_set_type(onm_tc_acl_hash_element_t** el, const char* type);
+int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name,sr_change_oper_t change_operation);
+int onm_tc_acl_hash_element_set_type(onm_tc_acl_hash_element_t** el, const char* type,sr_change_oper_t change_operation);
 int onm_tc_acl_hash_element_set_operation(onm_tc_acl_hash_element_t** el,sr_change_oper_t operation);
 
 void onm_tc_acl_element_hash_free(onm_tc_acl_hash_element_t** el);
