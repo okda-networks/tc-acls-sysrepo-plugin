@@ -629,7 +629,6 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port = %d", ace_iter->ace.matches.tcp.source_port.port);
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port Operation = %d", ace_iter->ace.matches.tcp.source_port.port_operation);
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port Change Operation = %d", ace_iter->ace.matches.tcp.source_port.src_port_value_change_op);
-                //SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port Operation Change Operation = %d", ace_iter->ace.matches.tcp.source_port.src_port_operation_change_op);
             }
             if(ace_iter->ace.matches.tcp.source_port.lower_port != 0)
             {
@@ -641,7 +640,6 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port = %d", ace_iter->ace.matches.udp.source_port.port);
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port Operation = %d", ace_iter->ace.matches.udp.source_port.port_operation);
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port Change Operation = %d", ace_iter->ace.matches.udp.source_port.src_port_value_change_op);
-                //SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port Operation Change Operation = %d", ace_iter->ace.matches.udp.source_port.src_port_operation_change_op);
             }
             if(ace_iter->ace.matches.udp.source_port.lower_port != 0)
             {
@@ -650,16 +648,26 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             }
             
             if(ace_iter->ace.matches.tcp.destination_port.port != 0)
+            {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port = %d", ace_iter->ace.matches.tcp.destination_port.port);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Operation = %d", ace_iter->ace.matches.tcp.destination_port.port_operation);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Change Operation = %d", ace_iter->ace.matches.tcp.destination_port.dst_port_value_change_op);
+            }
             if(ace_iter->ace.matches.tcp.destination_port.lower_port != 0)
             {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Range = (%d-%d)", ace_iter->ace.matches.tcp.destination_port.lower_port, ace_iter->ace.matches.tcp.destination_port.upper_port);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Change Operation = %d", ace_iter->ace.matches.tcp.destination_port.dst_port_value_change_op);
             }
             if(ace_iter->ace.matches.udp.destination_port.port != 0)
+            {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port = %d", ace_iter->ace.matches.udp.destination_port.port);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Operation = %d", ace_iter->ace.matches.udp.destination_port.port_operation);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Change Operation = %d", ace_iter->ace.matches.udp.destination_port.dst_port_value_change_op);
+            }
             if(ace_iter->ace.matches.udp.destination_port.lower_port != 0)
             {
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Range = (%d-%d)", ace_iter->ace.matches.udp.destination_port.lower_port, ace_iter->ace.matches.udp.destination_port.upper_port);
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Change Operation = %d", ace_iter->ace.matches.udp.destination_port.dst_port_value_change_op);
             }
             //if(ace_iter->ace.actions.logging||ace_iter->ace.actions.forwarding){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");

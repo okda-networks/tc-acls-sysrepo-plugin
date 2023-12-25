@@ -462,6 +462,7 @@ out:
 int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
     int error = 0;
+    int default_change_operation = -1;
     const char *node_name = LYD_NAME(change_ctx->node);
 	const char *parent_node_name = LYD_NAME(&change_ctx->node->parent->node);
     const char *grand_parent_node_name = LYD_NAME(&change_ctx->node->parent->node.parent->node);
@@ -486,12 +487,12 @@ int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, c
             printf("update on ace of an acl that is not present in change acl\n");
             // add new acl data
             updated_acl = onm_tc_acl_hash_element_new();
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer,change_ctx->operation), error_out);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer,default_change_operation), error_out);
             ONM_TC_ACL_LIST_NEW(updated_acl->acl.aces.ace);
 
             // add new ace data to new acl
             updated_ace = onm_tc_ace_hash_element_new();
-            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,change_ctx->operation);
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,default_change_operation);
 
             ONM_TC_ACL_LIST_ADD_ELEMENT(updated_acl->acl.aces.ace, updated_ace);
             
@@ -504,7 +505,7 @@ int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, c
         {
             printf("update on ace that is not present in change acl\n");
             updated_ace = onm_tc_ace_hash_element_new();
-            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,change_ctx->operation);
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,default_change_operation);
             
             error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,updated_ace);
         }
