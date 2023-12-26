@@ -34,7 +34,7 @@ typedef struct onm_tc_aps onm_tc_aps_t;
 typedef struct ietf_interface ietf_interface_t;
 typedef enum forwarding_action forwarding_action_t;
 typedef enum logging_action logging_action_t;
-typedef enum port_operation port_operation_t;
+typedef enum port_operator port_operator_t;
 
 typedef struct onm_tc_port_attributes onm_tc_port_attributes_t;
 typedef enum onm_tc_port_attr_direction onm_tc_port_attr_direction_t;
@@ -64,7 +64,7 @@ enum logging_action{
     LOG_NONE
 };
 
-enum port_operation{
+enum port_operator{
     PORT_NOOP,
     PORT_EQUAL,
     PORT_LTE,
@@ -76,6 +76,8 @@ enum port_operation{
 struct onm_tc_actions {
     forwarding_action_t forwarding;
     forwarding_action_t logging;
+    sr_change_oper_t forwarding_change_op;
+    sr_change_oper_t logging_change_op;
 };
 
 enum onm_tc_port_attr_proto{
@@ -93,7 +95,7 @@ enum onm_tc_port_attr_direction{
 struct onm_tc_port_attributes{
     onm_tc_port_attr_proto_t proto;
     onm_tc_port_attr_direction_t direction;
-    port_operation_t port_operation;
+    port_operator_t port_operator;
     uint16_t port;
     uint16_t lower_port;
     uint16_t upper_port;
@@ -150,7 +152,7 @@ struct onm_tc_source_port {
     uint16_t lower_port;
     uint16_t upper_port;
     uint16_t port;
-    port_operation_t port_operation;
+    port_operator_t port_operator;
     sr_change_oper_t src_port_value_change_op;
 };
 
@@ -158,9 +160,9 @@ struct onm_tc_destination_port {
     uint16_t lower_port;
     uint16_t upper_port;
     uint16_t port;
-    port_operation_t port_operation;
+    port_operator_t port_operator;
     sr_change_oper_t dst_port_value_change_op;
-    sr_change_oper_t dst_port_operation_change_op;
+    sr_change_oper_t dst_port_operator_change_op;
 };
 
 struct onm_tc_tcp {

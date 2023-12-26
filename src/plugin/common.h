@@ -108,4 +108,8 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define MAX_PORT_NUMBER 65535
+#define MIN_PORT_NUMBER 1
+#define DEFAULT_PORT_VALUE 0
+
 #endif // ONM_TC_PLUGIN_COMMON_H
