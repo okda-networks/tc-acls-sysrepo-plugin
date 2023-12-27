@@ -226,16 +226,8 @@ port_operator_t onm_tc_ace_port_oper_a2i(const char * oper_str)
 // this function allows for empty values:
 // if port value(s) not set in the input pointer, port_attr will have it set to DEFAULT_PORT_VALUE
 // if port operator is not set, port_attr will get PORT_NOOP, unless uppor port is set, in that case it will be considered as a range operator
-int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * lower_str, const char * upper_str, const char * port_oper_str,onm_tc_port_attr_direction_t direction, onm_tc_port_attr_proto_t proto)
+int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * lower_str, const char * upper_str, const port_operator_t port_opr,onm_tc_port_attr_direction_t direction, onm_tc_port_attr_proto_t proto)
 {
-    port_operator_t port_opr;
-    if (!port_oper_str){
-        port_opr = PORT_NOOP;
-    }
-    else {
-        port_opr = onm_tc_ace_port_oper_a2i(port_oper_str);
-    }
-    
     port_attr->port_operator = port_opr;
     port_attr->direction = direction;
     port_attr->proto = proto;
@@ -244,6 +236,11 @@ int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * low
     {
         if (lower_str){
             const uint16_t port = (uint16_t)atoi(lower_str);
+            if (port == 0){
+                return -1;
+                // port 0 is not allowed to be set by user
+            }
+
             port_attr->port = port;
         }
         else {
@@ -255,6 +252,10 @@ int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * low
     {
         if (lower_str){
             const uint16_t lower_port = (uint16_t)atoi(lower_str);
+            if (lower_port == 0){
+                return -1;
+                // port 0 not allowed to be set by user
+            }
             port_attr->lower_port = lower_port;
         }
         else {
@@ -262,6 +263,10 @@ int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * low
         }
         if (upper_str){
             const uint16_t upper_port = (uint16_t)atoi(upper_str);
+            if (upper_port == 0){
+                return -1;
+                // port 0 not allowed to be set by user
+            }
             port_attr->upper_port = upper_port;
         }
         else {
@@ -273,10 +278,18 @@ int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * low
     {
         if (upper_str){ //upper_str will only be set in case of port range, handling this as a port range
             const uint16_t upper_port = (uint16_t)atoi(upper_str);
+            if (upper_port == 0){
+                return -1;
+                // port 0 not allowed to be set by user
+            }
             port_attr->upper_port = upper_port;
             port_attr->port_operator = PORT_RANGE;
             if (lower_str){ // lower port is set for port range
                 const uint16_t lower_port = (uint16_t)atoi(lower_str);
+                if (lower_port == 0){
+                    return -1;
+                    // port 0 not allowed to be set by user
+                }
                 port_attr->lower_port = lower_port;
             }
             else{ 
@@ -285,6 +298,10 @@ int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * low
         }
         else if (lower_str){ // lower_str is set, uppert_str is not set, in this case handle it as single port with NOOP operator
             const uint16_t port = (uint16_t)atoi(lower_str);
+            if (port == 0){
+                return -1;
+                // port 0 not allowed to be set by user.
+            }
             port_attr->port = port;
             port_attr->lower_port = DEFAULT_PORT_VALUE;
             port_attr->upper_port = DEFAULT_PORT_VALUE;
@@ -300,18 +317,18 @@ int set_ace_port_operator(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* po
 if (port_attr->proto == PORT_ATTR_PROTO_TCP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.tcp.source_port.port_operator = port_attr->port_operator;
-            el->ace.matches.tcp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.tcp.source_port.port_change_op = change_operation;
         } else {
             el->ace.matches.tcp.destination_port.port_operator = port_attr->port_operator;
-            el->ace.matches.tcp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.tcp.destination_port.port_change_op = change_operation;
         }
     } else if (port_attr->proto == PORT_ATTR_PROTO_UDP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.udp.source_port.port_operator = port_attr->port_operator;
-            el->ace.matches.udp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.udp.source_port.port_change_op = change_operation;
         } else {
             el->ace.matches.udp.destination_port.port_operator = port_attr->port_operator;
-            el->ace.matches.udp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.udp.destination_port.port_change_op = change_operation;
         }
     }
     return 0;
@@ -321,21 +338,21 @@ int set_ace_port_single(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* port
     if (port_attr->proto == PORT_ATTR_PROTO_TCP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.tcp.source_port.port = port_attr->port;
-            el->ace.matches.tcp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.tcp.source_port.port_change_op = change_operation;
             el->ace.matches.tcp._is_set = 1;
         } else {
             el->ace.matches.tcp.destination_port.port = port_attr->port;
-            el->ace.matches.tcp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.tcp.destination_port.port_change_op = change_operation;
             el->ace.matches.tcp._is_set = 1;
         }
     } else if (port_attr->proto == PORT_ATTR_PROTO_UDP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.udp.source_port.port = port_attr->port;
-            el->ace.matches.udp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.udp.source_port.port_change_op = change_operation;
             el->ace.matches.udp._is_set = 1;
         } else {
             el->ace.matches.udp.destination_port.port = port_attr->port;
-            el->ace.matches.udp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.udp.destination_port.port_change_op = change_operation;
             el->ace.matches.udp._is_set = 1;
         }
     }
@@ -346,22 +363,22 @@ int set_ace_port_range_lower_port(onm_tc_ace_element_t* el, onm_tc_port_attribut
     if (port_attr->proto == PORT_ATTR_PROTO_TCP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.tcp.source_port.lower_port = port_attr->lower_port;
-            el->ace.matches.tcp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.tcp.source_port.port_change_op = change_operation;
             el->ace.matches.tcp._is_set = 1;
         } else {
             el->ace.matches.tcp.destination_port.lower_port = port_attr->lower_port;
             el->ace.matches.tcp.destination_port.port_operator = port_attr->port_operator;
-            el->ace.matches.tcp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.tcp.destination_port.port_change_op = change_operation;
             el->ace.matches.tcp._is_set = 1;
         }
     } else if (port_attr->proto == PORT_ATTR_PROTO_UDP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.udp.source_port.lower_port = port_attr->lower_port;
-            el->ace.matches.udp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.udp.source_port.port_change_op = change_operation;
             el->ace.matches.udp._is_set = 1;
         } else {
             el->ace.matches.udp.destination_port.lower_port = port_attr->lower_port;
-            el->ace.matches.udp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.udp.destination_port.port_change_op = change_operation;
             el->ace.matches.udp._is_set = 1;
         }
     }
@@ -372,21 +389,21 @@ int set_ace_port_range_upper_port(onm_tc_ace_element_t* el, onm_tc_port_attribut
     if (port_attr->proto == PORT_ATTR_PROTO_TCP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.tcp.source_port.upper_port = port_attr->upper_port;
-            el->ace.matches.tcp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.tcp.source_port.port_change_op = change_operation;
             el->ace.matches.tcp._is_set = 1;
         } else {
             el->ace.matches.tcp.destination_port.upper_port = port_attr->upper_port;
-            el->ace.matches.tcp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.tcp.destination_port.port_change_op = change_operation;
             el->ace.matches.tcp._is_set = 1;
         }
     } else if (port_attr->proto == PORT_ATTR_PROTO_UDP) {
         if (port_attr->direction == PORT_ATTR_SRC) {
             el->ace.matches.udp.source_port.upper_port = port_attr->upper_port;
-            el->ace.matches.udp.source_port.src_port_value_change_op = change_operation;
+            el->ace.matches.udp.source_port.port_change_op = change_operation;
             el->ace.matches.udp._is_set = 1;
         } else {
             el->ace.matches.udp.destination_port.upper_port = port_attr->upper_port;
-            el->ace.matches.udp.destination_port.dst_port_value_change_op = change_operation;
+            el->ace.matches.udp.destination_port.port_change_op = change_operation;
             el->ace.matches.udp._is_set = 1;
         }
     }
@@ -463,7 +480,7 @@ void onm_tc_ace_free (onm_tc_ace_element_t** ace)
     }
 }
 
-onm_tc_ace_element_t* get_ace_in_acl_list(const char* acl_name, const char* ace_name, onm_tc_acl_hash_element_t* acl_hash) 
+onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, const char* ace_name) 
 {
     if (acl_name == NULL || ace_name == NULL || acl_hash == NULL) {
         return NULL;
@@ -529,7 +546,7 @@ int events_acls_hash_add_ace_element(void *priv, sr_session_ctx_t *session, cons
         onm_tc_ace_element_t* new_ace = NULL;
         new_ace = onm_tc_ace_hash_element_new();
 
-        
+        // ace name
         if (strcmp(node_name,"name")==0)
         {
             SRPLG_LOG_INF(PLUGIN_NAME, "Adding new change ACE to Change ACLs list change, ACE Name: %s, Change operation: %d.",node_value,change_ctx->operation);
@@ -539,7 +556,7 @@ int events_acls_hash_add_ace_element(void *priv, sr_session_ctx_t *session, cons
         if (!(onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer)))
         {
             onm_tc_acl_hash_element_t* temp_acl = onm_tc_acl_hash_element_new();
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&temp_acl, acl_name_buffer,change_ctx->operation), error_out);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&temp_acl, acl_name_buffer,DEFAUTL_CHANGE_OPERATION), error_out);
             onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,temp_acl);
         }
 
@@ -559,7 +576,6 @@ out:
 int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
     int error = 0;
-    int default_change_operation = -1;
     const struct lyd_node * node = change_ctx->node;
 	const char *node_value = lyd_get_value(change_ctx->node);
     onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
@@ -573,7 +589,7 @@ int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, c
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer)), error_out);
         
-        onm_tc_ace_element_t* updated_ace = get_ace_in_acl_list(acl_name_buffer,ace_name_buffer,ctx->events_acls_list);
+        onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
         
         // make sure acl exits in acls list
         onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer);
@@ -582,12 +598,12 @@ int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, c
             printf("update on ace of an acl that is not present in change acl\n");
             // add new acl data
             updated_acl = onm_tc_acl_hash_element_new();
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer,default_change_operation), error_out);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer,DEFAUTL_CHANGE_OPERATION), error_out);
             ONM_TC_ACL_LIST_NEW(updated_acl->acl.aces.ace);
 
             // add new ace data to new acl
             updated_ace = onm_tc_ace_hash_element_new();
-            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,default_change_operation);
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAUTL_CHANGE_OPERATION);
 
             ONM_TC_ACL_LIST_ADD_ELEMENT(updated_acl->acl.aces.ace, updated_ace);
             
@@ -600,13 +616,13 @@ int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, c
         {
             printf("update on ace that is not present in change acl\n");
             updated_ace = onm_tc_ace_hash_element_new();
-            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,default_change_operation);
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAUTL_CHANGE_OPERATION);
             
             error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,updated_ace);
         }
 
         //update ace in change acls list
-        ace_element_update_data(updated_ace,node,change_ctx->operation);
+        SRPC_SAFE_CALL_ERR(error, ace_element_update_data(updated_ace,node,change_ctx->operation),error_out);
         
         goto out;
     }
@@ -679,19 +695,20 @@ int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_n
                 if (strcmp(node_name,"operator")==0){ // tcp source port, single Port Operator
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     uint16_t port = updated_ace->ace.matches.tcp.source_port.port;
-                    error = port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,port_opr,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
                     error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr,change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name,"port")==0){ // tcp source port, single port value
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,node_value,NULL,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
                     error = onm_tc_ace_hash_element_set_match_port(&updated_ace, port_attr,change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name,"lower-port")==0 ){ // tcp source port, port range
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr,node_value,NULL,"range",PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,node_value,NULL,PORT_RANGE,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
                     error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr,change_operation);
                     error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                     error = set_ace_port_range_lower_port(updated_ace, port_attr,change_operation);
@@ -700,7 +717,7 @@ int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_n
                 
                 if (strcmp(node_name,"upper-port")==0){ // tcp source port, port range
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr,NULL,node_value,"range",PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,node_value,PORT_RANGE,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
                     error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr,change_operation);
                     error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                     error = set_ace_port_range_upper_port(updated_ace, port_attr,change_operation);
@@ -710,26 +727,27 @@ int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_n
             else if (strcmp(grand_parent_node_name, "udp") == 0) {
                 if (strcmp(node_name, "port") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr, node_value, NULL, NULL, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, node_value, NULL, PORT_NOOP, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                     error = set_ace_port_single(updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name, "operator") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr, NULL, NULL, node_value, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, NULL, NULL, port_opr, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                     error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name, "lower-port") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr, node_value, NULL, "range", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, node_value, NULL, PORT_RANGE, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                     error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                     error = set_ace_port_range_lower_port(updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name, "upper-port") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    error = port_str_to_port_attr(port_attr, NULL, node_value, "range", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, NULL, node_value, PORT_RANGE, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                     error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                     error = set_ace_port_range_upper_port(updated_ace, port_attr, change_operation);
                     free(port_attr);
@@ -740,26 +758,27 @@ int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_n
         if (strcmp(grand_parent_node_name, "tcp") == 0) {
             if (strcmp(node_name, "operator") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, NULL, NULL, node_value, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, NULL, NULL, port_opr, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
                 error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, node_value, NULL, NULL, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, node_value, NULL, PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
                 error = set_ace_port_single(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "lower-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, node_value, NULL, "range", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, node_value, NULL, PORT_RANGE, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
                 error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                 error = set_ace_port_range_lower_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "upper-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, NULL, node_value, "range", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, NULL, node_value, PORT_RANGE, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
                 error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                 error = set_ace_port_range_upper_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
@@ -768,26 +787,27 @@ int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_n
         else if (strcmp(grand_parent_node_name, "udp") == 0) {
             if (strcmp(node_name, "port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, node_value, NULL, NULL, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, node_value, NULL, PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                 error = set_ace_port_single(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "operator") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, NULL, NULL, node_value, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
+                error = port_str_to_port_attr(port_attr, NULL, NULL, port_opr, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
                 error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "lower-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, node_value, NULL, "range", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, node_value, NULL, PORT_RANGE, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                 error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                 error = set_ace_port_range_lower_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "upper-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                error = port_str_to_port_attr(port_attr, NULL, node_value, "range", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr, NULL, node_value, PORT_RANGE, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP), port_attr_error_out);
                 error = set_ace_port_operator(updated_ace, port_attr, change_operation);
                 error = set_ace_port_range_upper_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
@@ -803,5 +823,16 @@ int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_n
     if (strcmp(node_name,"logging")==0){
         onm_tc_ace_hash_element_set_action_logging(&updated_ace,node_value,change_operation);
     }
+    goto out;
+
+port_attr_error_out:
+    SRPLG_LOG_ERR(PLUGIN_NAME, "ACE '%s' Illegal port attributes (node name '%s', node value '%s')",updated_ace->ace.name,node_name,node_value);
+    
+    return error;
+
+error_out:
+    return error;
+
+out:
     return 0; // Update successful
 }

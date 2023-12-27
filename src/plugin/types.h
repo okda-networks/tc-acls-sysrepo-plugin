@@ -153,7 +153,7 @@ struct onm_tc_source_port {
     uint16_t upper_port;
     uint16_t port;
     port_operator_t port_operator;
-    sr_change_oper_t src_port_value_change_op;
+    sr_change_oper_t port_change_op;
 };
 
 struct onm_tc_destination_port {
@@ -161,8 +161,7 @@ struct onm_tc_destination_port {
     uint16_t upper_port;
     uint16_t port;
     port_operator_t port_operator;
-    sr_change_oper_t dst_port_value_change_op;
-    sr_change_oper_t dst_port_operator_change_op;
+    sr_change_oper_t port_change_op;
 };
 
 struct onm_tc_tcp {
