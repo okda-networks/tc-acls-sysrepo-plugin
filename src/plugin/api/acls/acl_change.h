@@ -15,7 +15,7 @@
         } \
     } while (0)
 
-#define VALIDATE_AND_UPDATE_EVENT_PORT_OPERATOR(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO) \
+#define VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_OPERATOR(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO) \
     do { \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port != 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator == PORT_NOOP) { \
             SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
@@ -28,17 +28,53 @@
         } \
     } while (0)
 
-#define VALIDATE_AND_UPDATE_EVENT_PORT_VALUE(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO) \
+#define VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_VALUE(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO) \
     do { \
-        if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator != PORT_NOOP) { \
+        if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator != PORT_NOOP)  { \
+            if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator !=PORT_RANGE) { \
+                SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+                onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t)); \
+                if (port_attr) { \
+                    port_attr->direction = PORT_ATTR_DIR; \
+                    port_attr->proto = PORT_ATTR_PROTO; \
+                    port_attr->port = running_ace->ace.matches.PROTO.PORT_FIELD.port; \
+                    port_attr->port_operator = (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator; \
+                    onm_tc_ace_hash_element_set_match_port(&(ACE_ITER), port_attr, (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op); \
+                    free(port_attr); \
+                } \
+            } \
+        } \
+    } while (0)
+
+#define VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_LOWER(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO, SET_FUNC) \
+    do { \
+        if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port != 0) { \
             SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
             onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t)); \
             if (port_attr) { \
                 port_attr->direction = PORT_ATTR_DIR; \
                 port_attr->proto = PORT_ATTR_PROTO; \
-                port_attr->port = running_ace->ace.matches.PROTO.PORT_FIELD.port; \
+                port_attr->lower_port = running_ace->ace.matches.PROTO.PORT_FIELD.lower_port; \
+                port_attr->upper_port = (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port; \
                 port_attr->port_operator = (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator; \
-                onm_tc_ace_hash_element_set_match_port(&(ACE_ITER), port_attr, (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op); \
+                SET_FUNC(&(ACE_ITER), port_attr, (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op); \
+                free(port_attr); \
+            } \
+        } \
+    } while (0)
+
+#define VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_UPPER(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO, SET_FUNC) \
+    do { \
+        if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port != 0) { \
+            SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+            onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t)); \
+            if (port_attr) { \
+                port_attr->direction = PORT_ATTR_DIR; \
+                port_attr->proto = PORT_ATTR_PROTO; \
+                port_attr->upper_port = running_ace->ace.matches.PROTO.PORT_FIELD.upper_port; \
+                port_attr->lower_port = (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port; \
+                port_attr->port_operator = (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator; \
+                SET_FUNC(&(ACE_ITER), port_attr, (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op); \
                 free(port_attr); \
             } \
         } \

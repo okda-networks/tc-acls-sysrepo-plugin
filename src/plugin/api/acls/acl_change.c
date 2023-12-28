@@ -53,18 +53,27 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 			VALIDATE_AND_UPDATE_EVENT_MAC_ADDR_MASK(ace_iter, source_mac_address, source_mac_address_mask, "Update ACE '%s' source mac address mask", onm_tc_ace_hash_element_set_match_src_mac_addr_mask);
 			VALIDATE_AND_UPDATE_EVENT_MAC_ADDR_MASK(ace_iter, destination_mac_address, destination_mac_address_mask, "Update ACE '%s' destination mac address mask", onm_tc_ace_hash_element_set_match_dst_mac_addr_mask);
 
-			VALIDATE_AND_UPDATE_EVENT_PORT_OPERATOR(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port operator", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_OPERATOR(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port operator", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_OPERATOR(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port operator", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_OPERATOR(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port operator", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
 
-			VALIDATE_AND_UPDATE_EVENT_PORT_OPERATOR(ace_iter, udp, source_port, "Update ACE '%s' udp source port operator", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_OPERATOR(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port operator", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_OPERATOR(ace_iter, udp, source_port, "Update ACE '%s' udp source port operator", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_OPERATOR(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port operator", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
 
-			VALIDATE_AND_UPDATE_EVENT_PORT_VALUE(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_VALUE(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port value", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_VALUE(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_VALUE(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port value", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
 
-			VALIDATE_AND_UPDATE_EVENT_PORT_VALUE(ace_iter, udp, source_port, "Update ACE '%s' udp source port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_VALUE(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port value", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
-
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_VALUE(ace_iter, udp, source_port, "Update ACE '%s' udp source port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+			VALIDATE_AND_UPDATE_EVENT_SINGLE_PORT_VALUE(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port value", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+			
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_LOWER(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port range lower port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP, onm_tc_ace_hash_element_set_match_port);
+    		VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_LOWER(ace_iter, udp, source_port, "Update ACE '%s' udp source port range lower port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP, onm_tc_ace_hash_element_set_match_port);
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_LOWER(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port range lower port value", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP, onm_tc_ace_hash_element_set_match_port);
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_LOWER(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port range lower port value", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP, onm_tc_ace_hash_element_set_match_port);
+			
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_UPPER(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port range upper port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP, onm_tc_ace_hash_element_set_match_port);
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_UPPER(ace_iter, udp, source_port, "Update ACE '%s' udp source port range upper port value", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP, onm_tc_ace_hash_element_set_match_port);
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_UPPER(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port range upper port value", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP, onm_tc_ace_hash_element_set_match_port);
+			VALIDATE_AND_UPDATE_EVENT_PORT_RANGE_UPPER(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port range upper port value", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP, onm_tc_ace_hash_element_set_match_port);
 		}
 	}
 }

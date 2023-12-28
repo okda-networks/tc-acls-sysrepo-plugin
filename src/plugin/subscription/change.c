@@ -127,8 +127,13 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 		// actions (SR_OP_MODIFIED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/actions/forwarding", xpath), error_out);
 		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
-		// print acl list
+		
+		// validate events_acls hash data: to solve problems on netlink where change data is not complete to build a proper netlink request.
+		// (e.g. user changes eth mask without changing the eth mac,
+		// change data will not include the eth mac, this validation gets the unchanged mac from running acls hash)
 		validate_and_update_events_acls_hash(ctx);
+
+		// print acl list
 		onm_tc_acls_list_print_debug(ctx->events_acls_list);
 		// apply change acl list changes.
 	}
