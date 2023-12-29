@@ -246,6 +246,8 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 				printf("new ace, SHOULD NEVER MEET THIS condition since skipping new aces validation.\n");
 				continue;
 			}
+            // set ace priority
+            onm_tc_ace_hash_element_set_ace_priority(&ace_iter,running_ace->ace.priority,DEFAUTL_CHANGE_OPERATION);
 
 			if(!ace_iter->ace.matches.eth.source_mac_address && running_ace->ace.matches.eth.source_mac_address){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address", ace_iter->ace.name);
