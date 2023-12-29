@@ -155,6 +155,16 @@ void onm_tc_acls_list_hash_free(onm_tc_acl_hash_element_t** hash)
     *hash = NULL;
 }
 
+int events_acl_init(void *priv)
+{
+	int error = 0;
+	return error;
+}
+
+void events_acl_free(void *priv)
+{
+}
+
 int onm_tc_events_acls_hash_add_acl_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	const char *node_name = LYD_NAME(change_ctx->node);
@@ -176,7 +186,6 @@ int onm_tc_events_acls_hash_add_acl_element(void *priv, sr_session_ctx_t *sessio
 
         // add acl element to acls_list
         onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list, event_acl_hash);
-        printf("added acl element %s change acl list\n",event_acl_hash->acl.name);
 	}
 	goto out;
 
@@ -187,16 +196,124 @@ out:
 	return error;
 }
 
-int events_acl_init(void *priv)
+int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 {
-	int error = 0;
-	return error;
-}
+	onm_tc_acl_hash_element_t * events_acls = ctx->events_acls_list;
+	onm_tc_acl_hash_element_t * running_acls = ctx->running_acls_list;
 
-void events_acl_free(void *priv)
-{
-}
 
+    onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
+    onm_tc_ace_element_t* ace_iter = NULL;
+	SRPLG_LOG_INF(PLUGIN_NAME, "Validating change event data");
+    HASH_ITER(hh, events_acls, iter, tmp)
+    {	
+		if (!iter->acl.name){
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Bad ACL name");
+			return -1;
+		}
+		SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACL '%s' data, event change operation '%d'",
+		iter->acl.name, iter->acl.acl_name_change_op);
+		// ACL name event can only be SR_OP_CREATED or SR_OP_DELETED, no need to continue validation of new acls.
+		if (iter->acl.acl_name_change_op == SR_OP_CREATED){
+			continue;
+		}
+
+        LL_FOREACH(iter->acl.aces.ace, ace_iter){
+			if (!ace_iter->ace.name){
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Bad ACE element");
+				return -1;
+			}
+			SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACE '%s' data, event change operation '%d'",
+			ace_iter->ace.name, ace_iter->ace.ace_name_change_op);
+			// ACE name event can only be SR_OP_CREATED or SR_OP_DELETED, no need to continue validation of new ACEs.
+			if (ace_iter->ace.ace_name_change_op == SR_OP_CREATED){
+				continue;
+			}
+			onm_tc_ace_element_t * running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,iter->acl.name,ace_iter->ace.name);
+			
+			// ace name not found in running acls list; should never meet this condition since skipping new aces validation
+			if (!running_ace){
+				printf("new ace, SHOULD NEVER MEET THIS condition since skipping new aces validation.\n");
+				continue;
+			}
+
+			if(!ace_iter->ace.matches.eth.source_mac_address && running_ace->ace.matches.eth.source_mac_address){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.eth.source_mac_address;
+				onm_tc_ace_hash_element_set_match_src_mac_addr(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+            if(!ace_iter->ace.matches.eth.source_mac_address_mask && running_ace->ace.matches.eth.source_mac_address_mask){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address mask", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.eth.source_mac_address_mask;
+				onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+			if(!ace_iter->ace.matches.eth.destination_mac_address && running_ace->ace.matches.eth.destination_mac_address){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination mac address", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.eth.destination_mac_address;
+				onm_tc_ace_hash_element_set_match_dst_mac_addr(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+            if(!ace_iter->ace.matches.eth.destination_mac_address_mask && running_ace->ace.matches.eth.destination_mac_address_mask){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination mac address mask", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.eth.destination_mac_address_mask;
+				onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+
+			// TODO do more testing here
+            if(ace_iter->ace.matches.eth.ethertype == 0 && running_ace->ace.matches.eth.ethertype !=0){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' ethertype", ace_iter->ace.name);
+				uint16_t node_value = running_ace->ace.matches.eth.ethertype;
+				ace_iter->ace.matches.eth.ethertype = node_value;
+				ace_iter->ace.matches.eth.ethertype_change_op = DEFAUTL_CHANGE_OPERATION;
+            }
+
+			// IPv4
+            if(!ace_iter->ace.matches.ipv4.source_ipv4_network && running_ace->ace.matches.ipv4.source_ipv4_network){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source ipv4 network", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.ipv4.source_ipv4_network;
+				onm_tc_ace_hash_element_set_match_ipv4_src_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+            if(!ace_iter->ace.matches.ipv4.destination_ipv4_network && running_ace->ace.matches.ipv4.destination_ipv4_network){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination ipv4 network", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.ipv4.destination_ipv4_network;
+				onm_tc_ace_hash_element_set_match_ipv4_dst_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+
+			// IPv6
+            if(!ace_iter->ace.matches.ipv6.source_ipv6_network && running_ace->ace.matches.ipv6.source_ipv6_network){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source ipv6 network", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.ipv6.source_ipv6_network;
+				onm_tc_ace_hash_element_set_match_ipv6_src_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+            if(!ace_iter->ace.matches.ipv6.destination_ipv6_network && running_ace->ace.matches.ipv6.destination_ipv6_network){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination ipv6 network", ace_iter->ace.name);
+				char * node_value = running_ace->ace.matches.ipv6.destination_ipv6_network;
+				onm_tc_ace_hash_element_set_match_ipv6_dst_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+            }
+
+			// port single, operator and range
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, udp, source_port, "Update ACE '%s' udp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+
+			// action forwarding
+			if(ace_iter->ace.actions.forwarding == FORWARD_NOOP){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' action forwarding", ace_iter->ace.name);
+				forwarding_action_t node_value = running_ace->ace.actions.forwarding;
+				ace_iter->ace.actions.forwarding = node_value;
+				ace_iter->ace.actions.forwarding_change_op = DEFAUTL_CHANGE_OPERATION;
+            }
+
+			// action logging
+            if(ace_iter->ace.actions.logging == LOG_NOOP && running_ace->ace.actions.logging != LOG_NOOP){
+                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' action logging", ace_iter->ace.name);
+				logging_action_t node_value = running_ace->ace.actions.logging;
+				ace_iter->ace.actions.logging = node_value;
+				ace_iter->ace.actions.forwarding_change_op = DEFAUTL_CHANGE_OPERATION;
+            }
+		}
+	}
+}
 
 int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct lyd_node* acl_list_node)
 {
@@ -696,14 +813,16 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
                 ace_iter->ace.matches.udp.destination_port.port_operator,
                 ace_iter->ace.matches.udp.destination_port.port_change_op);
             }
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Actions:");{
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Forwarding = %d (change operation %d)",
                 ace_iter->ace.actions.forwarding,
                 ace_iter->ace.actions.forwarding_change_op);
-            if(ace_iter->ace.actions.logging != 0)
+            }
+            if(ace_iter->ace.actions.logging != 0){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Action-Logging = %d (change operation %d)", 
                 ace_iter->ace.actions.logging,
                 ace_iter->ace.actions.logging_change_op);
+            }
         }
     }
 }

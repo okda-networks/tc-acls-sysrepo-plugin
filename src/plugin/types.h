@@ -60,6 +60,7 @@ enum forwarding_action{
 };
 
 enum logging_action{
+    LOG_NOOP,
     LOG_SYSLOG,
     LOG_NONE
 };

@@ -159,22 +159,23 @@ int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8
 
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action, sr_change_oper_t change_operation)
 {
-    if (action) {
-        if (strcmp(action,"accept") == 0)
-        {
-            (*el)->ace.actions.forwarding = FORWARD_ACCEPT;
-        }
-        else if (strcmp(action,"drop") == 0)
-        {
-            (*el)->ace.actions.forwarding = FORWARD_DROP;
-        }
-        else if (strcmp(action,"reject") == 0)
-        {
-            (*el)->ace.actions.forwarding = FORWARD_REJECT;
-        }
-        (*el)->ace.actions.forwarding_change_op = change_operation;
+    if (!action) {
+        return -1;
     }
-    
+    if (strcmp(action,"accept") == 0){
+        (*el)->ace.actions.forwarding = FORWARD_ACCEPT;
+    }
+    else if (strcmp(action,"drop") == 0){
+        (*el)->ace.actions.forwarding = FORWARD_DROP;
+    }
+    else if (strcmp(action,"reject") == 0){
+        (*el)->ace.actions.forwarding = FORWARD_REJECT;
+    }
+    else {
+        return -1;
+    }
+
+    (*el)->ace.actions.forwarding_change_op = change_operation;
     return 0;
 }
 
@@ -573,7 +574,7 @@ out:
 	return error;
 }
 
-int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
     int error = 0;
     const struct lyd_node * node = change_ctx->node;
@@ -622,7 +623,7 @@ int events_acls_hash_update_ace_element(void *priv, sr_session_ctx_t *session, c
         }
 
         //update ace in change acls list
-        SRPC_SAFE_CALL_ERR(error, ace_element_update_data(updated_ace,node,change_ctx->operation),error_out);
+        SRPC_SAFE_CALL_ERR(error, ace_element_update_from_lyd_node(updated_ace,node,change_ctx->operation),error_out);
         
         goto out;
     }
@@ -634,7 +635,7 @@ out:
 	return error;
 }
 
-int ace_element_update_data(onm_tc_ace_element_t* updated_ace,const struct lyd_node * node,sr_change_oper_t change_operation) {
+int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const struct lyd_node * node, sr_change_oper_t change_operation) {
     int error = 0;
     const char *node_name = LYD_NAME(node);
 	const char *parent_node_name = LYD_NAME(&node->parent->node);
