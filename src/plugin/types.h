@@ -213,9 +213,11 @@ struct onm_tc_aces {
 
 struct onm_tc_ace {
     char * name;
+    uint16_t priority;
     onm_tc_matches_t matches;
     onm_tc_actions_t actions;
     sr_change_oper_t ace_name_change_op;
+    sr_change_oper_t ace_prio_change_op;
 };
 
 struct onm_tc_ace_element {
@@ -237,6 +239,7 @@ enum onm_tc_acl_type{
 
 struct onm_tc_acl {
     char * name;
+    unsigned int acl_id;
     onm_tc_acl_type_t type;
     onm_tc_aces_t aces;
     sr_change_oper_t acl_name_change_op;

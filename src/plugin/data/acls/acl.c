@@ -35,7 +35,7 @@
 #include "plugin/api/tcnl.h"
 
 /*
-    Libyang and srpc conversion functions.
+    Libyang, srpc and other data type conversion functions.
 */
 
 onm_tc_acl_hash_element_t* onm_tc_acl_hash_new(void)
@@ -56,6 +56,15 @@ onm_tc_acl_hash_element_t* onm_tc_acl_hash_element_new(void)
     return new_element;
 }
 
+unsigned int acl_name2id(const char *str) {
+    unsigned int hash = 5381; // Initial hash value
+    int c;
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+    return hash;
+}
+
 int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name, sr_change_oper_t change_operation)
 {
     if ((*el)->acl.name) {
@@ -63,6 +72,7 @@ int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char*
     }
     if (name) {
         (*el)->acl.name = xstrdup(name);
+        (*el)->acl.acl_id = acl_name2id(name);
         (*el)->acl.acl_name_change_op = change_operation;
         return (*el)->acl.name == NULL;
     }
@@ -372,7 +382,7 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
 
             // init ace list
             ONM_TC_ACL_LIST_NEW(new_element->acl.aces.ace);
-
+            unsigned int ace_prio_counter = 0;
             while(ace_list_node){
                 // add new ace element
                 new_ace_element = onm_tc_ace_hash_element_new();
@@ -384,7 +394,9 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
 
                 //parse ace data
                 if (ace_name_node){
+                    ace_prio_counter +=10;
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace_element, lyd_get_value(ace_name_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_priority(&new_ace_element, ace_prio_counter , DEFAUTL_CHANGE_OPERATION), error_out);
                     ace_name_node = NULL;
                 }
 
@@ -687,6 +699,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
     {
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tName = %s (change operation %d)", iter->acl.name,iter->acl.acl_name_change_op);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tACL ID = %d", iter->acl.acl_id);
         if(iter->acl.type){
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tType = %s (change operation %d)", iter->acl.type,iter->acl.acl_type_change_op);
         }
@@ -696,6 +709,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
         {
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s (change operation %d)", ace_iter->ace.name,ace_iter->ace.ace_name_change_op);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Priority = %d", ace_iter->ace.priority);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.eth.source_mac_address){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s (change operation %d)",

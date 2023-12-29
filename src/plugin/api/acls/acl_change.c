@@ -27,7 +27,7 @@ int apply_events_acls_hash(onm_tc_ctx_t * ctx){
     HASH_ITER(hh, events_acls, iter, tmp)
 	{
 		acl_name = iter->acl.name;
-    	unsigned int acl_id = acl_name2id(acl_name);
+    	unsigned int acl_id = iter->acl.acl_id;
 		SRPLG_LOG_INF(PLUGIN_NAME, "Apply change event data for acl %d",acl_id);
 		ret = tcnl_filter_flower_modify(acl_id,ctx->events_acls_list);
 		if (ret){

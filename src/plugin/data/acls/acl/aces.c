@@ -28,6 +28,17 @@ int onm_tc_ace_hash_element_set_ace_name(onm_tc_ace_element_t** el, const char* 
     return 0;
 }
 
+int onm_tc_ace_hash_element_set_ace_priority(onm_tc_ace_element_t** el, const unsigned int priority, sr_change_oper_t change_operation)
+{
+    if (priority == 0){
+        return -1;
+    }
+    (*el)->ace.priority = priority;
+    (*el)->ace.ace_prio_change_op = change_operation;
+
+    return 0;
+}
+
 int onm_tc_ace_hash_element_set_match_src_mac_addr(onm_tc_ace_element_t** el, const char* mac_addr,sr_change_oper_t change_operation)
 {
     if ((*el)->ace.matches.eth.source_mac_address) {
@@ -431,8 +442,6 @@ int onm_tc_ace_hash_element_set_match_port_operator(onm_tc_ace_element_t** el, o
 {
     return set_ace_port_operator(*el, port_attr, change_operation);
 }
-
-
 
 onm_tc_ace_element_t* onm_tc_ace_element_new(void)
 {

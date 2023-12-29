@@ -8,6 +8,7 @@
 #include <netlink/route/classifier.h>
 #include <netlink/route/rtnl.h>
 #include <netlink/route/tc.h>
+#include "plugin/data/acls/acl.h"
 
 int acls_store_api(onm_tc_ctx_t *ctx)
 {

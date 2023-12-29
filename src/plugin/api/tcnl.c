@@ -26,14 +26,6 @@ https://github.com/iproute2/iproute2/blob/main/tc/tc_util.c
 #include "plugin/types.h"
 #include <linux/tc_act/tc_gact.h>
 
-unsigned int acl_name2id(const char *str) {
-    unsigned int hash = 5381; // Initial hash value
-    int c;
-    while ((c = *str++)) {
-        hash = ((hash << 5) + hash) + c; // hash * 33 + c
-    }
-    return hash;
-}
 
 int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,int alen)
 {
@@ -917,19 +909,23 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
     onm_tc_ace_element_t* ace_iter = NULL;
     HASH_ITER(hh, acl_hash, iter, tmp)
     {   
-        if (acl_name2id(iter->acl.name)==acl_id)
+        if (iter->acl.acl_id == acl_id)
         {
             __u32 prio, block_index,tcm_handle;
             __u16 proto_id;
             block_index = acl_id;
-            prio = 0;
             tcm_handle = 1;
 
             // iterate over aces
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
             {
                 // set priority and get the appropriate ip protocol version
-                prio += 10;
+                prio = ace_iter->ace.priority;
+                if (prio == 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s ace priority is not set",ace_iter->ace.name);
+                    return -1;
+                }
+                
                 char *proto_buf = NULL;
                 if(ace_iter->ace.matches.ipv6._is_set == 1){
                     proto_buf = "ipv6";
