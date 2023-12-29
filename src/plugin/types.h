@@ -34,7 +34,7 @@ typedef struct onm_tc_aps onm_tc_aps_t;
 typedef struct ietf_interface ietf_interface_t;
 typedef enum forwarding_action forwarding_action_t;
 typedef enum logging_action logging_action_t;
-typedef enum port_operation port_operation_t;
+typedef enum port_operator port_operator_t;
 
 typedef struct onm_tc_port_attributes onm_tc_port_attributes_t;
 typedef enum onm_tc_port_attr_direction onm_tc_port_attr_direction_t;
@@ -60,11 +60,12 @@ enum forwarding_action{
 };
 
 enum logging_action{
+    LOG_NOOP,
     LOG_SYSLOG,
     LOG_NONE
 };
 
-enum port_operation{
+enum port_operator{
     PORT_NOOP,
     PORT_EQUAL,
     PORT_LTE,
@@ -76,6 +77,8 @@ enum port_operation{
 struct onm_tc_actions {
     forwarding_action_t forwarding;
     forwarding_action_t logging;
+    sr_change_oper_t forwarding_change_op;
+    sr_change_oper_t logging_change_op;
 };
 
 enum onm_tc_port_attr_proto{
@@ -93,7 +96,7 @@ enum onm_tc_port_attr_direction{
 struct onm_tc_port_attributes{
     onm_tc_port_attr_proto_t proto;
     onm_tc_port_attr_direction_t direction;
-    char * operation_str;
+    port_operator_t port_operator;
     uint16_t port;
     uint16_t lower_port;
     uint16_t upper_port;
@@ -108,6 +111,11 @@ struct onm_tc_eth {
     char * source_mac_address_mask;
     uint16_t ethertype;
     uint8_t _is_set;
+    sr_change_oper_t src_mac_change_op;
+    sr_change_oper_t src_mac_mask_change_op;
+    sr_change_oper_t dst_mac_change_op;
+    sr_change_oper_t dst_mac_mask_change_op;
+    sr_change_oper_t ethertype_change_op;
 };
 
 struct onm_tc_ipv4 {
@@ -123,6 +131,8 @@ struct onm_tc_ipv4 {
     char * destination_ipv4_network;
     char * source_ipv4_network;
     uint8_t _is_set;
+    sr_change_oper_t src_ipv4_change_op;
+    sr_change_oper_t dst_ipv4_change_op;
 };
 
 struct onm_tc_ipv6 {
@@ -135,20 +145,24 @@ struct onm_tc_ipv6 {
     char * source_ipv6_network;
     uint32_t flow_label;
     uint8_t _is_set;
+    sr_change_oper_t src_ipv6_change_op;
+    sr_change_oper_t dst_ipv6_change_op;
 };
 
 struct onm_tc_source_port {
     uint16_t lower_port;
     uint16_t upper_port;
     uint16_t port;
-    port_operation_t operation;
+    port_operator_t port_operator;
+    sr_change_oper_t port_change_op;
 };
 
 struct onm_tc_destination_port {
     uint16_t lower_port;
     uint16_t upper_port;
     uint16_t port;
-    port_operation_t operation;
+    port_operator_t port_operator;
+    sr_change_oper_t port_change_op;
 };
 
 struct onm_tc_tcp {
@@ -178,6 +192,8 @@ struct onm_tc_icmp {
     uint8_t code;
     void * rest_of_header;
     uint8_t _is_set;
+    sr_change_oper_t icmp_type_change_op;
+    sr_change_oper_t icmp_code_change_op;
 };
 
 struct onm_tc_matches {
@@ -197,14 +213,16 @@ struct onm_tc_aces {
 
 struct onm_tc_ace {
     char * name;
+    uint16_t priority;
     onm_tc_matches_t matches;
     onm_tc_actions_t actions;
+    sr_change_oper_t ace_name_change_op;
+    sr_change_oper_t ace_prio_change_op;
 };
 
 struct onm_tc_ace_element {
     onm_tc_ace_element_t* next;
     onm_tc_ace_t ace;
-    sr_change_oper_t change_operation;
 };
 
 
@@ -221,8 +239,11 @@ enum onm_tc_acl_type{
 
 struct onm_tc_acl {
     char * name;
+    unsigned int acl_id;
     onm_tc_acl_type_t type;
     onm_tc_aces_t aces;
+    sr_change_oper_t acl_name_change_op;
+    sr_change_oper_t acl_type_change_op;
 };
 
 struct onm_tc_acl_element {
@@ -277,13 +298,11 @@ struct onm_tc_acls {
 */
 struct onm_tc_acl_hash_element {
     onm_tc_acl_t acl;
-    sr_change_oper_t change_operation;
     UT_hash_handle hh;
 };
 
 struct onm_tc_aps_interface_hash_element {
     onm_tc_aps_interface_t interface;
-    sr_change_oper_t change_operation;
     UT_hash_handle hh;
 };
 

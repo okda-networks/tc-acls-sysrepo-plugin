@@ -102,36 +102,51 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 
 		// match on eth (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/eth/*", xpath), error_out);
-		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 
 		// match on ipv4 (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/ipv4/*", xpath), error_out);
-		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 
 		// match on ipv6 (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/ipv6/*", xpath), error_out);
-		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 
 		// match on tcp (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
-		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/tcp/*/*", xpath), error_out);
-		//SRPC_SAFE_CALL_ERR(rc,acl_change_iterator2(ctx,session,change_xpath_buffer), error_out);
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/tcp/*/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 		
 		// match on udp (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
-		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/udp/*/*", xpath), error_out);
-		//SRPC_SAFE_CALL_ERR(rc,acl_change_iterator2(ctx,session,change_xpath_buffer), error_out);
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/udp/*/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 
 		// match on icmp (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
 		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/icmp/*/*", xpath), error_out);
-		//SRPC_SAFE_CALL_ERR(rc,acl_change_iterator2(ctx,session,change_xpath_buffer), error_out);
+		//SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element, events_acl_init, events_acl_free), error_out);
+		
+		// actions (SR_OP_MODIFIED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/actions/forwarding", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
+		
+		/*
+		validate events_acls hash data: to solve problems on netlink where change data is not complete to build a proper netlink request.
+		(e.g. user changes eth mask without changing the eth mac,
+		change data will not include the eth mac, this validation gets the unchanged mac from running acls hash)
+		*/
+		validate_and_update_events_acls_hash(ctx);
 
 		// print acl list
 		onm_tc_acls_list_print_debug(ctx->events_acls_list);
 		// apply change acl list changes.
+		rc = apply_events_acls_hash(ctx);
+		if (rc){
+			goto error_out;
+		}
 	}
 	goto out;
 
 error_out:
-	SRPLG_LOG_ERR(PLUGIN_NAME, "acl_change_iterator() failed: %d", rc);
+	onm_tc_acl_element_hash_free(&ctx->events_acls_list);
 	error = SR_ERR_CALLBACK_FAILED;
 
 out:
