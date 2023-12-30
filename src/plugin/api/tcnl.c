@@ -886,6 +886,27 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     return ret;
 }
 
+int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls_hash){
+    const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
+    int ret = 0;
+    HASH_ITER(hh, acls_hash, iter, tmp)
+    {   
+        if (iter->acl.acl_id == acl_id)
+        {
+            onm_tc_ace_element_t* ace_iter = NULL;
+            // iterate over aces
+            LL_FOREACH(iter->acl.aces.ace, ace_iter)
+            {
+                ret = tcnl_filter_modify_ace(acl_id,ace_iter);
+                if (ret){
+                    return ret;
+                }
+            }
+        } 
+    }
+    return ret;
+}
+
 int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_element){
     int sockfd,ret;
     struct sockaddr_nl src_addr, dest_addr;

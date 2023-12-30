@@ -64,19 +64,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
                 {*/
                     // if no, get ACL content and apply it on netlink
                     //SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
-                const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
-                onm_tc_ace_element_t* ace_iter = NULL;
-                HASH_ITER(hh, ctx->running_acls_list, iter, tmp)
-                {   
-                    if (iter->acl.acl_id == acl_id)
-                    {
-                        // iterate over aces
-                        LL_FOREACH(iter->acl.aces.ace, ace_iter)
-                        {
-                            tcnl_filter_modify_ace(acl_id,ace_iter);
-                        }
-                    }
-                }
+                tcnl_filter_modify_acl(acl_id,ctx->running_acls_list);
                     
                 //}
                 
