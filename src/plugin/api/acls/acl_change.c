@@ -50,7 +50,8 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 				{
 					SRPLG_LOG_INF(PLUGIN_NAME, "Apply ace event changes");
 					ret = apply_events_ace_changes(ctx,acl_id,ace_iter);
-					if (ret){
+					if (ret < 0){
+						printf("return of apply_events_ace_changes %d\n",ret);
 						return ret;
 					}
 				}

@@ -32,5 +32,5 @@ int onm_tc_ace_hash_element_set_match_port_operator(onm_tc_ace_element_t** el, o
 
 port_operator_t onm_tc_ace_port_oper_a2i(const char * oper_str);
 
-
+void onm_tc_ace_hash_print_debug(const onm_tc_ace_element_t* ace_element);
 int port_str_to_port_attr(onm_tc_port_attributes_t *port_attr, const char * lower_port_str, const char * upper_port_str, const port_operator_t port_op,onm_tc_port_attr_direction_t direction, onm_tc_port_attr_proto_t proto);
