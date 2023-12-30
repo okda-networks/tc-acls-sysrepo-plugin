@@ -367,7 +367,7 @@ static int flower_parse_ip_addr(char *str, __be16 eth_type,
 }
 
 // add or update ingress qdisc block id for a given interface.
-int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, uint32_t tca_block_id)
+int tcnl_qdisc_modify_ingress_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, uint32_t tca_block_id)
 {
     struct nl_request req;
     int ret;
@@ -886,7 +886,7 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     return ret;
 }
 
-int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl_hash){
+int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_element){
     int sockfd,ret;
     struct sockaddr_nl src_addr, dest_addr;
 
@@ -905,156 +905,144 @@ int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl
 	};
     
 
-    const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
-    onm_tc_ace_element_t* ace_iter = NULL;
-    HASH_ITER(hh, acl_hash, iter, tmp)
-    {   
-        if (iter->acl.acl_id == acl_id)
-        {
-            __u32 prio, block_index,tcm_handle;
-            __u16 proto_id;
-            block_index = acl_id;
-            tcm_handle = 1;
+    __u32 prio, block_index,tcm_handle;
+    __u16 proto_id;
+    block_index = acl_id;
+    tcm_handle = DEFAULT_TCM_HANDLE;
 
-            // iterate over aces
-            LL_FOREACH(iter->acl.aces.ace, ace_iter)
-            {
-                // set priority and get the appropriate ip protocol version
-                prio = ace_iter->ace.priority;
-                if (prio == 0){
-                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s ace priority is not set",ace_iter->ace.name);
-                    return -1;
-                }
-                
-                char *proto_buf = NULL;
-                if(ace_iter->ace.matches.ipv6._is_set == 1){
-                    proto_buf = "ipv6";
-                }
-                else if (ace_iter->ace.matches.ipv4._is_set == 1){
-                    proto_buf = "ipv4";
-                }
-                else if (ace_iter->ace.matches.icmp._is_set == 1){
-                    //ipv4 or ipv6 ? TODO look at acl type
-                    proto_buf = "ipv4";
-                }
-                else if (ace_iter->ace.matches.tcp._is_set == 1){
-                    //ipv4 or ipv6 ? TODO look at acl type
-                    proto_buf = "ipv4";
-                }
-                else if (ace_iter->ace.matches.udp._is_set == 1){
-                    //ipv4 or ipv6 ? TODO look at acl type
-                    proto_buf = "ipv4";
-                }
-                
-                SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Protocol Buffer = %s",ace_iter->ace.name,proto_buf);
-                req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
-	            req.tcm.tcm_block_index = block_index;
-                req.tcm.tcm_handle = tcm_handle;
-                // set ip protocol version
-                if (proto_buf){
-                    if (ll_proto_a2n(&proto_id, proto_buf)){
-                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set specified protocol, setting EtherType to ALL",ace_iter->ace.name);
-                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, htons(ETH_P_ALL));
-                    }
-                    else {
-                        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s set EtherType to %d",ace_iter->ace.name,htons(proto_id));
-                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, proto_id);
-                    }
-                }
-                else{
-                    // ethertype is not specified in ACE config
-                    // check if ethertype is specified in ethernet match.
-                    if (ace_iter->ace.matches.eth.ethertype != 0){
-                        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s L2 match ethertype %d",ace_iter->ace.name,ace_iter->ace.matches.eth.ethertype);
-                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, ace_iter->ace.matches.eth.ethertype);
-                    }
-                    else {
-                        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s protocol is not specified, set EtherType to ALL",ace_iter->ace.name);
-                        req.tcm.tcm_info = TC_H_MAKE(prio<<16, htons(ETH_P_ALL));
-                    } 
-                }
+    // set priority and get the appropriate ip protocol version
+    prio = ace_element->ace.priority;
+    if (prio == 0){
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s ace priority is not set",ace_element->ace.name);
+        return -1;
+    }
 
-                addattr_l(&req.nlh,sizeof(req),TCA_KIND,"flower",strlen("flower")+1);
-                
-                ret = nl_put_flower_options(&req.nlh,ace_iter);
-                printf("flower option ret %d\n", ret);
-                // Create a socket
-                sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-                if (sockfd == -1) {
-                    perror("Error creating socket");
-                }
-
-                // Fill in the source and destination addresses
-                memset(&src_addr, 0, sizeof(src_addr));
-                src_addr.nl_family = AF_NETLINK;
-                src_addr.nl_pid = getpid();  // Use the process ID as the source port
-
-                // Bind the socket
-                if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
-                    perror("Error binding socket");
-                }
-
-                // Prepare the iov and msg structures for sending
-                int status;
-                iov_send.iov_base = &req;
-                iov_send.iov_len = req.nlh.nlmsg_len;
-
-                memset(&dest_addr, 0, sizeof(dest_addr));
-                dest_addr.nl_family = AF_NETLINK;
-                dest_addr.nl_pid = 0;  // Send to kernel
-
-                memset(&msg_send, 0, sizeof(msg_send));
-                msg_send.msg_name = (void *)&dest_addr;
-                msg_send.msg_namelen = sizeof(dest_addr);
-                msg_send.msg_iov = &iov_send;
-                msg_send.msg_iovlen = 1;
-
-                // Send the Netlink message
-                ret = sendmsg(sockfd, &msg_send, 0);
-                if (ret == -1) {
-                    perror("Error sending Netlink message");
-                }
-                printf("return of send %d\n",ret);
-
-
-                // Receive the response
-                memset(&msg_recv, 0, sizeof(msg_recv));
-                iov_recv.iov_base = malloc(MAX_MSG);
-                iov_recv.iov_len = MAX_MSG;
-                msg_recv.msg_name = (void *)&src_addr;
-                msg_recv.msg_namelen = sizeof(src_addr);
-                msg_recv.msg_iov = &iov_recv;
-                msg_recv.msg_iovlen = 1;
-
-                
-                status = recvmsg(sockfd, &msg_recv, MSG_DONTWAIT);
-                if (status < 0) {
-                    //printf("Error receiving Netlink message");
-                    printf("rcv error %d\n", status);
-                }
-
-                // Process and print the response
-                nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
-                // Extract and process the response based on your application needs
-                print_netlink_message(nlh_recv);
-
-                if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
-                    struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nlh_recv);
-                    int error = err->error;
-                    printf("[TCNL][NLRCV] error %d: %s\n",error, nl_geterror(error));
-                    // Clean up
-                    free(iov_recv.iov_base);
-                    close(sockfd);
-                    
-                    return error;
-                }
-
-                // Clean up
-                free(iov_recv.iov_base);
-                close(sockfd);
-                
-            }
+    char *proto_buf = NULL;
+    if(ace_element->ace.matches.ipv6._is_set == 1){
+        proto_buf = "ipv6";
+    }
+    else if (ace_element->ace.matches.ipv4._is_set == 1){
+        proto_buf = "ipv4";
+    }
+    else if (ace_element->ace.matches.icmp._is_set == 1){
+        //ipv4 or ipv6 ? TODO look at acl type
+        proto_buf = "ipv4";
+    }
+    else if (ace_element->ace.matches.tcp._is_set == 1){
+        //ipv4 or ipv6 ? TODO look at acl type
+        proto_buf = "ipv4";
+    }
+    else if (ace_element->ace.matches.udp._is_set == 1){
+        //ipv4 or ipv6 ? TODO look at acl type
+        proto_buf = "ipv4";
+    }
+    
+    SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Protocol Buffer = %s",ace_element->ace.name,proto_buf);
+    req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
+    req.tcm.tcm_block_index = block_index;
+    req.tcm.tcm_handle = tcm_handle;
+    // set ip protocol version
+    if (proto_buf){
+        if (ll_proto_a2n(&proto_id, proto_buf)){
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set specified protocol, setting EtherType to ALL",ace_element->ace.name);
+            req.tcm.tcm_info = TC_H_MAKE(prio<<16, htons(ETH_P_ALL));
+        }
+        else {
+            SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s set EtherType to %d",ace_element->ace.name,htons(proto_id));
+            req.tcm.tcm_info = TC_H_MAKE(prio<<16, proto_id);
         }
     }
+    else{
+        // ethertype is not specified in ACE config
+        // check if ethertype is specified in ethernet match.
+        if (ace_element->ace.matches.eth.ethertype != 0){
+            SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s L2 match ethertype %d",ace_element->ace.name,ace_element->ace.matches.eth.ethertype);
+            req.tcm.tcm_info = TC_H_MAKE(prio<<16, ace_element->ace.matches.eth.ethertype);
+        }
+        else {
+            SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s protocol is not specified, set EtherType to ALL",ace_element->ace.name);
+            req.tcm.tcm_info = TC_H_MAKE(prio<<16, htons(ETH_P_ALL));
+        } 
+    }
+
+    addattr_l(&req.nlh,sizeof(req),TCA_KIND,"flower",strlen("flower")+1);
+    
+    ret = nl_put_flower_options(&req.nlh,ace_element);
+    printf("flower option ret %d\n", ret);
+    // Create a socket
+    sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    if (sockfd == -1) {
+        perror("Error creating socket");
+    }
+
+    // Fill in the source and destination addresses
+    memset(&src_addr, 0, sizeof(src_addr));
+    src_addr.nl_family = AF_NETLINK;
+    src_addr.nl_pid = getpid();  // Use the process ID as the source port
+
+    // Bind the socket
+    if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
+        perror("Error binding socket");
+    }
+
+    // Prepare the iov and msg structures for sending
+    int status;
+    iov_send.iov_base = &req;
+    iov_send.iov_len = req.nlh.nlmsg_len;
+
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    dest_addr.nl_family = AF_NETLINK;
+    dest_addr.nl_pid = 0;  // Send to kernel
+
+    memset(&msg_send, 0, sizeof(msg_send));
+    msg_send.msg_name = (void *)&dest_addr;
+    msg_send.msg_namelen = sizeof(dest_addr);
+    msg_send.msg_iov = &iov_send;
+    msg_send.msg_iovlen = 1;
+
+    // Send the Netlink message
+    ret = sendmsg(sockfd, &msg_send, 0);
+    if (ret == -1) {
+        perror("Error sending Netlink message");
+    }
+    printf("return of send %d\n",ret);
+
+
+    // Receive the response
+    memset(&msg_recv, 0, sizeof(msg_recv));
+    iov_recv.iov_base = malloc(MAX_MSG);
+    iov_recv.iov_len = MAX_MSG;
+    msg_recv.msg_name = (void *)&src_addr;
+    msg_recv.msg_namelen = sizeof(src_addr);
+    msg_recv.msg_iov = &iov_recv;
+    msg_recv.msg_iovlen = 1;
+
+    
+    status = recvmsg(sockfd, &msg_recv, MSG_DONTWAIT);
+    if (status < 0) {
+        //printf("Error receiving Netlink message");
+        printf("rcv error %d\n", status);
+    }
+
+    // Process and print the response
+    nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
+    // Extract and process the response based on your application needs
+    print_netlink_message(nlh_recv);
+
+    if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
+        struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nlh_recv);
+        int error = err->error;
+        printf("[TCNL][NLRCV] error %d: %s\n",error, nl_geterror(error));
+        // Clean up
+        free(iov_recv.iov_base);
+        close(sockfd);
+        
+        return error;
+    }
+
+    // Clean up
+    free(iov_recv.iov_base);
+    close(sockfd);
+
     return 0;
 }

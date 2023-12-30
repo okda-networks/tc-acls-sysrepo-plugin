@@ -21,8 +21,9 @@ int change_path_print(void *priv, sr_session_ctx_t *session, const srpc_change_c
 	int error = 0;
 	const char *node_name = LYD_NAME(change_ctx->node);
 	const char *node_value = lyd_get_value(change_ctx->node);
+	const char *prev_value = change_ctx->previous_value;
+	const char *prev_list = change_ctx->previous_list;
 	char change_path[PATH_MAX] = {0};
-
 	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
 
 	char change_xpath_buffer[PATH_MAX] = { 0 };
@@ -34,7 +35,8 @@ int change_path_print(void *priv, sr_session_ctx_t *session, const srpc_change_c
 		goto error_out;
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Change PATH PRINT: %s;\n\t Value: %s;\n\t Operation: %d,\n\tchange path %s", node_name, node_value, change_ctx->operation,change_path);
+	SRPLG_LOG_INF(PLUGIN_NAME, "Change PATH PRINT: %s;\n\t New Value: %s;\n\t Previous Value: %s;\n\t Previous list: %s;\n\t Operation: %d,\n\tchange path %s",
+	node_name, node_value,prev_value,prev_list, change_ctx->operation,change_path);
 
 	goto out;
 
@@ -89,7 +91,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	{
 		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
 
-		ctx->events_acls_list = onm_tc_acl_hash_new();
+		//ctx->events_acls_list = onm_tc_acl_hash_new();
 
 		// acl  name (SR_OP_CREATED, SR_OP_DELETED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/*", xpath), error_out);
@@ -139,6 +141,10 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 		onm_tc_acls_list_print_debug(ctx->events_acls_list);
 		// apply change acl list changes.
 		rc = apply_events_acls_hash(ctx);
+
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s//.", xpath), error_out);
+        SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, change_path_print,events_acl_init, events_acl_free), error_out);
+
 		if (rc){
 			goto error_out;
 		}
