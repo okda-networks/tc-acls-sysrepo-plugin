@@ -211,7 +211,9 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 	onm_tc_acl_hash_element_t * events_acls = ctx->events_acls_list;
 	onm_tc_acl_hash_element_t * running_acls = ctx->running_acls_list;
 
-
+    if (events_acls == NULL){
+        return 0;
+    }
     onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
 	SRPLG_LOG_INF(PLUGIN_NAME, "Validating change event data");
@@ -223,8 +225,8 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 		}
 		SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACL '%s' data, event change operation '%d'",
 		iter->acl.name, iter->acl.name_change_op);
-		// ACL name event can only be SR_OP_CREATED or SR_OP_DELETED, no need to continue validation of new acls.
-		if (iter->acl.name_change_op == SR_OP_CREATED){
+		// ACL name event can only be SR_OP_CREATED or SR_OP_DELETED, no need to continue validation
+		if (iter->acl.name_change_op == SR_OP_CREATED || iter->acl.name_change_op == SR_OP_DELETED){
 			continue;
 		}
 
@@ -235,8 +237,8 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 			}
 			SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACE '%s' data, event change operation '%d'",
 			ace_iter->ace.name, ace_iter->ace.name_change_op);
-			// ACE name event can only be SR_OP_CREATED or SR_OP_DELETED, no need to continue validation of new ACEs.
-			if (ace_iter->ace.name_change_op == SR_OP_CREATED){
+			// ACE name event can only be SR_OP_CREATED or SR_OP_DELETED, to continue validation.
+			if (ace_iter->ace.name_change_op == SR_OP_CREATED || ace_iter->ace.name_change_op == SR_OP_DELETED){
 				continue;
 			}
 			onm_tc_ace_element_t * running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,iter->acl.name,ace_iter->ace.name);
@@ -247,27 +249,27 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 				continue;
 			}
             // set ace priority
-            onm_tc_ace_hash_element_set_ace_priority(&ace_iter,running_ace->ace.priority,DEFAUTL_CHANGE_OPERATION);
+            onm_tc_ace_hash_element_set_ace_priority(&ace_iter,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
 
 			if(!ace_iter->ace.matches.eth.source_address && running_ace->ace.matches.eth.source_address){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.source_address;
-				onm_tc_ace_hash_element_set_match_src_mac_addr(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_src_mac_addr(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.eth.source_address_mask && running_ace->ace.matches.eth.source_address_mask){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address mask", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.source_address_mask;
-				onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 			if(!ace_iter->ace.matches.eth.destination_address && running_ace->ace.matches.eth.destination_address){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination mac address", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.destination_address;
-				onm_tc_ace_hash_element_set_match_dst_mac_addr(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_dst_mac_addr(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.eth.destination_address_mask && running_ace->ace.matches.eth.destination_address_mask){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination mac address mask", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.destination_address_mask;
-				onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 
 			// TODO do more testing here
@@ -275,31 +277,31 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' ethertype", ace_iter->ace.name);
 				uint16_t node_value = running_ace->ace.matches.eth.ethertype;
 				ace_iter->ace.matches.eth.ethertype = node_value;
-				ace_iter->ace.matches.eth.ethertype_change_op = DEFAUTL_CHANGE_OPERATION;
+				ace_iter->ace.matches.eth.ethertype_change_op = DEFAULT_CHANGE_OPERATION;
             }
 
 			// IPv4
             if(!ace_iter->ace.matches.ipv4.source_network && running_ace->ace.matches.ipv4.source_network){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source ipv4 network", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv4.source_network;
-				onm_tc_ace_hash_element_set_match_ipv4_src_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_ipv4_src_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.ipv4.destination_network && running_ace->ace.matches.ipv4.destination_network){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination ipv4 network", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv4.destination_network;
-				onm_tc_ace_hash_element_set_match_ipv4_dst_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_ipv4_dst_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 
 			// IPv6
             if(!ace_iter->ace.matches.ipv6.source_network && running_ace->ace.matches.ipv6.source_network){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source ipv6 network", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv6.source_network;
-				onm_tc_ace_hash_element_set_match_ipv6_src_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_ipv6_src_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.ipv6.destination_network && running_ace->ace.matches.ipv6.destination_network){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination ipv6 network", ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv6.destination_network;
-				onm_tc_ace_hash_element_set_match_ipv6_dst_network(&ace_iter,node_value,DEFAUTL_CHANGE_OPERATION);
+				onm_tc_ace_hash_element_set_match_ipv6_dst_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 
 			// port single, operator and range
@@ -313,7 +315,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' action forwarding", ace_iter->ace.name);
 				forwarding_action_t node_value = running_ace->ace.actions.forwarding;
 				ace_iter->ace.actions.forwarding = node_value;
-				ace_iter->ace.actions.forwarding_change_op = DEFAUTL_CHANGE_OPERATION;
+				ace_iter->ace.actions.forwarding_change_op = DEFAULT_CHANGE_OPERATION;
             }
 
 			// action logging
@@ -321,7 +323,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
                 SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' action logging", ace_iter->ace.name);
 				logging_action_t node_value = running_ace->ace.actions.logging;
 				ace_iter->ace.actions.logging = node_value;
-				ace_iter->ace.actions.forwarding_change_op = DEFAUTL_CHANGE_OPERATION;
+				ace_iter->ace.actions.forwarding_change_op = DEFAULT_CHANGE_OPERATION;
             }
 		}
 	}
@@ -373,10 +375,10 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
 
         //set data
         if (acl_name_node){
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&new_element, lyd_get_value(acl_name_node),DEFAUTL_CHANGE_OPERATION), error_out);  
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&new_element, lyd_get_value(acl_name_node),DEFAULT_CHANGE_OPERATION), error_out);  
         }
         if (acl_type_node){
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_type(&new_element, lyd_get_value(acl_type_node),DEFAUTL_CHANGE_OPERATION), error_out);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_type(&new_element, lyd_get_value(acl_type_node),DEFAULT_CHANGE_OPERATION), error_out);
         }
 
         if (aces_container_node){
@@ -397,8 +399,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                 //parse ace data
                 if (ace_name_node){
                     ace_prio_counter +=10;
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace_element, lyd_get_value(ace_name_node),DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_priority(&new_ace_element, ace_prio_counter , DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace_element, lyd_get_value(ace_name_node),DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_priority(&new_ace_element, ace_prio_counter , DEFAULT_CHANGE_OPERATION), error_out);
                     ace_name_node = NULL;
                 }
 
@@ -485,19 +487,19 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
 
                 // set match data
                 if(eth_src_mac_addr_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr(&new_ace_element, lyd_get_value(eth_src_mac_addr_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr(&new_ace_element, lyd_get_value(eth_src_mac_addr_node),DEFAULT_CHANGE_OPERATION), error_out);
                     eth_src_mac_addr_node = NULL;
                 }
                 if(eth_src_mac_addr_mask_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&new_ace_element, lyd_get_value(eth_src_mac_addr_mask_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&new_ace_element, lyd_get_value(eth_src_mac_addr_mask_node),DEFAULT_CHANGE_OPERATION), error_out);
                     eth_src_mac_addr_mask_node = NULL;
                 }
                 if(eth_dst_mac_addr_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr(&new_ace_element, lyd_get_value(eth_dst_mac_addr_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr(&new_ace_element, lyd_get_value(eth_dst_mac_addr_node),DEFAULT_CHANGE_OPERATION), error_out);
                     eth_dst_mac_addr_node = NULL;
                 }
                 if(eth_dst_mac_addr_mask_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&new_ace_element, lyd_get_value(eth_dst_mac_addr_mask_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&new_ace_element, lyd_get_value(eth_dst_mac_addr_mask_node),DEFAULT_CHANGE_OPERATION), error_out);
                     eth_dst_mac_addr_mask_node = NULL;
                 }
                 if(eth_ethtype_node){
@@ -511,23 +513,23 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                         error = -1;
                     }
                     else
-                        SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&new_ace_element, ether_type,DEFAUTL_CHANGE_OPERATION), error_out);
+                        SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_eth_ethertype(&new_ace_element, ether_type,DEFAULT_CHANGE_OPERATION), error_out);
                     eth_ethtype_node = NULL;
                 }
                 if(ipv4_src_network_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv4_src_network(&new_ace_element, lyd_get_value(ipv4_src_network_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv4_src_network(&new_ace_element, lyd_get_value(ipv4_src_network_node),DEFAULT_CHANGE_OPERATION), error_out);
                     ipv4_src_network_node = NULL;
                 }
                 if(ipv4_dst_network_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv4_dst_network(&new_ace_element, lyd_get_value(ipv4_dst_network_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv4_dst_network(&new_ace_element, lyd_get_value(ipv4_dst_network_node),DEFAULT_CHANGE_OPERATION), error_out);
                     ipv4_dst_network_node = NULL;
                 }
                 if(ipv6_src_network_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_src_network(&new_ace_element, lyd_get_value(ipv6_src_network_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_src_network(&new_ace_element, lyd_get_value(ipv6_src_network_node),DEFAULT_CHANGE_OPERATION), error_out);
                     ipv6_src_network_node = NULL;
                 }
                 if(ipv6_dst_network_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_dst_network(&new_ace_element, lyd_get_value(ipv6_dst_network_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_ipv6_dst_network(&new_ace_element, lyd_get_value(ipv6_dst_network_node),DEFAULT_CHANGE_OPERATION), error_out);
                     ipv6_dst_network_node = NULL;
                 }
 
@@ -538,8 +540,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(port_str, lyd_get_value(tcp_src_port_node), error_out);
                     port_operator_t port_opr = onm_tc_ace_port_oper_a2i(port_oper_str);
                     error = port_str_to_port_attr(port_attr,port_str,NULL,port_opr,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     tcp_src_port_node = NULL;
                     free(port_attr);
@@ -551,8 +553,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(port_str, lyd_get_value(tcp_dst_port_node), error_out);
                     port_operator_t port_opr = onm_tc_ace_port_oper_a2i(port_oper_str);
                     error = port_str_to_port_attr(port_attr,port_str,NULL,port_opr,PORT_ATTR_DST,PORT_ATTR_PROTO_TCP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
                     tcp_dst_port_node = NULL;
                     free(port_attr);
                 }
@@ -563,8 +565,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(port_str, lyd_get_value(udp_src_port_node), error_out);
                     port_operator_t port_opr = onm_tc_ace_port_oper_a2i(port_oper_str);
                     error = port_str_to_port_attr(port_attr,port_str,NULL,port_opr,PORT_ATTR_SRC,PORT_ATTR_PROTO_UDP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     udp_src_port_node = NULL;
                     free(port_attr);
@@ -576,8 +578,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(port_str, lyd_get_value(udp_dst_port_node), error_out);
                     port_operator_t port_opr = onm_tc_ace_port_oper_a2i(port_oper_str);
                     error = port_str_to_port_attr(port_attr,port_str,NULL,port_opr,PORT_ATTR_DST,PORT_ATTR_PROTO_UDP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     udp_dst_port_node = NULL;
                     free(port_attr);
@@ -589,8 +591,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(tcp_src_range_upper_port_node), error_out);
 
                     port_str_to_port_attr(port_attr, lower_str, upper_str,PORT_RANGE,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     tcp_src_range_lower_port_node = NULL;
                     tcp_src_range_upper_port_node = NULL;
@@ -604,8 +606,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(tcp_dst_range_upper_port_node), error_out);
 
                     port_str_to_port_attr(port_attr, lower_str, upper_str,PORT_RANGE,PORT_ATTR_DST,PORT_ATTR_PROTO_TCP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     tcp_dst_range_lower_port_node = NULL;
                     tcp_dst_range_upper_port_node = NULL;
@@ -618,8 +620,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(udp_src_range_upper_port_node), error_out);
 
                     port_str_to_port_attr(port_attr, lower_str, upper_str,PORT_RANGE,PORT_ATTR_SRC,PORT_ATTR_PROTO_UDP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     udp_src_range_lower_port_node = NULL;
                     udp_src_range_upper_port_node = NULL;
@@ -632,8 +634,8 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     SRPC_SAFE_CALL_PTR(upper_str, lyd_get_value(udp_dst_range_upper_port_node), error_out);
 
                     port_str_to_port_attr(port_attr, lower_str, upper_str,PORT_RANGE,PORT_ATTR_DST,PORT_ATTR_PROTO_UDP);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     udp_dst_range_lower_port_node = NULL;
                     udp_dst_range_upper_port_node = NULL;
@@ -644,16 +646,16 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     const char* icmp_code_str = NULL;
                     SRPC_SAFE_CALL_PTR(icmp_code_str, lyd_get_value(icmp_code_node), error_out);
                     const uint8_t icmp_code = (uint8_t)atoi(icmp_code_str);
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_icmp_code(&new_ace_element, icmp_code,DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_icmp_code(&new_ace_element, icmp_code,DEFAULT_CHANGE_OPERATION), error_out);
                     icmp_code_node = NULL;
                 }
                 // set actions data
                 if(action_forwarding_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_forwarding(&new_ace_element, lyd_get_value(action_forwarding_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_forwarding(&new_ace_element, lyd_get_value(action_forwarding_node),DEFAULT_CHANGE_OPERATION), error_out);
                     action_forwarding_node = NULL;
                 }
                 if(action_logging_node){
-                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_logging(&new_ace_element, lyd_get_value(action_logging_node),DEFAUTL_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_logging(&new_ace_element, lyd_get_value(action_logging_node),DEFAULT_CHANGE_OPERATION), error_out);
                     action_logging_node = NULL;
                 }
 

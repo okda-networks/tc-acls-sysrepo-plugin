@@ -566,7 +566,7 @@ int events_acls_hash_add_ace_element(void *priv, sr_session_ctx_t *session, cons
         if (!(onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer)))
         {
             onm_tc_acl_hash_element_t* temp_acl = onm_tc_acl_hash_element_new();
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&temp_acl, acl_name_buffer,DEFAUTL_CHANGE_OPERATION), error_out);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&temp_acl, acl_name_buffer,DEFAULT_CHANGE_OPERATION), error_out);
             onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,temp_acl);
         }
 
@@ -608,12 +608,12 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
             printf("update on ace of an acl that is not present in change acl\n");
             // add new acl data
             updated_acl = onm_tc_acl_hash_element_new();
-            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer,DEFAUTL_CHANGE_OPERATION), error_out);
+            SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&updated_acl, acl_name_buffer,DEFAULT_CHANGE_OPERATION), error_out);
             ONM_TC_ACL_LIST_NEW(updated_acl->acl.aces.ace);
 
             // add new ace data to new acl
             updated_ace = onm_tc_ace_hash_element_new();
-            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAUTL_CHANGE_OPERATION);
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAULT_CHANGE_OPERATION);
 
             ONM_TC_ACL_LIST_ADD_ELEMENT(updated_acl->acl.aces.ace, updated_ace);
             
@@ -626,7 +626,7 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
         {
             printf("update on ace that is not present in change acl\n");
             updated_ace = onm_tc_ace_hash_element_new();
-            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAUTL_CHANGE_OPERATION);
+            onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAULT_CHANGE_OPERATION);
             
             error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,updated_ace);
         }

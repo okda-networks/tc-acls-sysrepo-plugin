@@ -10,7 +10,7 @@
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port = running_ace->ace.matches.PROTO.PORT_FIELD.upper_port;\
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator = running_ace->ace.matches.PROTO.PORT_FIELD.port_operator; \
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port = running_ace->ace.matches.PROTO.PORT_FIELD.port; \
-                (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op = DEFAUTL_CHANGE_OPERATION; \
+                (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op = DEFAULT_CHANGE_OPERATION; \
                 SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
             } \
         } \

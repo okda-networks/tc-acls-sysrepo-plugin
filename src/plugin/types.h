@@ -290,12 +290,6 @@ struct onm_tc_aps {
     onm_tc_aps_interface_element_t* interface;
 };
 
-/*
-struct onm_tc_acls {
-    onm_tc_acl_element_t* acl;
-    onm_tc_aps_t attachment_points;
-};
-*/
 struct onm_tc_acl_hash_element {
     onm_tc_acl_t acl;
     UT_hash_handle hh;
