@@ -17,6 +17,12 @@
 
 #include "plugin/api/tcnl.h"
 
+onm_tc_ace_element_t * get_sr_op_modifed_ace_elements(onm_tc_ace_element_t * ace){
+	onm_tc_ace_element_t* ret_ace = NULL;
+	if (ace->ace.matches.eth.source_address_change_op == 1)
+		ret_ace->ace.matches.eth.source_address = ace->ace.matches.eth.source_address;
+}
+
 int apply_events_acls_hash(onm_tc_ctx_t * ctx){
 	onm_tc_acl_hash_element_t * events_acls = ctx->events_acls_list;
 	int ret = 0;

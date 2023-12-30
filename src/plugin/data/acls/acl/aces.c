@@ -21,7 +21,7 @@ int onm_tc_ace_hash_element_set_ace_name(onm_tc_ace_element_t** el, const char* 
     }
     if (name) {
         (*el)->ace.name = xstrdup(name);
-        (*el)->ace.ace_name_change_op = change_operation;
+        (*el)->ace.name_change_op = change_operation;
         return (*el)->ace.name == NULL;
     }
 
@@ -34,21 +34,21 @@ int onm_tc_ace_hash_element_set_ace_priority(onm_tc_ace_element_t** el, const un
         return -1;
     }
     (*el)->ace.priority = priority;
-    (*el)->ace.ace_prio_change_op = change_operation;
+    (*el)->ace.prio_change_op = change_operation;
 
     return 0;
 }
 
 int onm_tc_ace_hash_element_set_match_src_mac_addr(onm_tc_ace_element_t** el, const char* mac_addr,sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.eth.source_mac_address) {
-        FREE_SAFE((*el)->ace.matches.eth.source_mac_address);
+    if ((*el)->ace.matches.eth.source_address) {
+        FREE_SAFE((*el)->ace.matches.eth.source_address);
     }
     if (mac_addr) {
-        (*el)->ace.matches.eth.source_mac_address = xstrdup(mac_addr);
+        (*el)->ace.matches.eth.source_address = xstrdup(mac_addr);
         (*el)->ace.matches.eth._is_set = 1;
-        (*el)->ace.matches.eth.src_mac_change_op = change_operation;
-        return (*el)->ace.matches.eth.source_mac_address == NULL;
+        (*el)->ace.matches.eth.source_address_change_op = change_operation;
+        return (*el)->ace.matches.eth.source_address == NULL;
     }
 
     return 0;
@@ -56,14 +56,14 @@ int onm_tc_ace_hash_element_set_match_src_mac_addr(onm_tc_ace_element_t** el, co
 
 int onm_tc_ace_hash_element_set_match_src_mac_addr_mask(onm_tc_ace_element_t** el, const char* mask,sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.eth.source_mac_address_mask) {
-        FREE_SAFE((*el)->ace.matches.eth.source_mac_address_mask);
+    if ((*el)->ace.matches.eth.source_address_mask) {
+        FREE_SAFE((*el)->ace.matches.eth.source_address_mask);
     }
     if (mask) {
-        (*el)->ace.matches.eth.source_mac_address_mask = xstrdup(mask);
+        (*el)->ace.matches.eth.source_address_mask = xstrdup(mask);
         (*el)->ace.matches.eth._is_set = 1;
-        (*el)->ace.matches.eth.src_mac_mask_change_op = change_operation;
-        return (*el)->ace.matches.eth.source_mac_address_mask == NULL;
+        (*el)->ace.matches.eth.source_address_mask_change_op = change_operation;
+        return (*el)->ace.matches.eth.source_address_mask == NULL;
     }
 
     return 0;
@@ -71,28 +71,28 @@ int onm_tc_ace_hash_element_set_match_src_mac_addr_mask(onm_tc_ace_element_t** e
 
 int onm_tc_ace_hash_element_set_match_dst_mac_addr(onm_tc_ace_element_t** el, const char* mac_addr,sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.eth.destination_mac_address) {
-        FREE_SAFE((*el)->ace.matches.eth.destination_mac_address);
+    if ((*el)->ace.matches.eth.destination_address) {
+        FREE_SAFE((*el)->ace.matches.eth.destination_address);
     }
     if (mac_addr) {
-        (*el)->ace.matches.eth.destination_mac_address = xstrdup(mac_addr);
+        (*el)->ace.matches.eth.destination_address = xstrdup(mac_addr);
         (*el)->ace.matches.eth._is_set = 1;
-        (*el)->ace.matches.eth.dst_mac_change_op = change_operation;
-        return (*el)->ace.matches.eth.destination_mac_address == NULL;
+        (*el)->ace.matches.eth.destination_address_change_op = change_operation;
+        return (*el)->ace.matches.eth.destination_address == NULL;
     }
     return 0;
 }
 
 int onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(onm_tc_ace_element_t** el, const char* mask,sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.eth.destination_mac_address_mask) {
-        FREE_SAFE((*el)->ace.matches.eth.destination_mac_address_mask);
+    if ((*el)->ace.matches.eth.destination_address_mask) {
+        FREE_SAFE((*el)->ace.matches.eth.destination_address_mask);
     }
     if (mask) {
-        (*el)->ace.matches.eth.destination_mac_address_mask = xstrdup(mask);
+        (*el)->ace.matches.eth.destination_address_mask = xstrdup(mask);
         (*el)->ace.matches.eth._is_set = 1;
-        (*el)->ace.matches.eth.dst_mac_mask_change_op = change_operation;
-        return (*el)->ace.matches.eth.destination_mac_address_mask == NULL;
+        (*el)->ace.matches.eth.destination_address_mask_change_op = change_operation;
+        return (*el)->ace.matches.eth.destination_address_mask == NULL;
     }
     return 0;
 }
@@ -106,56 +106,56 @@ int onm_tc_ace_hash_element_set_match_eth_ethertype(onm_tc_ace_element_t** el, u
 
 int onm_tc_ace_hash_element_set_match_ipv4_src_network(onm_tc_ace_element_t** el, const char* network_addr,sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.ipv4.source_ipv4_network) {
-        FREE_SAFE((*el)->ace.matches.ipv4.source_ipv4_network);
+    if ((*el)->ace.matches.ipv4.source_network) {
+        FREE_SAFE((*el)->ace.matches.ipv4.source_network);
     }
     if (network_addr) {
-        (*el)->ace.matches.ipv4.source_ipv4_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv4.source_network = xstrdup(network_addr);
         (*el)->ace.matches.ipv4._is_set = 1;
-        (*el)->ace.matches.ipv4.src_ipv4_change_op = change_operation;
-        return (*el)->ace.matches.ipv4.source_ipv4_network == NULL;
+        (*el)->ace.matches.ipv4.source_network_change_op = change_operation;
+        return (*el)->ace.matches.ipv4.source_network == NULL;
     }
     return 0;
 }
 
 int onm_tc_ace_hash_element_set_match_ipv4_dst_network(onm_tc_ace_element_t** el, const char* network_addr, sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.ipv4.destination_ipv4_network) {
-        FREE_SAFE((*el)->ace.matches.ipv4.destination_ipv4_network);
+    if ((*el)->ace.matches.ipv4.destination_network) {
+        FREE_SAFE((*el)->ace.matches.ipv4.destination_network);
     }
     if (network_addr) {
-        (*el)->ace.matches.ipv4.destination_ipv4_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv4.destination_network = xstrdup(network_addr);
         (*el)->ace.matches.ipv4._is_set = 1;
-        (*el)->ace.matches.ipv4.dst_ipv4_change_op = change_operation;
-        return (*el)->ace.matches.ipv4.destination_ipv4_network == NULL;
+        (*el)->ace.matches.ipv4.destination_network_change_op = change_operation;
+        return (*el)->ace.matches.ipv4.destination_network == NULL;
     }
     return 0;
 }
 
 int onm_tc_ace_hash_element_set_match_ipv6_src_network(onm_tc_ace_element_t** el, const char* network_addr, sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.ipv6.source_ipv6_network) {
-        FREE_SAFE((*el)->ace.matches.ipv6.source_ipv6_network);
+    if ((*el)->ace.matches.ipv6.source_network) {
+        FREE_SAFE((*el)->ace.matches.ipv6.source_network);
     }
     if (network_addr) {
-        (*el)->ace.matches.ipv6.source_ipv6_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv6.source_network = xstrdup(network_addr);
         (*el)->ace.matches.ipv6._is_set = 1;
-        (*el)->ace.matches.ipv6.src_ipv6_change_op = change_operation;
-        return (*el)->ace.matches.ipv6.source_ipv6_network == NULL;
+        (*el)->ace.matches.ipv6.source_network_change_op = change_operation;
+        return (*el)->ace.matches.ipv6.source_network == NULL;
     }
     return 0;
 }
 
 int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el, const char* network_addr, sr_change_oper_t change_operation)
 {
-    if ((*el)->ace.matches.ipv6.destination_ipv6_network) {
-        FREE_SAFE((*el)->ace.matches.ipv6.destination_ipv6_network);
+    if ((*el)->ace.matches.ipv6.destination_network) {
+        FREE_SAFE((*el)->ace.matches.ipv6.destination_network);
     }
     if (network_addr) {
-        (*el)->ace.matches.ipv6.destination_ipv6_network = xstrdup(network_addr);
+        (*el)->ace.matches.ipv6.destination_network = xstrdup(network_addr);
         (*el)->ace.matches.ipv6._is_set = 1;
-         (*el)->ace.matches.ipv6.dst_ipv6_change_op = change_operation;
-        return (*el)->ace.matches.ipv6.destination_ipv6_network == NULL;
+         (*el)->ace.matches.ipv6.destination_network_change_op = change_operation;
+        return (*el)->ace.matches.ipv6.destination_network == NULL;
     }
     return 0;
 }
@@ -164,7 +164,7 @@ int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, uint8
 {
     (*el)->ace.matches.icmp.code = icmp_code;
     (*el)->ace.matches.icmp._is_set = 1;
-    (*el)->ace.matches.icmp.icmp_code_change_op = change_operation;
+    (*el)->ace.matches.icmp.code_change_op = change_operation;
     return 0;
 }
 

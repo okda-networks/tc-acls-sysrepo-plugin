@@ -753,31 +753,31 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     //TODO revise this function and handle errors
     tcnl_parse_action(nlh,ace);
 
-    if(ace->ace.matches.eth.source_mac_address){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source mac address = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address);
+    if(ace->ace.matches.eth.source_address){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source mac address = %s",ace->ace.name, ace->ace.matches.eth.source_address);
         char addr[ETH_ALEN];
-        ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.source_mac_address);
+        ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.source_address);
         if (ret < 0){
-           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address);
+           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.source_address);
            return ret;
         } 
         else{
             ret = addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_SRC,addr,sizeof(addr));
             if(ret){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to source eth mac address attributes = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address);
+                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to source eth mac address attributes = %s",ace->ace.name, ace->ace.matches.eth.source_address);
                 return ret;
             }
-            if (ace->ace.matches.eth.source_mac_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source mac address mask = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address_mask);
-                ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_mac_address_mask);
+            if (ace->ace.matches.eth.source_address_mask){
+                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source mac address mask = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_address_mask);
                 if(ret < 0){
-                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address_mask);
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                     return ret;
                 }
                 else {
                     ret = addattr_l(nlh, MAX_MSG, TCA_FLOWER_KEY_ETH_SRC_MASK, addr, sizeof(addr));
                     if(ret){
-                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to source eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.source_mac_address_mask);
+                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to source eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                         return ret;
                     }
                 }
@@ -785,40 +785,40 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         }
     }
 
-    if(ace->ace.matches.eth.destination_mac_address){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination mac address = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address);
+    if(ace->ace.matches.eth.destination_address){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination mac address = %s",ace->ace.name, ace->ace.matches.eth.destination_address);
         char addr[ETH_ALEN];
-        ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.destination_mac_address);
+        ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.destination_address);
         if (ret < 0){
-           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address); 
+           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.destination_address); 
            return ret;
         }
         else{
             ret = addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_DST,addr,sizeof(addr));
             if(ret){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to destination eth mac address attributes = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address);
+                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to destination eth mac address attributes = %s",ace->ace.name, ace->ace.matches.eth.destination_address);
                 return ret;
             }
-            if (ace->ace.matches.eth.destination_mac_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination mac address mask = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address_mask);
-                ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.destination_mac_address_mask);
+            if (ace->ace.matches.eth.destination_address_mask){
+                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination mac address mask = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
+                ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.destination_address_mask);
                 if( ret < 0){
-                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address_mask);
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
                     return ret;
                 }
                 else {
                     ret = addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_DST_MASK,addr,sizeof(addr));
                     if(ret){
-                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to destination eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.destination_mac_address_mask);
+                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to destination eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
                         return ret;
                     }
                 }
             }
         }
     }
-    if(ace->ace.matches.ipv4.source_ipv4_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_ipv4_network);
-        ret = flower_parse_ip_addr(ace->ace.matches.ipv4.source_ipv4_network, eth_type,
+    if(ace->ace.matches.ipv4.source_network){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_network);
+        ret = flower_parse_ip_addr(ace->ace.matches.ipv4.source_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_SRC,
 						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
 						   TCA_FLOWER_KEY_IPV6_SRC,
@@ -826,13 +826,13 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   nlh);
         if (ret){
             SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set source IPv4 network = %s, ethertype = %d",
-            ace->ace.name, ace->ace.matches.ipv4.source_ipv4_network,eth_type);
+            ace->ace.name, ace->ace.matches.ipv4.source_network,eth_type);
             return ret;
         }
     }
-    if(ace->ace.matches.ipv4.destination_ipv4_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.destination_ipv4_network);
-        ret = flower_parse_ip_addr(ace->ace.matches.ipv4.destination_ipv4_network, eth_type,
+    if(ace->ace.matches.ipv4.destination_network){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.destination_network);
+        ret = flower_parse_ip_addr(ace->ace.matches.ipv4.destination_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_DST,
 						   TCA_FLOWER_KEY_IPV4_DST_MASK,
 						   TCA_FLOWER_KEY_IPV6_DST,
@@ -840,13 +840,13 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   nlh);
         if (ret){
             SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set destination IPv4 network = %s, ethertype = %d",
-            ace->ace.name, ace->ace.matches.ipv4.destination_ipv4_network,eth_type);
+            ace->ace.name, ace->ace.matches.ipv4.destination_network,eth_type);
             return ret;
         }
     }
-    if(ace->ace.matches.ipv6.source_ipv6_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.source_ipv6_network);
-        ret = flower_parse_ip_addr(ace->ace.matches.ipv6.source_ipv6_network, eth_type,
+    if(ace->ace.matches.ipv6.source_network){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.source_network);
+        ret = flower_parse_ip_addr(ace->ace.matches.ipv6.source_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_SRC,
 						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
 						   TCA_FLOWER_KEY_IPV6_SRC,
@@ -854,13 +854,13 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   nlh);
         if (ret){
             SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set source IPv6 network = %s, ethertype = %d",
-            ace->ace.name, ace->ace.matches.ipv6.source_ipv6_network,eth_type);
+            ace->ace.name, ace->ace.matches.ipv6.source_network,eth_type);
             return ret;
         }
     }
-    if(ace->ace.matches.ipv6.destination_ipv6_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_ipv6_network);
-        ret = flower_parse_ip_addr(ace->ace.matches.ipv6.destination_ipv6_network, eth_type,
+    if(ace->ace.matches.ipv6.destination_network){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_network);
+        ret = flower_parse_ip_addr(ace->ace.matches.ipv6.destination_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_DST,
 						   TCA_FLOWER_KEY_IPV4_DST_MASK,
 						   TCA_FLOWER_KEY_IPV6_DST,
@@ -868,7 +868,7 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   nlh);
         if (ret){
             SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set Destination IPv6 network = %s, ethertype = %d",
-            ace->ace.name, ace->ace.matches.ipv6.destination_ipv6_network,eth_type);
+            ace->ace.name, ace->ace.matches.ipv6.destination_network,eth_type);
             return ret;
         }
     }

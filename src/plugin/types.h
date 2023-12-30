@@ -105,16 +105,16 @@ struct onm_tc_port_attributes{
 
 
 struct onm_tc_eth {
-    char * destination_mac_address;
-    char * destination_mac_address_mask;
-    char * source_mac_address;
-    char * source_mac_address_mask;
+    char * destination_address;
+    char * destination_address_mask;
+    char * source_address;
+    char * source_address_mask;
     uint16_t ethertype;
     uint8_t _is_set;
-    sr_change_oper_t src_mac_change_op;
-    sr_change_oper_t src_mac_mask_change_op;
-    sr_change_oper_t dst_mac_change_op;
-    sr_change_oper_t dst_mac_mask_change_op;
+    sr_change_oper_t source_address_change_op;
+    sr_change_oper_t source_address_mask_change_op;
+    sr_change_oper_t destination_address_change_op;
+    sr_change_oper_t destination_address_mask_change_op;
     sr_change_oper_t ethertype_change_op;
 };
 
@@ -128,11 +128,11 @@ struct onm_tc_ipv4 {
     uint64_t flags;
     uint16_t offset;
     uint16_t identification;
-    char * destination_ipv4_network;
-    char * source_ipv4_network;
+    char * destination_network;
+    char * source_network;
     uint8_t _is_set;
-    sr_change_oper_t src_ipv4_change_op;
-    sr_change_oper_t dst_ipv4_change_op;
+    sr_change_oper_t source_network_change_op;
+    sr_change_oper_t destination_network_change_op;
 };
 
 struct onm_tc_ipv6 {
@@ -141,12 +141,12 @@ struct onm_tc_ipv6 {
     uint16_t length;
     uint8_t ttl;
     uint8_t protocol;
-    char * destination_ipv6_network;
-    char * source_ipv6_network;
+    char * destination_network;
+    char * source_network;
     uint32_t flow_label;
     uint8_t _is_set;
-    sr_change_oper_t src_ipv6_change_op;
-    sr_change_oper_t dst_ipv6_change_op;
+    sr_change_oper_t source_network_change_op;
+    sr_change_oper_t destination_network_change_op;
 };
 
 struct onm_tc_source_port {
@@ -192,8 +192,8 @@ struct onm_tc_icmp {
     uint8_t code;
     void * rest_of_header;
     uint8_t _is_set;
-    sr_change_oper_t icmp_type_change_op;
-    sr_change_oper_t icmp_code_change_op;
+    sr_change_oper_t type_change_op;
+    sr_change_oper_t code_change_op;
 };
 
 struct onm_tc_matches {
@@ -216,8 +216,8 @@ struct onm_tc_ace {
     uint16_t priority;
     onm_tc_matches_t matches;
     onm_tc_actions_t actions;
-    sr_change_oper_t ace_name_change_op;
-    sr_change_oper_t ace_prio_change_op;
+    sr_change_oper_t name_change_op;
+    sr_change_oper_t prio_change_op;
 };
 
 struct onm_tc_ace_element {
@@ -242,8 +242,8 @@ struct onm_tc_acl {
     unsigned int acl_id;
     onm_tc_acl_type_t type;
     onm_tc_aces_t aces;
-    sr_change_oper_t acl_name_change_op;
-    sr_change_oper_t acl_type_change_op;
+    sr_change_oper_t name_change_op;
+    sr_change_oper_t type_change_op;
 };
 
 struct onm_tc_acl_element {
