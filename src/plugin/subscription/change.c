@@ -100,7 +100,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 
 		// ace  name (SR_OP_CREATED, SR_OP_DELETED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/*", xpath), error_out);
-		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_add_ace_element, events_acl_init, events_acl_free), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 
 		// match on eth (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED, SR_OP_MOVED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/eth/*", xpath), error_out);
@@ -135,7 +135,10 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 		(e.g. user changes eth mask without changing the eth mac,
 		change data will not include the eth mac, this validation gets the unchanged mac from running acls hash)
 		*/
-		validate_and_update_events_acls_hash(ctx);
+		rc = validate_and_update_events_acls_hash(ctx);
+		if (rc < 0){
+			return rc;
+		}
 
 		// print acl list
 		onm_tc_acls_list_print_debug(ctx->events_acls_list);

@@ -177,16 +177,18 @@ int apply_events_ace_changes(onm_tc_ctx_t * ctx, unsigned int acl_id, onm_tc_ace
 			// handle complete ACE creation
 			break;
 		case SR_OP_DELETED:
-			// handle complete ACE delete
+			// handle complete ACE delete operation
 			printf("ace delete \n");
 			ret = apply_ace_deleted_change(ace,acl_id);
+			if (ret < 0){
+				return ret;
+			}
 			break;
 		case DEFAULT_CHANGE_OPERATION: {
 				// handle individual ace elements SR_OP_MODIFIED, SR_OP_CREATED, SR_OP_DELETED
 				// handle modifed:
 				ret = apply_ace_modified_change(ace,acl_id);
 				if (ret < 0){
-					printf("return apply_ace_event_modified_change %d\n",ret);
 					return ret; 
 				}
 
