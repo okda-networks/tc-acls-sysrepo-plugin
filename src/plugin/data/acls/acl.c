@@ -225,8 +225,8 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 		}
 		SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACL '%s' data, event change operation '%d'",
 		iter->acl.name, iter->acl.name_change_op);
-		// ACL name event can only be SR_OP_CREATED or SR_OP_DELETED, no need to continue validation
-		if (iter->acl.name_change_op == SR_OP_CREATED || iter->acl.name_change_op == SR_OP_DELETED){
+		// ACL name event can only be SR_OP_CREATED or SR_OP_DELETED, only newely created acls don't need validation against running acls hash
+		if (iter->acl.name_change_op == SR_OP_CREATED){
 			continue;
 		}
 
@@ -237,8 +237,8 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 			}
 			SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACE '%s' data, event change operation '%d'",
 			ace_iter->ace.name, ace_iter->ace.name_change_op);
-			// ACE name event can only be SR_OP_CREATED or SR_OP_DELETED, to continue validation.
-			if (ace_iter->ace.name_change_op == SR_OP_CREATED || ace_iter->ace.name_change_op == SR_OP_DELETED){
+			// ACE name event can only be SR_OP_CREATED or SR_OP_DELETED, only newely created aces don't need validation against running acls hash
+			if (ace_iter->ace.name_change_op == SR_OP_CREATED){
 				continue;
 			}
 			onm_tc_ace_element_t * running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,iter->acl.name,ace_iter->ace.name);
@@ -248,7 +248,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 				printf("new ace, SHOULD NEVER MEET THIS condition since skipping new aces validation.\n");
 				continue;
 			}
-            // set ace priority
+            // ensure to set ace priority to match the running ace priority (SR_OP_MOVED will be handeld in a different function)
             onm_tc_ace_hash_element_set_ace_priority(&ace_iter,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
 
 			if(!ace_iter->ace.matches.eth.source_address && running_ace->ace.matches.eth.source_address){

@@ -88,6 +88,6 @@ struct nl_request {
 
 int tcnl_qdisc_modify_ingress_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, uint32_t tca_block_id);
 bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int block_index);
-int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls_hash);
-int tcnl_filter_modify_ace(unsigned int acl_id,onm_tc_ace_element_t * ace_element);
+int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls_hash, int request_type, unsigned int flags);
+int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_element, int request_type, unsigned int flags);
 int ll_proto_a2n(unsigned short *id, const char *buf);

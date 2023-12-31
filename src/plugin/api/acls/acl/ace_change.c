@@ -3,6 +3,17 @@
 #include "plugin/common.h"
 #include "plugin/data/acls/acl/aces.h"
 
+bool ace_reconstruct_needed(onm_tc_ace_element_t* ace){
+	/*if (ace->ace.matches.eth.source_address_mask_change_op == SR_OP_MODIFIED || 
+	ace->ace.matches.eth.destination_address_mask_change_op == SR_OP_MODIFIED) {
+		return true;
+	}
+	else{
+		return false;
+	}*/
+	return true;
+}
+
 bool is_change_op_in_set(int change_op, const int* change_op_set, size_t set_size) {
     for (size_t i = 0; i < set_size; ++i) {
         if (change_op == change_op_set[i]) {
@@ -123,8 +134,9 @@ onm_tc_ace_element_t* get_ace_elements_with_change_ops(const onm_tc_ace_element_
 
 	if (is_updated){
 		printf("setting ace name to %s\n", ace->ace.name);
-		onm_tc_ace_hash_element_set_ace_name(&ret_ace,ace->ace.name,ace->ace.name_change_op);
-		onm_tc_ace_hash_element_set_ace_priority(&ret_ace,ace->ace.priority,ace->ace.prio_change_op);
+		printf("setting ace priority to %d\n", ace->ace.priority);
+		onm_tc_ace_hash_element_set_ace_name(&ret_ace,ace->ace.name, ace->ace.name_change_op);
+		onm_tc_ace_hash_element_set_ace_priority(&ret_ace,ace->ace.priority, ace->ace.prio_change_op);
 	}
 	else {
 		onm_tc_ace_free(&ret_ace);
@@ -134,12 +146,27 @@ onm_tc_ace_element_t* get_ace_elements_with_change_ops(const onm_tc_ace_element_
     return ret_ace;
 }
 
-int apply_ace_event_modified_change(onm_tc_ace_element_t * ace, unsigned int acl_id){
+int apply_ace_modified_change(onm_tc_ace_element_t * ace, unsigned int acl_id){
 	int ret = 0;
 	int change_op_set[] = {SR_OP_MODIFIED, SR_OP_DELETED, DEFAULT_CHANGE_OPERATION};
 	size_t set_size = sizeof(change_op_set) / sizeof(change_op_set[0]);
 	onm_tc_ace_element_t* modified_ace = get_ace_elements_with_change_ops(ace,change_op_set,set_size);
-	ret = tcnl_filter_modify_ace(acl_id,modified_ace);
+	if (ace_reconstruct_needed(modified_ace)){
+		tcnl_filter_modify_ace(acl_id,modified_ace,RTM_DELTFILTER,0);
+	}
+	ret = tcnl_filter_modify_ace(acl_id,modified_ace,RTM_NEWTFILTER,0);
+	return ret;
+}
+
+int apply_ace_deleted_change(onm_tc_ace_element_t * ace, unsigned int acl_id){
+	int ret = 0;
+	int change_op_set[] = {SR_OP_MODIFIED, SR_OP_DELETED, DEFAULT_CHANGE_OPERATION};
+	size_t set_size = sizeof(change_op_set) / sizeof(change_op_set[0]);
+	onm_tc_ace_element_t* modified_ace = get_ace_elements_with_change_ops(ace,change_op_set,set_size);
+	ret = tcnl_filter_modify_ace(acl_id,modified_ace,RTM_DELTFILTER,0);
+	if (ret < 0) {
+		return ret;
+	}
 	return ret;
 }
 
@@ -150,12 +177,14 @@ int apply_events_ace_changes(onm_tc_ctx_t * ctx, unsigned int acl_id, onm_tc_ace
 			// handle complete ACE creation
 			break;
 		case SR_OP_DELETED:
-			// handle complete ACE deletion
+			// handle complete ACE delete
+			printf("ace delete \n");
+			ret = apply_ace_deleted_change(ace,acl_id);
 			break;
 		case DEFAULT_CHANGE_OPERATION: {
 				// handle individual ace elements SR_OP_MODIFIED, SR_OP_CREATED, SR_OP_DELETED
 				// handle modifed:
-				ret = apply_ace_event_modified_change(ace,acl_id);
+				ret = apply_ace_modified_change(ace,acl_id);
 				if (ret < 0){
 					printf("return apply_ace_event_modified_change %d\n",ret);
 					return ret; 

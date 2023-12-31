@@ -555,12 +555,16 @@ int events_acls_hash_add_ace_element(void *priv, sr_session_ctx_t *session, cons
         printf("ADD ACL DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tOperation: %d\n",node_name,node_value,parent_node_name,change_ctx->operation);
         onm_tc_ace_element_t* new_ace = NULL;
         new_ace = onm_tc_ace_hash_element_new();
-
         // ace name
         if (strcmp(node_name,"name")==0)
         {
             SRPLG_LOG_INF(PLUGIN_NAME, "Adding new change ACE to Change ACLs list change, ACE Name: %s, Change operation: %d.",node_value,change_ctx->operation);
             SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace, node_value,change_ctx->operation), error_out);
+            onm_tc_ace_element_t* running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,acl_name_buffer,node_value);
+            // if the same ace exists in running_acls hash, set the same priority for the ace in events_acls hash
+            if(running_ace){
+                onm_tc_ace_hash_element_set_ace_priority(&new_ace, running_ace->ace.priority,change_ctx->operation);
+            }
         }
         // make sure acl exits in acls list
         if (!(onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer)))
@@ -598,11 +602,11 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
         error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer)), error_out);
-        
-        onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
-        
-        // make sure acl exits in acls list
+
         onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer);
+        onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+        onm_tc_ace_element_t* running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,acl_name_buffer,ace_name_buffer);
+        // make sure acl exits in events acls list
         if (!updated_acl)
         {
             printf("update on ace of an acl that is not present in change acl\n");
@@ -614,24 +618,32 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
             // add new ace data to new acl
             updated_ace = onm_tc_ace_hash_element_new();
             onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAULT_CHANGE_OPERATION);
+            // if the updated ace exists in the running_acls list, set the same ace priority
+            if (running_ace){
+                onm_tc_ace_hash_element_set_ace_priority(&updated_ace,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
+            }
 
             ONM_TC_ACL_LIST_ADD_ELEMENT(updated_acl->acl.aces.ace, updated_ace);
             
-            // add updated_acl to change acls list
+            // add new updated_acl to change acls list
             onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,updated_acl);
         }
 
-        // acl exist, make sure ace exists
+        // acl exists in events_acls hash, make sure ace exists there
         else if (!updated_ace)
         {
             printf("update on ace that is not present in change acl\n");
             updated_ace = onm_tc_ace_hash_element_new();
             onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAULT_CHANGE_OPERATION);
+            // if the updated ace exists in the running_acls list, set the same ace priority
+            if (running_ace){
+                onm_tc_ace_hash_element_set_ace_priority(&updated_ace,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
+            }
             
             error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,updated_ace);
         }
 
-        //update ace in change acls list
+        //update ace in events acls list
         SRPC_SAFE_CALL_ERR(error, ace_element_update_from_lyd_node(updated_ace,node,change_ctx->operation),error_out);
         
         goto out;

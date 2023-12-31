@@ -886,7 +886,7 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     return ret;
 }
 
-int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls_hash){
+int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls_hash, int request_type, unsigned int flags){
     const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     int ret = 0;
     HASH_ITER(hh, acls_hash, iter, tmp)
@@ -897,7 +897,7 @@ int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls
             // iterate over aces
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
             {
-                ret = tcnl_filter_modify_ace(acl_id,ace_iter);
+                ret = tcnl_filter_modify_ace(acl_id,ace_iter,request_type,flags);
                 if (ret){
                     return ret;
                 }
@@ -907,7 +907,7 @@ int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls
     return ret;
 }
 
-int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_element){
+int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_element, int request_type, unsigned int flags){
     int sockfd,ret;
     struct sockaddr_nl src_addr, dest_addr;
 
@@ -921,7 +921,7 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
 	} req = {
 		.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
 		.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE,
-		.nlh.nlmsg_type = RTM_NEWTFILTER,
+		.nlh.nlmsg_type = request_type,
 		.tcm.tcm_family = AF_UNSPEC,
 	};
     
@@ -930,14 +930,14 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
     __u16 proto_id;
     block_index = acl_id;
     tcm_handle = DEFAULT_TCM_HANDLE;
-
+    
     // set priority and get the appropriate ip protocol version
     prio = ace_element->ace.priority;
     if (prio == 0){
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s ace priority is not set",ace_element->ace.name);
         return -1;
     }
-
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] apply changes on ACE Name %s ace priority %d",ace_element->ace.name,ace_element->ace.priority);
     char *proto_buf = NULL;
     if(ace_element->ace.matches.ipv6._is_set == 1){
         proto_buf = "ipv6";
