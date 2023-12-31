@@ -908,6 +908,11 @@ int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls
 }
 
 int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_element, int request_type, unsigned int flags){
+    if(ace_element == NULL){
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] Invalid ACE elemenent");
+        return -1;
+    }
+
     int sockfd,ret;
     struct sockaddr_nl src_addr, dest_addr;
 
