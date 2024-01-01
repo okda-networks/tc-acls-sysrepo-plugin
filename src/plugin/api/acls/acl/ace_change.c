@@ -77,48 +77,77 @@ onm_tc_ace_element_t* extract_ace_elements_with_change_ops(const onm_tc_ace_elem
 		is_updated = true;
     }
 
-	 // TCP source port 
-    if (is_change_op_in_set(ace->ace.matches.tcp.source_port.port_change_op, change_op_set, set_size)) {
+	// TCP source port 
+    if (is_change_op_in_set(ace->ace.matches.tcp.source_port.single_port_change_op, change_op_set, set_size)) {
 		ret_ace->ace.matches.tcp.source_port.port_operator = ace->ace.matches.tcp.source_port.port_operator;
         ret_ace->ace.matches.tcp.source_port.port = ace->ace.matches.tcp.source_port.port;
-		ret_ace->ace.matches.tcp.source_port.lower_port = ace->ace.matches.tcp.source_port.lower_port;
-		ret_ace->ace.matches.tcp.source_port.upper_port = ace->ace.matches.tcp.source_port.upper_port;
 		ret_ace->ace.matches.tcp._is_set = ace->ace.matches.tcp._is_set;
-        ret_ace->ace.matches.tcp.source_port.port_change_op = ace->ace.matches.tcp.source_port.port_change_op;
+        ret_ace->ace.matches.tcp.source_port.single_port_change_op = ace->ace.matches.tcp.source_port.single_port_change_op;
 		is_updated = true;
     }
 	// TCP destination port
-	if (is_change_op_in_set(ace->ace.matches.tcp.destination_port.port_change_op, change_op_set, set_size)) {
+	if (is_change_op_in_set(ace->ace.matches.tcp.destination_port.single_port_change_op, change_op_set, set_size)) {
         ret_ace->ace.matches.tcp.destination_port.port_operator = ace->ace.matches.tcp.destination_port.port_operator;
         ret_ace->ace.matches.tcp.destination_port.port = ace->ace.matches.tcp.destination_port.port;
-        ret_ace->ace.matches.tcp.destination_port.lower_port = ace->ace.matches.tcp.destination_port.lower_port;
-        ret_ace->ace.matches.tcp.destination_port.upper_port = ace->ace.matches.tcp.destination_port.upper_port;
 		ret_ace->ace.matches.tcp._is_set = ace->ace.matches.tcp._is_set;
-        ret_ace->ace.matches.tcp.destination_port.port_change_op = ace->ace.matches.tcp.destination_port.port_change_op;
+        ret_ace->ace.matches.tcp.destination_port.single_port_change_op = ace->ace.matches.tcp.destination_port.single_port_change_op;
 		is_updated = true;
     }
 
     // UDP source port
-    if (is_change_op_in_set(ace->ace.matches.udp.source_port.port_change_op, change_op_set, set_size)) {
+    if (is_change_op_in_set(ace->ace.matches.udp.source_port.single_port_change_op, change_op_set, set_size)) {
         ret_ace->ace.matches.udp.source_port.port_operator = ace->ace.matches.udp.source_port.port_operator;
         ret_ace->ace.matches.udp.source_port.port = ace->ace.matches.udp.source_port.port;
-        ret_ace->ace.matches.udp.source_port.lower_port = ace->ace.matches.udp.source_port.lower_port;
-        ret_ace->ace.matches.udp.source_port.upper_port = ace->ace.matches.udp.source_port.upper_port;
 		ret_ace->ace.matches.udp._is_set = ace->ace.matches.udp._is_set;
-        ret_ace->ace.matches.udp.source_port.port_change_op = ace->ace.matches.udp.source_port.port_change_op;
+        ret_ace->ace.matches.udp.source_port.single_port_change_op = ace->ace.matches.udp.source_port.single_port_change_op;
 		is_updated = true;
     }
 
     // UDP destination port
-    if (is_change_op_in_set(ace->ace.matches.udp.destination_port.port_change_op, change_op_set, set_size)) {
+    if (is_change_op_in_set(ace->ace.matches.udp.destination_port.single_port_change_op, change_op_set, set_size)) {
         ret_ace->ace.matches.udp.destination_port.port_operator = ace->ace.matches.udp.destination_port.port_operator;
         ret_ace->ace.matches.udp.destination_port.port = ace->ace.matches.udp.destination_port.port;
+		ret_ace->ace.matches.udp._is_set = ace->ace.matches.udp._is_set;
+        ret_ace->ace.matches.udp.destination_port.single_port_change_op = ace->ace.matches.udp.destination_port.single_port_change_op;
+		is_updated = true;
+    }
+
+
+	// TCP source range 
+    if (is_change_op_in_set(ace->ace.matches.tcp.source_port.range_port_change_op, change_op_set, set_size)) {
+		ret_ace->ace.matches.tcp.source_port.lower_port = ace->ace.matches.tcp.source_port.lower_port;
+		ret_ace->ace.matches.tcp.source_port.upper_port = ace->ace.matches.tcp.source_port.upper_port;
+		ret_ace->ace.matches.tcp._is_set = ace->ace.matches.tcp._is_set;
+        ret_ace->ace.matches.tcp.source_port.range_port_change_op = ace->ace.matches.tcp.source_port.range_port_change_op;
+		is_updated = true;
+    }
+	// TCP destination range
+	if (is_change_op_in_set(ace->ace.matches.tcp.destination_port.range_port_change_op, change_op_set, set_size)) {
+        ret_ace->ace.matches.tcp.destination_port.lower_port = ace->ace.matches.tcp.destination_port.lower_port;
+        ret_ace->ace.matches.tcp.destination_port.upper_port = ace->ace.matches.tcp.destination_port.upper_port;
+		ret_ace->ace.matches.tcp._is_set = ace->ace.matches.tcp._is_set;
+        ret_ace->ace.matches.tcp.destination_port.range_port_change_op = ace->ace.matches.tcp.destination_port.range_port_change_op;
+		is_updated = true;
+    }
+
+    // UDP source range
+    if (is_change_op_in_set(ace->ace.matches.udp.source_port.range_port_change_op, change_op_set, set_size)) {
+        ret_ace->ace.matches.udp.source_port.lower_port = ace->ace.matches.udp.source_port.lower_port;
+        ret_ace->ace.matches.udp.source_port.upper_port = ace->ace.matches.udp.source_port.upper_port;
+		ret_ace->ace.matches.udp._is_set = ace->ace.matches.udp._is_set;
+        ret_ace->ace.matches.udp.source_port.range_port_change_op = ace->ace.matches.udp.source_port.range_port_change_op;
+		is_updated = true;
+    }
+
+    // UDP destination range
+    if (is_change_op_in_set(ace->ace.matches.udp.destination_port.range_port_change_op, change_op_set, set_size)) {
         ret_ace->ace.matches.udp.destination_port.lower_port = ace->ace.matches.udp.destination_port.lower_port;
         ret_ace->ace.matches.udp.destination_port.upper_port = ace->ace.matches.udp.destination_port.upper_port;
 		ret_ace->ace.matches.udp._is_set = ace->ace.matches.udp._is_set;
-        ret_ace->ace.matches.udp.destination_port.port_change_op = ace->ace.matches.udp.destination_port.port_change_op;
+        ret_ace->ace.matches.udp.destination_port.range_port_change_op = ace->ace.matches.udp.destination_port.range_port_change_op;
 		is_updated = true;
     }
+
 
 	// action forwarding
 	if (is_change_op_in_set(ace->ace.actions.forwarding_change_op, change_op_set, set_size)){
@@ -178,7 +207,7 @@ int apply_ace_deleted_operation(onm_tc_ace_element_t * ace, unsigned int acl_id)
 int apply_ace_modified_operation(onm_tc_ace_element_t * ace, unsigned int acl_id){
 	int ret = 0;
 	// delete existing ace tc config
-	ret = apply_ace_deleted_operation(ace,acl_id);
+	ret = tcnl_filter_modify_ace(acl_id,ace,RTM_DELTFILTER,0);
 
 	// create modified ace
 	int created_op_set[] = {SR_OP_MODIFIED, DEFAULT_CHANGE_OPERATION, SR_OP_CREATED};

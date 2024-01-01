@@ -655,30 +655,47 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
     // Handle TCP source port
     if (ace->ace.matches.tcp.source_port.port_operator != PORT_NOOP) {
         __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-        if (ace->ace.matches.tcp.source_port.port_operator != PORT_RANGE) {
-            ret = process_port_and_operator
-            (nlh, IPPROTO_TCP, port, TCA_FLOWER_KEY_TCP_SRC, TCA_FLOWER_KEY_TCP_SRC_MASK,TCA_FLOWER_KEY_PORT_SRC_MIN,TCA_FLOWER_KEY_PORT_SRC_MAX, ace->ace.matches.tcp.source_port.port_operator);
-            if (ret) return ret;
-        } else {
-            __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
-            ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
-            if (ret) return ret;
-        }
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+                    ace->ace.name,
+                    ace->ace.matches.tcp.source_port.port,
+                    ace->ace.matches.tcp.source_port.lower_port, 
+                    ace->ace.matches.tcp.source_port.upper_port,
+                    ace->ace.matches.tcp.source_port.port_operator);
+
+        ret = process_port_and_operator (
+            nlh, IPPROTO_TCP, port, 
+            TCA_FLOWER_KEY_TCP_SRC,
+            TCA_FLOWER_KEY_TCP_SRC_MASK,
+            TCA_FLOWER_KEY_PORT_SRC_MIN,
+            TCA_FLOWER_KEY_PORT_SRC_MAX, 
+            ace->ace.matches.tcp.source_port.port_operator);
+        if (ret) return ret;
+    }
+    else if (ace->ace.matches.tcp.source_port.lower_port != 0 && ace->ace.matches.tcp.source_port.upper_port !=0){
+        __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
+        ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+        if (ret) return ret;
     }
 
     // Handle TCP destination port
     if (ace->ace.matches.tcp.destination_port.port_operator != PORT_NOOP) {
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+            ace->ace.name,
+            ace->ace.matches.tcp.destination_port.port,
+            ace->ace.matches.tcp.destination_port.lower_port, 
+            ace->ace.matches.tcp.destination_port.upper_port,
+            ace->ace.matches.tcp.destination_port.port_operator);
         __be16 port = htons(ace->ace.matches.tcp.destination_port.port);
-        if (ace->ace.matches.tcp.destination_port.port_operator != PORT_RANGE) {
-            ret = process_port_and_operator(nlh, IPPROTO_TCP, port, TCA_FLOWER_KEY_TCP_DST, TCA_FLOWER_KEY_TCP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.tcp.destination_port.port_operator);
-            if (ret) return ret;
-        } else {
-            __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
-            ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
-            if (ret) return ret;
-        }
+
+        ret = process_port_and_operator(nlh, IPPROTO_TCP, port, TCA_FLOWER_KEY_TCP_DST, TCA_FLOWER_KEY_TCP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.tcp.destination_port.port_operator);
+        if (ret) return ret;
+    } 
+    else if (ace->ace.matches.tcp.destination_port.lower_port != 0 && ace->ace.matches.tcp.destination_port.upper_port != 0){
+        __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
+        ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
+        if (ret) return ret;
     }
 
     return ret;
@@ -686,33 +703,43 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
 
 static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
     int ret = 0;
-
     // Handle UDP source port
     if (ace->ace.matches.udp.source_port.port_operator != PORT_NOOP) {
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        ace->ace.name,
+        ace->ace.matches.udp.source_port.port,
+        ace->ace.matches.udp.source_port.lower_port, 
+        ace->ace.matches.udp.source_port.upper_port,
+        ace->ace.matches.udp.source_port.port_operator);
         __be16 port = htons(ace->ace.matches.udp.source_port.port);
-        if (ace->ace.matches.udp.source_port.port_operator != PORT_RANGE) {
-            ret = process_port_and_operator(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_SRC, TCA_FLOWER_KEY_UDP_SRC_MASK,TCA_FLOWER_KEY_PORT_SRC_MIN,TCA_FLOWER_KEY_PORT_SRC_MAX, ace->ace.matches.udp.source_port.port_operator);
-            if (ret) return ret;
-        } else {
-            __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
-            ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
-            if (ret) return ret;
-        }
+
+        ret = process_port_and_operator(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_SRC, TCA_FLOWER_KEY_UDP_SRC_MASK,TCA_FLOWER_KEY_PORT_SRC_MIN,TCA_FLOWER_KEY_PORT_SRC_MAX, ace->ace.matches.udp.source_port.port_operator);
+        if (ret) return ret;
+    }
+    else if (ace->ace.matches.udp.source_port.lower_port != 0 && ace->ace.matches.udp.source_port.upper_port !=0){
+        __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
+        ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+        if (ret) return ret;
     }
 
     // Handle UDP destination port
     if (ace->ace.matches.udp.destination_port.port_operator != PORT_NOOP) {
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+            ace->ace.name,
+            ace->ace.matches.udp.destination_port.port,
+            ace->ace.matches.udp.destination_port.lower_port, 
+            ace->ace.matches.udp.destination_port.upper_port,
+            ace->ace.matches.udp.destination_port.port_operator);
         __be16 port = htons(ace->ace.matches.udp.destination_port.port);
-        if (ace->ace.matches.udp.destination_port.port_operator != PORT_RANGE) {
-            ret = process_port_and_operator(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.udp.destination_port.port_operator);
-            if (ret) return ret;
-        } else {
-            __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
-            __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
-            ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
-            if (ret) return ret;
-        }
+
+        ret = process_port_and_operator(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.udp.destination_port.port_operator);
+        if (ret) return ret;
+    } else if (ace->ace.matches.udp.destination_port.lower_port != 0 && ace->ace.matches.udp.destination_port.upper_port != 0){
+        __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
+        __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
+        ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
+        if (ret) return ret;
     }
 
     return ret;
@@ -874,11 +901,9 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     }
     
     ret = add_tcp_ports(nlh, ace);
-    printf("tcp ports ret %d\n", ret);
     if (ret) return ret;
 
     ret = add_udp_ports(nlh, ace);
-    printf("udp ports ret %d\n", ret);
     if (ret) return ret;
 
     tail->rta_len = (((void *)nlh)+nlh->nlmsg_len) - (void *)tail;
@@ -927,7 +952,7 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
 		.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
 		.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE,
 		.nlh.nlmsg_type = request_type,
-		.tcm.tcm_family = AF_UNSPEC,
+		.tcm.tcm_family = AF_UNSPEC
 	};
     
 
@@ -963,7 +988,7 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
         proto_buf = "ipv4";
     }
     
-    SRPLG_LOG_INF(PLUGIN_NAME, "ACE Name %s Protocol Buffer = %s",ace_element->ace.name,proto_buf);
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Protocol Buffer = %s",ace_element->ace.name,proto_buf);
     req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
     req.tcm.tcm_block_index = block_index;
     req.tcm.tcm_handle = tcm_handle;
@@ -992,9 +1017,10 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
     }
 
     addattr_l(&req.nlh,sizeof(req),TCA_KIND,"flower",strlen("flower")+1);
-    
-    ret = nl_put_flower_options(&req.nlh,ace_element);
-    printf("flower option ret %d\n", ret);
+
+    if (request_type != RTM_DELTFILTER){
+        ret = nl_put_flower_options(&req.nlh,ace_element);
+    }
     // Create a socket
     sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if (sockfd == -1) {

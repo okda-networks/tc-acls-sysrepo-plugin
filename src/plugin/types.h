@@ -70,8 +70,7 @@ enum port_operator{
     PORT_EQUAL,
     PORT_LTE,
     PORT_GTE,
-    PORT_NOT_EQUAL,
-    PORT_RANGE
+    PORT_NOT_EQUAL
 };
 
 struct onm_tc_actions {
@@ -96,10 +95,10 @@ enum onm_tc_port_attr_direction{
 struct onm_tc_port_attributes{
     onm_tc_port_attr_proto_t proto;
     onm_tc_port_attr_direction_t direction;
-    port_operator_t port_operator;
-    uint16_t port;
-    uint16_t lower_port;
-    uint16_t upper_port;
+    port_operator_t single_port_operator;
+    uint16_t single_port_value;
+    uint16_t range_lower_port;
+    uint16_t range_upper_port;
 };
 
 
@@ -154,7 +153,8 @@ struct onm_tc_source_port {
     uint16_t upper_port;
     uint16_t port;
     port_operator_t port_operator;
-    sr_change_oper_t port_change_op;
+    sr_change_oper_t single_port_change_op;
+    sr_change_oper_t range_port_change_op;
 };
 
 struct onm_tc_destination_port {
@@ -162,7 +162,8 @@ struct onm_tc_destination_port {
     uint16_t upper_port;
     uint16_t port;
     port_operator_t port_operator;
-    sr_change_oper_t port_change_op;
+    sr_change_oper_t single_port_change_op;
+    sr_change_oper_t range_port_change_op;
 };
 
 struct onm_tc_tcp {

@@ -10,32 +10,36 @@
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port = running_ace->ace.matches.PROTO.PORT_FIELD.upper_port;\
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator = running_ace->ace.matches.PROTO.PORT_FIELD.port_operator; \
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port = running_ace->ace.matches.PROTO.PORT_FIELD.port; \
-                (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_change_op = DEFAULT_CHANGE_OPERATION; \
+                (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.single_port_change_op = DEFAULT_CHANGE_OPERATION; \
+                (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.range_port_change_op = DEFAULT_CHANGE_OPERATION; \
                 (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
                 SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+                printf("set port info to 0\n"); \
             } \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port != 0) { \
             SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
-            (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port = running_ace->ace.matches.PROTO.PORT_FIELD.lower_port;\
+            (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port = running_ace->ace.matches.PROTO.PORT_FIELD.lower_port; \
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
+            printf("set lower port to %d, upper port value %d\n",running_ace->ace.matches.PROTO.PORT_FIELD.lower_port,(ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port); \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port != 0) { \
             SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
             (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port = running_ace->ace.matches.PROTO.PORT_FIELD.upper_port;\
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
+            printf("set upper port to %d, lower port value %d\n",running_ace->ace.matches.PROTO.PORT_FIELD.upper_port,(ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port); \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port != 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator == PORT_NOOP) { \
             SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
             (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator = running_ace->ace.matches.PROTO.PORT_FIELD.port_operator; \
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
+            printf("set port operator to %d, port number %d\n",running_ace->ace.matches.PROTO.PORT_FIELD.port_operator,(ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port); \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator != PORT_NOOP && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port == 0) { \
-            if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator != PORT_RANGE) { \
-                SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
-                (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port = running_ace->ace.matches.PROTO.PORT_FIELD.port;\
-                (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
-            } \
+            SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+            (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port = running_ace->ace.matches.PROTO.PORT_FIELD.port;\
+            (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
+            printf("set port number to %d, operator number %d\n",running_ace->ace.matches.PROTO.PORT_FIELD.port,(ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator); \
         } \
     } while (0)
 

@@ -27,10 +27,12 @@ int onm_tc_ace_hash_element_set_match_ipv6_dst_network(onm_tc_ace_element_t** el
 int onm_tc_ace_hash_element_set_match_icmp_code(onm_tc_ace_element_t** el, const uint8_t icmp_code, sr_change_oper_t change_operation);
 int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, const char* action, sr_change_oper_t change_operation);
 int onm_tc_ace_hash_element_set_action_logging(onm_tc_ace_element_t** el, const char* action, sr_change_oper_t change_operation);
-int onm_tc_ace_hash_element_set_match_port(onm_tc_ace_element_t** el,onm_tc_port_attributes_t * port_attr, sr_change_oper_t change_operation);
 int onm_tc_ace_hash_element_set_match_port_operator(onm_tc_ace_element_t** el, onm_tc_port_attributes_t* port_attr, sr_change_oper_t change_operation);
-
+int set_ace_port_single(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* port_attr, sr_change_oper_t change_operation);
+int set_ace_port_range_lower_port(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* port_attr, sr_change_oper_t change_operation);
+int set_ace_port_range_upper_port(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* port_attr, sr_change_oper_t change_operation);
+int set_ace_port_range(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* port_attr, sr_change_oper_t change_operation);
 port_operator_t onm_tc_ace_port_oper_a2i(const char * oper_str);
 
 void onm_tc_ace_hash_print_debug(const onm_tc_ace_element_t* ace_element);
-int port_str_to_port_attr(onm_tc_port_attributes_t *port_attr, const char * lower_port_str, const char * upper_port_str, const port_operator_t port_op,onm_tc_port_attr_direction_t direction, onm_tc_port_attr_proto_t proto);
+int port_str_to_port_attr (onm_tc_port_attributes_t *port_attr, const char * lower_str, const char * upper_str, const char * single_port_value_str, const port_operator_t single_port_opr,onm_tc_port_attr_direction_t direction, onm_tc_port_attr_proto_t proto);
