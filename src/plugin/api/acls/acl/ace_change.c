@@ -185,6 +185,7 @@ int apply_ace_created_operation(onm_tc_ace_element_t * ace, unsigned int acl_id)
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Created' no ACE elements found, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 		return -1;
 	}
+	SRPLG_LOG_INF(PLUGIN_NAME, "Apply change operation 'ACE Created' ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 	ret = tcnl_filter_modify_ace(acl_id,created_ace,RTM_DELTFILTER,0);
 	onm_tc_ace_element_free(&created_ace);
 	return ret;
@@ -192,33 +193,32 @@ int apply_ace_created_operation(onm_tc_ace_element_t * ace, unsigned int acl_id)
 
 int apply_ace_deleted_operation(onm_tc_ace_element_t * ace, unsigned int acl_id){
 	int ret = 0;
-	int change_op_set[] = {SR_OP_MODIFIED, DEFAULT_CHANGE_OPERATION, SR_OP_DELETED};
-	size_t set_size = sizeof(change_op_set) / sizeof(change_op_set[0]);
-	onm_tc_ace_element_t* deleted_ace = extract_ace_elements_with_change_ops(ace,change_op_set,set_size);
-	if (deleted_ace == NULL){
+	if (ace == NULL) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Deleted' no ACE elements found, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 		return -1;
 	}
-	ret = tcnl_filter_modify_ace(acl_id,deleted_ace,RTM_DELTFILTER,0);
-	onm_tc_ace_element_free(&deleted_ace);
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Apply change operation 'ACE Deleted' ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+	ret = tcnl_filter_modify_ace(acl_id,ace,RTM_DELTFILTER,0);
 	return ret;
 }
 
 int apply_ace_modified_operation(onm_tc_ace_element_t * ace, unsigned int acl_id){
 	int ret = 0;
-	// delete existing ace tc config
-	ret = tcnl_filter_modify_ace(acl_id,ace,RTM_DELTFILTER,0);
-
 	// create modified ace
-	int created_op_set[] = {SR_OP_MODIFIED, DEFAULT_CHANGE_OPERATION, SR_OP_CREATED};
-	int set_size = sizeof(created_op_set) / sizeof(created_op_set[0]);
-	onm_tc_ace_element_t* created_ace = extract_ace_elements_with_change_ops(ace,created_op_set,set_size);
-	if (created_ace == NULL){
+	int modified_op_set[] = {SR_OP_MODIFIED, DEFAULT_CHANGE_OPERATION, SR_OP_CREATED};
+	int set_size = sizeof(modified_op_set) / sizeof(modified_op_set[0]);
+	onm_tc_ace_element_t* modified_ace = extract_ace_elements_with_change_ops(ace,modified_op_set,set_size);
+	if (modified_ace == NULL){
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Modified' no ACE elements found, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 		return -1;
 	}
-	ret = tcnl_filter_modify_ace(acl_id,created_ace,RTM_NEWTFILTER,0);
-	onm_tc_ace_element_free(&created_ace);
+	// delete existing ace tc config
+	ret = apply_ace_deleted_operation(ace,acl_id);
+
+	SRPLG_LOG_INF(PLUGIN_NAME, "Apply change operation 'ACE Modifed' ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+	ret = tcnl_filter_modify_ace(acl_id,modified_ace,RTM_NEWTFILTER,0);
+	onm_tc_ace_element_free(&modified_ace);
 	return ret;
 }
 
@@ -230,10 +230,12 @@ int apply_events_ace_changes(onm_tc_ctx_t * ctx, unsigned int acl_id, onm_tc_ace
 			// handle complete ACE creation
 			SRPLG_LOG_INF(PLUGIN_NAME, "Apply 'ACE Created' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 			ret = apply_ace_created_operation(ace,acl_id);
+			if (ret < 0){
+				return ret;
+			}
 			break;
 		case SR_OP_DELETED:
 			// handle complete ACE delete operation
-			SRPLG_LOG_INF(PLUGIN_NAME, "Apply 'ACE Deleted' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 			ret = apply_ace_deleted_operation(ace,acl_id);
 			if (ret < 0){
 				return ret;
@@ -241,12 +243,10 @@ int apply_events_ace_changes(onm_tc_ctx_t * ctx, unsigned int acl_id, onm_tc_ace
 			break;
 		case DEFAULT_CHANGE_OPERATION: {
 				// handle individual ace elements SR_OP_MODIFIED, SR_OP_CREATED, SR_OP_DELETED
-				SRPLG_LOG_INF(PLUGIN_NAME, "Apply 'ACE Modified' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 				ret = apply_ace_modified_operation(ace,acl_id);
 				if (ret < 0){
 					return ret; 
 				}
-
 			}
 			break;
 	}

@@ -564,8 +564,7 @@ static int process_port_range(struct nlmsghdr *nlh, __u8 ip_proto, __be16 lower_
 }
 
 static int process_port_and_operator
-(struct nlmsghdr *nlh, __u8 ip_proto, __be16 port, int port_key, int port_mask_key, int range_min_key, int range_max_key, int operation) 
-{
+(struct nlmsghdr *nlh, __u8 ip_proto, __be16 port, int port_key, int port_mask_key, int range_min_key, int range_max_key, int operation) {
     addattr8(nlh, MAX_MSG, TCA_FLOWER_KEY_IP_PROTO, ip_proto);
     
     __be16 port_lower, port_upper,port_middle;
@@ -580,7 +579,7 @@ static int process_port_and_operator
                 break;
             }
             else if (port_lower < MIN_PORT_NUMBER){
-                process_port_range(nlh,ip_proto,htons(MIN_PORT_NUMBER),htons(MAX_PORT_NUMBER),TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                process_port_range(nlh,ip_proto,htons(MIN_PORT_NUMBER),htons(MAX_PORT_NUMBER),range_min_key, range_max_key);
                 break;
             }
             else if (port_lower > MAX_PORT_NUMBER)
@@ -589,7 +588,7 @@ static int process_port_and_operator
                 break;
             }
             else {
-                process_port_range(nlh,ip_proto,port_lower,port_upper,TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+                process_port_range(nlh,ip_proto,port_lower,port_upper,range_min_key, range_max_key);
                 break;
             }
             
@@ -655,7 +654,7 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
     // Handle TCP source port
     if (ace->ace.matches.tcp.source_port.port_operator != PORT_NOOP) {
         __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Source Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
                     ace->ace.name,
                     ace->ace.matches.tcp.source_port.port,
                     ace->ace.matches.tcp.source_port.lower_port, 
@@ -672,6 +671,12 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         if (ret) return ret;
     }
     else if (ace->ace.matches.tcp.source_port.lower_port != 0 && ace->ace.matches.tcp.source_port.upper_port !=0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Source Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+                    ace->ace.name,
+                    ace->ace.matches.tcp.source_port.port,
+                    ace->ace.matches.tcp.source_port.lower_port, 
+                    ace->ace.matches.tcp.source_port.upper_port,
+                    ace->ace.matches.tcp.source_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
         ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
@@ -680,7 +685,7 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
 
     // Handle TCP destination port
     if (ace->ace.matches.tcp.destination_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Destination Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.tcp.destination_port.port,
             ace->ace.matches.tcp.destination_port.lower_port, 
@@ -692,6 +697,12 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         if (ret) return ret;
     } 
     else if (ace->ace.matches.tcp.destination_port.lower_port != 0 && ace->ace.matches.tcp.destination_port.upper_port != 0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Destination Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+            ace->ace.name,
+            ace->ace.matches.tcp.destination_port.port,
+            ace->ace.matches.tcp.destination_port.lower_port, 
+            ace->ace.matches.tcp.destination_port.upper_port,
+            ace->ace.matches.tcp.destination_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
         ret = process_port_range(nlh, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
@@ -717,6 +728,12 @@ static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         if (ret) return ret;
     }
     else if (ace->ace.matches.udp.source_port.lower_port != 0 && ace->ace.matches.udp.source_port.upper_port !=0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        ace->ace.name,
+        ace->ace.matches.udp.source_port.port,
+        ace->ace.matches.udp.source_port.lower_port, 
+        ace->ace.matches.udp.source_port.upper_port,
+        ace->ace.matches.udp.source_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
         ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
@@ -736,6 +753,12 @@ static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         ret = process_port_and_operator(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.udp.destination_port.port_operator);
         if (ret) return ret;
     } else if (ace->ace.matches.udp.destination_port.lower_port != 0 && ace->ace.matches.udp.destination_port.upper_port != 0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+            ace->ace.name,
+            ace->ace.matches.udp.destination_port.port,
+            ace->ace.matches.udp.destination_port.lower_port, 
+            ace->ace.matches.udp.destination_port.upper_port,
+            ace->ace.matches.udp.destination_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
         ret = process_port_range(nlh, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
