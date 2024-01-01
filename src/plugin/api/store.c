@@ -39,7 +39,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
         if (i->interface.ingress.acl_sets.acl_set){
             
-            SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: applying acls for interface %s",interface_id);
+            SRPLG_LOG_INF(PLUGIN_NAME, "Applying acls for interface %s",interface_id);
             
             int if_idx = rtnl_link_get_ifindex(link);
             LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
@@ -50,8 +50,9 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
                 //  Add interface qdisc with shared tc block for the acl name
                 // TODO use safe sysrepo call
+                SRPLG_LOG_INF(PLUGIN_NAME, "Add ACL name %s ingress qdisc to interface %s",ingress_acl_name,interface_id);
                 tcnl_qdisc_modify_ingress_shared_block(nl_ctx,if_idx,acl_id);
-                SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s is set to interface %s ingress",ingress_acl_name,interface_id);
+                
 
                 // check if shared block already exists:
                 /*if (tcnl_tc_block_exists(nl_ctx,acl_id) == true)
@@ -65,7 +66,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
                     // if no, get ACL content and apply it on netlink
                     //SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
                 error = tcnl_filter_modify_acl(acl_id,ctx->running_acls_list,RTM_NEWTFILTER,0);
-                if (error){
+                if (error < 0){
                     goto out;
                 }
                     

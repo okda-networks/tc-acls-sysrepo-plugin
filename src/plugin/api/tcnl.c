@@ -946,7 +946,7 @@ int tcnl_filter_modify_acl(unsigned int acl_id, onm_tc_acl_hash_element_t * acls
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
             {
                 ret = tcnl_filter_modify_ace(acl_id,ace_iter,request_type,flags);
-                if (ret){
+                if (ret < 0){
                     return ret;
                 }
             }
@@ -1041,7 +1041,10 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
 
     addattr_l(&req.nlh,sizeof(req),TCA_KIND,"flower",strlen("flower")+1);
 
-    if (request_type != RTM_DELTFILTER){
+    if (request_type == RTM_DELTFILTER){
+        req.tcm.tcm_info = TC_H_MAKE(prio<<16, 0);
+    }
+    else {
         ret = nl_put_flower_options(&req.nlh,ace_element);
     }
     // Create a socket
@@ -1080,7 +1083,7 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
     if (ret == -1) {
         perror("Error sending Netlink message");
     }
-    printf("return of send %d\n",ret);
+    //printf("return of send %d\n",ret);
 
 
     // Receive the response
@@ -1096,18 +1099,18 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
     status = recvmsg(sockfd, &msg_recv, MSG_DONTWAIT);
     if (status < 0) {
         //printf("Error receiving Netlink message");
-        printf("rcv error %d\n", status);
+        //printf("rcv error %d\n", status);
     }
 
     // Process and print the response
     nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
     // Extract and process the response based on your application needs
-    print_netlink_message(nlh_recv);
+    //print_netlink_message(nlh_recv);
 
     if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
         struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nlh_recv);
         int error = err->error;
-        printf("[TCNL][NLRCV] error %d: %s\n",error, nl_geterror(error));
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][NLRCV] error %d: %s\n",error, nl_geterror(error));
         // Clean up
         free(iov_recv.iov_base);
         close(sockfd);

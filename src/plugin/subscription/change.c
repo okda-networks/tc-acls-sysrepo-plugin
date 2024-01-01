@@ -146,7 +146,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 		// apply change acl list changes.
 		rc = apply_events_acls_changes(ctx);
 		if (rc < 0){
-			return rc;
+			goto error_out;
 		}
 		// handle ace moved events
 		//SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s//.", xpath), error_out);
