@@ -10,6 +10,8 @@ int acls_list_add_ace_element(onm_tc_acl_hash_element_t** acl_hash, const char* 
 int events_acls_hash_add_ace_element(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 
 onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list_by_name(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, const char* ace_name);
+onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list_by_priority(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, uint16_t ace_priority);
+
 int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace, const struct lyd_node * node,sr_change_oper_t change_operation);
 int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx);
 

@@ -437,6 +437,29 @@ void onm_tc_ace_free (onm_tc_ace_element_t** ace)
     }
 }
 
+onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list_by_priority(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, uint16_t ace_priority) 
+{
+    if (acl_name == NULL || ace_priority == 0 || acl_hash == NULL) {
+        return NULL;
+    }
+
+    onm_tc_acl_hash_element_t* current_acl_element = onm_tc_acl_hash_get_element(&acl_hash,acl_name);
+    if (current_acl_element)
+    {
+        // Search for the ACE in this ACL
+        onm_tc_ace_element_t* current_ace_element;
+        for (current_ace_element = current_acl_element->acl.aces.ace; current_ace_element != NULL; current_ace_element = current_ace_element->next) {
+            if (current_ace_element->ace.priority == ace_priority) {
+                return current_ace_element;
+            }
+        }
+        return NULL; // ace not found
+    }
+    else {
+        return NULL;// acl not found
+    }   
+}
+
 onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list_by_name(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, const char* ace_name) 
 {
     if (acl_name == NULL || ace_name == NULL || acl_hash == NULL) {
@@ -589,24 +612,34 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                             // get the reordered ace
                             onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                             if (!event_ace){
-                                // this means that the ace was not in the elements copied from running list, meaning the ace is SR_OP_CREATED not moved
+                                // this means that the ace is created SR_OP_CREATED not moved
                                 ensure_ace_exists_in_events_acls_list(ctx,change_ctx,acl_name_buffer,ace_name_buffer);
                                 onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                                 // change the name change op to SR_OP_CREATED
                                 onm_tc_ace_hash_element_set_ace_name(&event_ace,ace_name_buffer,SR_OP_CREATED);
-                            }
-                            // delete the ace from previous order
-                            LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
-                            // reorder the ace
-                            if (strcmp(prev_list_name,"")==0){
-                                // ace is ordered first in the list
-                                LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                if (strcmp(prev_list_name,"")==0){
+                                    // ace is ordered first in the list
+                                    LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                }
+                                else {
+                                    // set ace user order
+                                    event_ace->next = ace_iter->next;
+                                    ace_iter->next = event_ace; 
+                                }  
                             }
                             else {
-                                // ace order is set according to the change previous_list name
-                                event_ace->next = ace_iter->next;
-                                ace_iter->next = event_ace; 
-                            }  
+                                LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                if (strcmp(prev_list_name,"")==0){
+                                    // ace is ordered first in the list
+                                    LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                }
+                                else {
+                                    // set ace user order
+                                    event_ace->next = ace_iter->next;
+                                    ace_iter->next = event_ace;
+                                }
+                            }
                         }
                     }
                 }
