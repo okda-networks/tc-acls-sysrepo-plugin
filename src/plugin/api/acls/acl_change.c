@@ -45,11 +45,12 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 				}
 				acl_name = iter->acl.name;
 				unsigned int acl_id = iter->acl.acl_id;
+				const char * acl_name = iter->acl.name;
 				// iterate over aces
 				LL_FOREACH(iter->acl.aces.ace, ace_iter)
 				{
 					SRPLG_LOG_INF(PLUGIN_NAME, "Apply ace event changes of ace %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
-					ret = apply_events_ace_changes(ctx,acl_id,ace_iter);
+					ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
 					if (ret < 0){
 						printf("return of apply_events_ace_changes %d\n",ret);
 						return ret;

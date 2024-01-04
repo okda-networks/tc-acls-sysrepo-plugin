@@ -206,13 +206,12 @@ out:
 	return error;
 }
 
-int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
-{
+int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 	onm_tc_acl_hash_element_t * events_acls = ctx->events_acls_list;
 	onm_tc_acl_hash_element_t * running_acls = ctx->running_acls_list;
 
     if (events_acls == NULL){
-        return 0;
+        return -1;
     }
     onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
@@ -241,11 +240,11 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 			if (ace_iter->ace.name_change_op == SR_OP_CREATED){
 				continue;
 			}
-			onm_tc_ace_element_t * running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,iter->acl.name,ace_iter->ace.name);
+			onm_tc_ace_element_t * running_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->running_acls_list,iter->acl.name,ace_iter->ace.name);
 			
 			// ace name not found in running acls list; should never meet this condition since skipping new aces validation
 			if (!running_ace){
-				printf("new ace, SHOULD NEVER MEET THIS condition since skipping new aces validation.\n");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Validation failed, modified ACE %s not found in ACL Name %s",ace_iter->ace.name, iter->acl.name);
                 return -1;
 			}
             // ensure to set ace priority to match the running ace priority (SR_OP_MOVED will be handeld in a different function)
@@ -326,7 +325,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx)
 				ace_iter->ace.actions.forwarding_change_op = DEFAULT_CHANGE_OPERATION;
             }
 		}
-	}
+    }
 }
 
 int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct lyd_node* acl_list_node)
@@ -401,6 +400,7 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                     ace_prio_counter +=10;
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace_element, lyd_get_value(ace_name_node),DEFAULT_CHANGE_OPERATION), error_out);
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_priority(&new_ace_element, ace_prio_counter , DEFAULT_CHANGE_OPERATION), error_out);
+                    SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_handle(&new_ace_element, DEFAULT_TCM_HANDLE), error_out);
                     ace_name_node = NULL;
                 }
 
@@ -714,6 +714,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s (change operation %d)", ace_iter->ace.name,ace_iter->ace.name_change_op);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Priority = %d", ace_iter->ace.priority);
+            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Handle = %d", ace_iter->ace.handle);
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.eth.source_address){
                 SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s (change operation %d)",

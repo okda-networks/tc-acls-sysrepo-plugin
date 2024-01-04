@@ -11,6 +11,8 @@
 #include "plugin/api/tcnl.h"
 
 #include "plugin/data/acls/acl/linked_list.h"
+#include <sysrepo/xpath.h>
+
 //For testing
 #include<stdio.h>
 
@@ -36,6 +38,15 @@ int onm_tc_ace_hash_element_set_ace_priority(onm_tc_ace_element_t** el, const un
     (*el)->ace.priority = priority;
     (*el)->ace.prio_change_op = change_operation;
 
+    return 0;
+}
+
+int onm_tc_ace_hash_element_set_ace_handle(onm_tc_ace_element_t** el, const unsigned int handle)
+{
+    if (handle == 0){
+        return -1;
+    }
+    (*el)->ace.handle = handle;
     return 0;
 }
 
@@ -426,7 +437,7 @@ void onm_tc_ace_free (onm_tc_ace_element_t** ace)
     }
 }
 
-onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, const char* ace_name) 
+onm_tc_ace_element_t* onm_tc_get_ace_in_acl_list_by_name(onm_tc_acl_hash_element_t* acl_hash, const char* acl_name, const char* ace_name) 
 {
     if (acl_name == NULL || ace_name == NULL || acl_hash == NULL) {
         return NULL;
@@ -473,6 +484,186 @@ int acls_list_add_ace_element(onm_tc_acl_hash_element_t** acl_hash, const char* 
     }
 }
 
+char* extract_prev_list_name(const char *prev_list) {
+    if (prev_list == NULL){
+        return NULL;
+    }
+    char *value = NULL;
+    if (strcmp(prev_list, "") == 0) {
+        char *value = (char*)malloc(1);
+        if (value != NULL) {
+            value[0] = '\0';
+        }
+        return value;
+    }
+    
+    char *start = strchr(prev_list, '\''); // Find the first single quote
+    if (start != NULL) {
+        start++; // Move past the quote to the start of the value
+        const char *end = strchr(start, '\''); // Find the second single quote
+        if (end != NULL) {
+            int length = end - start;
+            value = (char*)malloc(length + 1); 
+            if (value != NULL) {
+                strncpy(value, start, length);
+                value[length] = '\0';
+            }
+        }
+    }
+    return value;
+}
+
+int ensure_ace_exists_in_events_acls_list(void *priv, const srpc_change_ctx_t *change_ctx,const char * acl_name, const char * ace_name){
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+    onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name);
+    onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name,ace_name);
+    int error = 0;
+    // make sure acl exits in events acls list
+    if (!updated_acl){
+        // add new acl data
+        SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACL name %s is not present in events acl hash, creating new ACL element.",acl_name);
+        updated_acl = onm_tc_acl_hash_element_new();
+        error = onm_tc_acl_hash_element_set_name(&updated_acl, acl_name,DEFAULT_CHANGE_OPERATION);
+        
+        // add new updated_acl to change acls list
+        error = onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,updated_acl);
+    }
+
+    // make sure ace exists
+    if (!updated_ace){
+        SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s is not present in events acls hash, creating new ACE element.",ace_name);
+        updated_ace = onm_tc_ace_hash_element_new();
+        SRPLG_LOG_INF(PLUGIN_NAME, "Change event didn't happen on ACE name %s, setting ACE name change operation to default.",ace_name);
+        error = onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name,DEFAULT_CHANGE_OPERATION);
+        error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name,updated_ace);
+    }
+}
+
+int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx){
+    int error = 0;
+    const struct lyd_node * node = change_ctx->node;
+    const char *node_name = LYD_NAME(node);
+	const char *node_value = lyd_get_value(node);
+    char *prev_list_name = extract_prev_list_name(change_ctx->previous_list);
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+    char change_path[PATH_MAX] = {0};
+    char acl_name_buffer[100] = {0};
+    char ace_name_buffer[100] = {0};
+    onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
+    onm_tc_ace_element_t* ace_iter = NULL;
+    
+    if (strcmp(node_name,"ace")==0){
+        error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
+        printf("\n\nevent operation %d,previous list %s, on change path %s\n",change_ctx->operation,prev_list_name,change_path);
+        srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer));
+        srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer));
+        
+        if (change_ctx->operation == SR_OP_CREATED || change_ctx->operation == SR_OP_MOVED){
+            // copy all running acls list aces to events list.
+            // iterate over running acls
+            HASH_ITER(hh, ctx->running_acls_list, iter, tmp)
+            {
+                // if the running acl name matches change event acl name
+                if (strcmp(iter->acl.name,acl_name_buffer)==0){
+                    LL_FOREACH(iter->acl.aces.ace, ace_iter){
+                        // check if ace name is already added to events list
+                        onm_tc_ace_element_t* events_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_iter->ace.name);
+                        if (!events_ace){
+                            // add ace to events list.
+                            ensure_ace_exists_in_events_acls_list(ctx,change_ctx,acl_name_buffer,ace_iter->ace.name);
+                        }
+                    }
+                }
+                
+            }
+            // done copy
+
+            // iterate over events acls list to order them according to user order
+            HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
+            {
+                // if the events acl name matches with change event acl name
+                if (strcmp(iter->acl.name,acl_name_buffer)==0){
+                    LL_FOREACH(iter->acl.aces.ace, ace_iter){
+                        printf("previous list name %s iter ace name %s\n",prev_list_name,ace_iter->ace.name);
+                        // if the ace name is the ace of which the event have placed re-ordered ace after
+                        if (strcmp(ace_iter->ace.name,prev_list_name)==0 || strcmp(prev_list_name,"")==0){                            
+                            // get the reordered ace
+                            onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+                            if (!event_ace){
+                                // this means that the ace is created SR_OP_CREATED not moved
+                                ensure_ace_exists_in_events_acls_list(ctx,change_ctx,acl_name_buffer,ace_name_buffer);
+                                onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+                                // change the name change op to SR_OP_CREATED
+                                onm_tc_ace_hash_element_set_ace_name(&event_ace,ace_name_buffer,SR_OP_CREATED);
+                                LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                if (strcmp(prev_list_name,"")==0){
+                                    // ace is ordered first in the list
+                                    LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                }
+                                else {
+                                    // set ace user order
+                                    event_ace->next = ace_iter->next;
+                                    ace_iter->next = event_ace; 
+                                }  
+                            }
+                            else {
+                                LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                if (strcmp(prev_list_name,"")==0){
+                                    // ace is ordered first in the list
+                                    LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                }
+                                else {
+                                    // set ace user order
+                                    event_ace->next = ace_iter->next;
+                                    ace_iter->next = event_ace;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // iterate again over events acls list to set new order priority
+            uint16_t ace_prio_counter = 0;
+            HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
+            {
+                if (strcmp(iter->acl.name,acl_name_buffer)==0){
+                    LL_FOREACH(iter->acl.aces.ace, ace_iter){
+                        ace_prio_counter +=10;
+                        onm_tc_ace_hash_element_set_ace_priority(&ace_iter,ace_prio_counter,SR_OP_MOVED);
+                        onm_tc_ace_hash_element_set_ace_handle(&ace_iter,DEFAULT_TCM_HANDLE);
+                    }
+                }
+            }            
+
+        }
+        return 0;
+
+    }
+}
+
+int remove_unchanged_priority_aces_from_events_list(void *priv){
+
+    onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
+    onm_tc_ace_element_t* ace_iter = NULL;
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+    // iterate one last time to delete unchanged priority aces
+    HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
+    {
+        LL_FOREACH(iter->acl.aces.ace, ace_iter){
+            onm_tc_ace_element_t* running_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->running_acls_list,iter->acl.name,ace_iter->ace.name);
+            if (running_ace){
+                if (running_ace->ace.priority == ace_iter->ace.priority){
+                    // ace order didn't change
+                    // delete the ace from change list
+
+                    LL_DELETE(ctx->events_acls_list->acl.aces.ace,ace_iter);
+                }
+            }
+        }
+    }
+}
+
 int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
     int error = 0;
@@ -484,15 +675,14 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
     char acl_name_buffer[100] = {0};
     char ace_name_buffer[100] = {0};
 
-    if (node_value)
-    {
+    if (node_value){
         error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer)), error_out);
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer)), error_out);
 
         onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name_buffer);
-        onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
-        onm_tc_ace_element_t* running_ace = onm_tc_get_ace_in_acl_list(ctx->running_acls_list,acl_name_buffer,ace_name_buffer);
+        onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+        onm_tc_ace_element_t* running_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->running_acls_list,acl_name_buffer,ace_name_buffer);
         // make sure acl exits in events acls list
         if (!updated_acl)
         {
@@ -523,10 +713,12 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
             if (running_ace){
                 SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s has a corresponding ACE in running acls list, setting ACE priority to %d.",ace_name_buffer,running_ace->ace.priority);
                 onm_tc_ace_hash_element_set_ace_priority(&updated_ace,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
+                onm_tc_ace_hash_element_set_ace_handle(&updated_ace,running_ace->ace.handle);
             }
             else {
                 SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s has no corresponding ACE in running acls list, setting ACE priority to 0.",ace_name_buffer);
                 onm_tc_ace_hash_element_set_ace_priority(&updated_ace,0,DEFAULT_CHANGE_OPERATION);
+                onm_tc_ace_hash_element_set_ace_handle(&updated_ace,DEFAULT_TCM_HANDLE);
             }
             
             error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name_buffer,updated_ace);
@@ -767,6 +959,7 @@ void onm_tc_ace_hash_print_debug(const onm_tc_ace_element_t* ace_iter)
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s (change operation %d)", ace_iter->ace.name,ace_iter->ace.name_change_op);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Priority = %d", ace_iter->ace.priority);
+        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Handle = %d", ace_iter->ace.handle);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     + Matches:");
         if(ace_iter->ace.matches.eth.source_address){
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s (change operation %d, set flag %d)",

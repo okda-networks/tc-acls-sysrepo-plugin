@@ -654,7 +654,7 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
     // Handle TCP source port
     if (ace->ace.matches.tcp.source_port.port_operator != PORT_NOOP) {
         __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Source Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Source Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
                     ace->ace.name,
                     ace->ace.matches.tcp.source_port.port,
                     ace->ace.matches.tcp.source_port.lower_port, 
@@ -671,7 +671,7 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         if (ret) return ret;
     }
     else if (ace->ace.matches.tcp.source_port.lower_port != 0 && ace->ace.matches.tcp.source_port.upper_port !=0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Source Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Source Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
                     ace->ace.name,
                     ace->ace.matches.tcp.source_port.port,
                     ace->ace.matches.tcp.source_port.lower_port, 
@@ -685,7 +685,7 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
 
     // Handle TCP destination port
     if (ace->ace.matches.tcp.destination_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Destination Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Destination Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.tcp.destination_port.port,
             ace->ace.matches.tcp.destination_port.lower_port, 
@@ -697,7 +697,7 @@ static int add_tcp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         if (ret) return ret;
     } 
     else if (ace->ace.matches.tcp.destination_port.lower_port != 0 && ace->ace.matches.tcp.destination_port.upper_port != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match TCP Destination Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Destination Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.tcp.destination_port.port,
             ace->ace.matches.tcp.destination_port.lower_port, 
@@ -716,7 +716,7 @@ static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
     int ret = 0;
     // Handle UDP source port
     if (ace->ace.matches.udp.source_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
         ace->ace.name,
         ace->ace.matches.udp.source_port.port,
         ace->ace.matches.udp.source_port.lower_port, 
@@ -728,7 +728,7 @@ static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         if (ret) return ret;
     }
     else if (ace->ace.matches.udp.source_port.lower_port != 0 && ace->ace.matches.udp.source_port.upper_port !=0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
         ace->ace.name,
         ace->ace.matches.udp.source_port.port,
         ace->ace.matches.udp.source_port.lower_port, 
@@ -742,7 +742,7 @@ static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
 
     // Handle UDP destination port
     if (ace->ace.matches.udp.destination_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.udp.destination_port.port,
             ace->ace.matches.udp.destination_port.lower_port, 
@@ -753,7 +753,7 @@ static int add_udp_ports(struct nlmsghdr *nlh, onm_tc_ace_element_t *ace) {
         ret = process_port_and_operator(nlh, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.udp.destination_port.port_operator);
         if (ret) return ret;
     } else if (ace->ace.matches.udp.destination_port.lower_port != 0 && ace->ace.matches.udp.destination_port.upper_port != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.udp.destination_port.port,
             ace->ace.matches.udp.destination_port.lower_port, 
@@ -778,7 +778,7 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     tail = (struct rtattr *) (((void *) nlh) + NLMSG_ALIGN(nlh->nlmsg_len));
     ret = addattr_l(nlh, MAX_MSG, TCA_OPTIONS, NULL, 0);
     if (ret){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set TCA_OPTIONS",ace->ace.name);
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to set TCA_OPTIONS",ace->ace.name);
             return ret;
         }
 
@@ -804,30 +804,30 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     tcnl_parse_action(nlh,ace);
 
     if(ace->ace.matches.eth.source_address){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source mac address = %s",ace->ace.name, ace->ace.matches.eth.source_address);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Source mac address = %s",ace->ace.name, ace->ace.matches.eth.source_address);
         char addr[ETH_ALEN];
         ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.source_address);
         if (ret < 0){
-           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.source_address);
+           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.source_address);
            return ret;
         } 
         else{
             ret = addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_SRC,addr,sizeof(addr));
             if(ret){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to source eth mac address attributes = %s",ace->ace.name, ace->ace.matches.eth.source_address);
+                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to source eth mac address attributes = %s",ace->ace.name, ace->ace.matches.eth.source_address);
                 return ret;
             }
             if (ace->ace.matches.eth.source_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source mac address mask = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Source mac address mask = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                 ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_address_mask);
                 if(ret < 0){
-                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                     return ret;
                 }
                 else {
                     ret = addattr_l(nlh, MAX_MSG, TCA_FLOWER_KEY_ETH_SRC_MASK, addr, sizeof(addr));
                     if(ret){
-                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to source eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to source eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                         return ret;
                     }
                 }
@@ -836,11 +836,11 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
     }
 
     if(ace->ace.matches.eth.destination_address){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination mac address = %s",ace->ace.name, ace->ace.matches.eth.destination_address);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Destination mac address = %s",ace->ace.name, ace->ace.matches.eth.destination_address);
         char addr[ETH_ALEN];
         ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.destination_address);
         if (ret < 0){
-           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.destination_address); 
+           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Invalid MAC address format = %s",ace->ace.name, ace->ace.matches.eth.destination_address); 
            return ret;
         }
         else{
@@ -850,16 +850,16 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
                 return ret;
             }
             if (ace->ace.matches.eth.destination_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination mac address mask = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Destination mac address mask = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
                 ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.destination_address_mask);
                 if( ret < 0){
-                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Invalid MAC Address Mask format = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
                     return ret;
                 }
                 else {
                     ret = addattr_l(nlh,MAX_MSG,TCA_FLOWER_KEY_ETH_DST_MASK,addr,sizeof(addr));
                     if(ret){
-                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to destination eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
+                        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to destination eth mask attributes = %s",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
                         return ret;
                     }
                 }
@@ -867,7 +867,7 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
         }
     }
     if(ace->ace.matches.ipv4.source_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_network);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Source IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.source_network);
         ret = flower_parse_ip_addr(ace->ace.matches.ipv4.source_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_SRC,
 						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
@@ -875,13 +875,13 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   TCA_FLOWER_KEY_IPV6_SRC_MASK,
 						   nlh);
         if (ret){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set source IPv4 network = %s, ethertype = %d",
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to set source IPv4 network = %s, ethertype = %d",
             ace->ace.name, ace->ace.matches.ipv4.source_network,eth_type);
             return ret;
         }
     }
     if(ace->ace.matches.ipv4.destination_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.destination_network);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Destination IPv4 Network = %s",ace->ace.name, ace->ace.matches.ipv4.destination_network);
         ret = flower_parse_ip_addr(ace->ace.matches.ipv4.destination_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_DST,
 						   TCA_FLOWER_KEY_IPV4_DST_MASK,
@@ -889,13 +889,13 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   TCA_FLOWER_KEY_IPV6_DST_MASK,
 						   nlh);
         if (ret){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set destination IPv4 network = %s, ethertype = %d",
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to set destination IPv4 network = %s, ethertype = %d",
             ace->ace.name, ace->ace.matches.ipv4.destination_network,eth_type);
             return ret;
         }
     }
     if(ace->ace.matches.ipv6.source_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Source IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.source_network);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Source IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.source_network);
         ret = flower_parse_ip_addr(ace->ace.matches.ipv6.source_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_SRC,
 						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
@@ -903,13 +903,13 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   TCA_FLOWER_KEY_IPV6_SRC_MASK,
 						   nlh);
         if (ret){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set source IPv6 network = %s, ethertype = %d",
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to set source IPv6 network = %s, ethertype = %d",
             ace->ace.name, ace->ace.matches.ipv6.source_network,eth_type);
             return ret;
         }
     }
     if(ace->ace.matches.ipv6.destination_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_network);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_network);
         ret = flower_parse_ip_addr(ace->ace.matches.ipv6.destination_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_DST,
 						   TCA_FLOWER_KEY_IPV4_DST_MASK,
@@ -917,7 +917,7 @@ static int nl_put_flower_options(struct nlmsghdr *nlh,onm_tc_ace_element_t* ace)
 						   TCA_FLOWER_KEY_IPV6_DST_MASK,
 						   nlh);
         if (ret){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s failed to set Destination IPv6 network = %s, ethertype = %d",
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s failed to set Destination IPv6 network = %s, ethertype = %d",
             ace->ace.name, ace->ace.matches.ipv6.destination_network,eth_type);
             return ret;
         }
@@ -982,7 +982,6 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
     __u32 prio, block_index,tcm_handle;
     __u16 proto_id;
     block_index = acl_id;
-    tcm_handle = DEFAULT_TCM_HANDLE;
     
     // set priority and get the appropriate ip protocol version
     prio = ace_element->ace.priority;
@@ -990,7 +989,18 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s ace priority is not set",ace_element->ace.name);
         return -1;
     }
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] apply changes on ACE Name %s ace priority %d",ace_element->ace.name,ace_element->ace.priority);
+
+    // ace handle
+    if (ace_element->ace.handle > 0){
+        //SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] ACE Name %s ace handle is set to %d",ace_element->ace.name,ace_element->ace.handle);
+        tcm_handle = ace_element->ace.handle;
+    }
+    else {
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] ACE Name %s ace handle is not set, using default handle",ace_element->ace.name);
+        tcm_handle = DEFAULT_TCM_HANDLE;
+    }
+    
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL] Apply changes on ACL ID %d ACE Name %s ACE priority %d, ACE handle %d",acl_id,ace_element->ace.name,prio,tcm_handle);
     char *proto_buf = NULL;
     if(ace_element->ace.matches.ipv6._is_set == 1){
         proto_buf = "ipv6";
@@ -1015,6 +1025,7 @@ int tcnl_filter_modify_ace(unsigned int acl_id, onm_tc_ace_element_t * ace_eleme
     req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
     req.tcm.tcm_block_index = block_index;
     req.tcm.tcm_handle = tcm_handle;
+
     // set ip protocol version
     if (proto_buf){
         if (ll_proto_a2n(&proto_id, proto_buf)){

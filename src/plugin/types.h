@@ -215,6 +215,7 @@ struct onm_tc_aces {
 struct onm_tc_ace {
     char * name;
     uint16_t priority;
+    uint16_t handle;
     onm_tc_matches_t matches;
     onm_tc_actions_t actions;
     sr_change_oper_t name_change_op;
