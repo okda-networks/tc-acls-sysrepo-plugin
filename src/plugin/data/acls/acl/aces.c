@@ -184,13 +184,13 @@ int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, con
     if (!action) {
         return -1;
     }
-    if (strcmp(action,"accept") == 0){
+    if (strstr(action,"accept") != NULL){
         (*el)->ace.actions.forwarding = FORWARD_ACCEPT;
     }
-    else if (strcmp(action,"drop") == 0){
+    else if (strstr(action,"drop") != NULL){
         (*el)->ace.actions.forwarding = FORWARD_DROP;
     }
-    else if (strcmp(action,"reject") == 0){
+    else if (strstr(action,"reject") != NULL){
         (*el)->ace.actions.forwarding = FORWARD_REJECT;
     }
     else {
@@ -223,22 +223,23 @@ port_operator_t onm_tc_ace_port_oper_a2i(const char * oper_str)
         return PORT_NOOP;
 
     port_operator_t operation = PORT_NOOP;
-    if (strcmp(oper_str,"eq") == 0)
-    {
-        operation = PORT_EQUAL;
-    }
-    else if (strcmp(oper_str,"lte") == 0)
-    {
-        operation = PORT_LTE;
-    }
-    else if (strcmp(oper_str,"gte") == 0)
-    {
-        operation = PORT_GTE;
-    }
-    else if (strcmp(oper_str,"neq") == 0)
+    if (strstr(oper_str,"neq") != NULL)
     {
         operation = PORT_NOT_EQUAL;
     }
+    else if (strstr(oper_str,"eq") != NULL)
+    {
+        operation = PORT_EQUAL;
+    }
+    else if (strstr(oper_str,"lte") != NULL)
+    {
+        operation = PORT_LTE;
+    }
+    else if (strstr(oper_str,"gte") != NULL)
+    {
+        operation = PORT_GTE;
+    }
+    
     return operation;
 }
 
@@ -975,8 +976,6 @@ out:
 
 void onm_tc_ace_hash_print_debug(const onm_tc_ace_element_t* ace_iter)
 {
-
-
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Name = %s (change operation %d)", ace_iter->ace.name,ace_iter->ace.name_change_op);
         SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|     ACE Priority = %d", ace_iter->ace.priority);

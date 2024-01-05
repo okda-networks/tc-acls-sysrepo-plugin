@@ -173,7 +173,7 @@ int apply_ace_created_operation(onm_tc_ace_element_t * ace, unsigned int acl_id)
 	size_t set_size = sizeof(change_op_set) / sizeof(change_op_set[0]);
 	onm_tc_ace_element_t* created_ace = extract_ace_elements_with_change_ops(ace,change_op_set,set_size);
 	if (created_ace == NULL){
-		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Created' no ACE elements found, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Created', ace element is NULL");
 		return -1;
 	}
 	SRPLG_LOG_INF(PLUGIN_NAME, "Apply change operation 'ACE Created' ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
@@ -186,7 +186,7 @@ int apply_ace_created_operation(onm_tc_ace_element_t * ace, unsigned int acl_id)
 int apply_ace_deleted_operation(onm_tc_ace_element_t * ace, unsigned int acl_id){
 	int ret = 0;
 	if (ace == NULL) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Deleted' no ACE elements found, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Deleted', ace element is NULL");
 		return -1;
 	}
 
@@ -202,7 +202,7 @@ int apply_ace_modified_operation(onm_tc_ace_element_t * ace, onm_tc_ace_element_
 	int set_size = sizeof(modified_op_set) / sizeof(modified_op_set[0]);
 	onm_tc_ace_element_t* modified_ace = extract_ace_elements_with_change_ops(ace,modified_op_set,set_size);
 	if (modified_ace == NULL){
-		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Modified' no ACE elements found, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Change operation 'ACE Modified', ace element is NULL");
 		return -1;
 	}
 	if (running_ace){
@@ -226,7 +226,9 @@ int apply_events_ace_changes(onm_tc_ctx_t * ctx, const char * acl_name, unsigned
 			// handle complete ACE creation
 			SRPLG_LOG_INF(PLUGIN_NAME, "Apply 'ACE Created' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
 			onm_tc_ace_element_t * running_ace = onm_tc_get_ace_in_acl_list_by_priority(ctx->running_acls_list,acl_name,ace->ace.priority);
-			ret = apply_ace_deleted_operation(running_ace,acl_id);
+			if (running_ace){
+				ret = apply_ace_deleted_operation(running_ace,acl_id);
+			}
 			ret = apply_ace_created_operation(ace,acl_id);
 			if (ret < 0){
 				return ret;

@@ -651,6 +651,7 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                 }
                 // set actions data
                 if(action_forwarding_node){
+                    printf("ace action value %s\n",lyd_get_value(action_forwarding_node));
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_forwarding(&new_ace_element, lyd_get_value(action_forwarding_node),DEFAULT_CHANGE_OPERATION), error_out);
                     action_forwarding_node = NULL;
                 }
