@@ -16,7 +16,12 @@
 #include "plugin/api/acls/acl_change.h"
 
 #include "plugin/api/tcnl.h"
+#include "plugin/store.h"
 
+int set_changes_to_running_acls(onm_tc_ctx_t * ctx){
+	onm_tc_acls_list_hash_free(&ctx->running_acls_list);
+	onm_tc_store(ctx,ctx->running_session,false);
+}
 
 int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 	onm_tc_acl_hash_element_t * events_acls = ctx->events_acls_list;

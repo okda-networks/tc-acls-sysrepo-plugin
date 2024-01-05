@@ -3,17 +3,6 @@
 #include "plugin/common.h"
 #include "plugin/data/acls/acl/aces.h"
 
-// to be deleted
-bool ace_reconstruct_needed(onm_tc_ace_element_t* ace){
-	/*if (ace->ace.matches.eth.source_address_mask_change_op == SR_OP_MODIFIED || 
-	ace->ace.matches.eth.destination_address_mask_change_op == SR_OP_MODIFIED) {
-		return true;
-	}
-	else{
-		return false;
-	}*/
-	return true;
-}
 
 bool is_change_op_in_set(int change_op, const int change_op_set[], size_t set_size) {
 	bool result = false;

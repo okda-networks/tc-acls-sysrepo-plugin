@@ -78,7 +78,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	else if (event == SR_EV_DONE)
 	{
 		// error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
-		
+		set_changes_to_running_acls(ctx);
 		// Done with the change, free the change acls list
 		onm_tc_acls_list_hash_free(&ctx->events_acls_list);
 		if (error)

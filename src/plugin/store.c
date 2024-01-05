@@ -10,7 +10,7 @@
 static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *parent_container);
 static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container);
 
-int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
+int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session,bool run_api)
 {
 	int error = 0;
 	sr_data_t *subtree = NULL;
@@ -42,8 +42,10 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-	// apply to netlink through api store function.
-	acls_store_api(ctx);
+	if (run_api){
+		// apply to netlink through api store function.
+		acls_store_api(ctx);
+	}
 	goto out;
 
 error_out:

@@ -536,10 +536,9 @@ char* extract_prev_list_name(const char *prev_list) {
     return value;
 }
 
-int ensure_ace_exists_in_events_acls_list(void *priv, const srpc_change_ctx_t *change_ctx,const char * acl_name, const char * ace_name){
-    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
-    onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(&ctx->events_acls_list,acl_name);
-    onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name,ace_name);
+int ensure_ace_exists_in_acls_list(onm_tc_acl_hash_element_t** acl_hash, const char * acl_name, const char * ace_name){
+    onm_tc_acl_hash_element_t* updated_acl = onm_tc_acl_hash_get_element(acl_hash,acl_name);
+    onm_tc_ace_element_t* updated_ace = onm_tc_get_ace_in_acl_list_by_name((*acl_hash),acl_name,ace_name);
     int error = 0;
     // make sure acl exits in events acls list
     if (!updated_acl){
@@ -549,7 +548,7 @@ int ensure_ace_exists_in_events_acls_list(void *priv, const srpc_change_ctx_t *c
         error = onm_tc_acl_hash_element_set_name(&updated_acl, acl_name,DEFAULT_CHANGE_OPERATION);
         
         // add new updated_acl to change acls list
-        error = onm_tc_acls_hash_add_acl_element(&ctx->events_acls_list,updated_acl);
+        error = onm_tc_acls_hash_add_acl_element(acl_hash,updated_acl);
     }
 
     // make sure ace exists
@@ -558,7 +557,7 @@ int ensure_ace_exists_in_events_acls_list(void *priv, const srpc_change_ctx_t *c
         updated_ace = onm_tc_ace_hash_element_new();
         SRPLG_LOG_INF(PLUGIN_NAME, "Change event didn't happen on ACE name %s, setting ACE name change operation to default.",ace_name);
         error = onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name,DEFAULT_CHANGE_OPERATION);
-        error = acls_list_add_ace_element(&ctx->events_acls_list,acl_name,updated_ace);
+        error = acls_list_add_ace_element(acl_hash,acl_name,updated_ace);
     }
 }
 
@@ -593,7 +592,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                         onm_tc_ace_element_t* events_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_iter->ace.name);
                         if (!events_ace){
                             // add ace to events list.
-                            ensure_ace_exists_in_events_acls_list(ctx,change_ctx,acl_name_buffer,ace_iter->ace.name);
+                            ensure_ace_exists_in_acls_list(&ctx->events_acls_list, acl_name_buffer,ace_iter->ace.name);
                         }
                     }
                 }
@@ -613,7 +612,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                             onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                             if (!event_ace){
                                 // this means that the ace is created SR_OP_CREATED not moved
-                                ensure_ace_exists_in_events_acls_list(ctx,change_ctx,acl_name_buffer,ace_name_buffer);
+                                ensure_ace_exists_in_acls_list(&ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                                 onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                                 // change the name change op to SR_OP_CREATED
                                 onm_tc_ace_hash_element_set_ace_name(&event_ace,ace_name_buffer,SR_OP_CREATED);

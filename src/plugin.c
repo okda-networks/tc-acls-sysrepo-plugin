@@ -173,7 +173,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			SRPLG_LOG_INF(PLUGIN_NAME, "Storing startup datastore data in the system");
 
 			// apply config data from startup DS to netlink tc
-			error = onm_tc_store(ctx, startup_session);
+			error = onm_tc_store(ctx, startup_session,true);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 				goto error_out;
@@ -193,7 +193,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		SRPLG_LOG_INF(PLUGIN_NAME, "Running datastore contains data");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Reconfiguring running datastore data in the system");
 
-		error = onm_tc_store(ctx, running_session);
+		error = onm_tc_store(ctx, running_session,true);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
 			goto error_out;
