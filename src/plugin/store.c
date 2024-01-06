@@ -10,7 +10,7 @@
 static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *parent_container);
 static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container);
 
-int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
+int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session,bool run_api)
 {
 	int error = 0;
 	sr_data_t *subtree = NULL;
@@ -42,8 +42,10 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session)
 		}
 	}
 
-	// apply to netlink through api store function.
-	acls_store_api(ctx);
+	if (run_api){
+		// apply to netlink through api store function.
+		acls_store_api(ctx);
+	}
 	goto out;
 
 error_out:
@@ -87,7 +89,7 @@ static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *par
     // map libyang data to the interfaces hash
     SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_from_ly(&aps_interface_hash, aps_interface_list_node), error_out);
 
-    onm_tc_aps_interface_hash_print_debug(aps_interface_hash);
+    //onm_tc_aps_interface_hash_print_debug(aps_interface_hash);
 
 	ctx->attachment_points_interface_hash_element = aps_interface_hash;
     // check startup data
@@ -118,7 +120,7 @@ static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
     // map libyang data to the acl hash
     SRPC_SAFE_CALL_ERR(error, onm_tc_acls_list_from_ly(&acl_hash, acl_node), error_out);
 
-    onm_tc_acls_list_print_debug(acl_hash);
+    //onm_tc_acls_list_print_debug(acl_hash);
 
     // check startup data
 

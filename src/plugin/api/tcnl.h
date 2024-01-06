@@ -1,8 +1,10 @@
-#include <linux/rtnetlink.h>
 #include "plugin/context.h"
 #include <linux/if_ether.h>
-
-
+#include <netlink/msg.h>
+#include <errno.h>
+#include "plugin/common.h"
+#include "utlist.h"
+#include <linux/tc_act/tc_gact.h>
 
 #define TCA_BUF_MAX	(64*1024)
 #define MAX_MSG 16384 // for tcmsg
@@ -86,7 +88,13 @@ struct nl_request {
 };
 
 
-int tcnl_modify_ingress_qdisc_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, uint32_t tca_block_id);
+int tcnl_qdisc_modify_ingress_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, uint32_t tca_block_id);
 bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx,unsigned int block_index);
-int tcnl_filter_flower_modify(unsigned int acl_id,onm_tc_acl_hash_element_t* acl_hash);
+int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id, onm_tc_ctx_t * ctx, int request_type, unsigned int flags);
+int tcnl_filter_modify(onm_tc_ace_element_t* ace, unsigned int acl_id, onm_tc_ctx_t * ctx,unsigned int request_type, unsigned int flags, bool override_exisitng);
 int ll_proto_a2n(unsigned short *id, const char *buf);
+
+
+
+int tcnl_set_filter_msg(struct nl_msg **msg, int request_type, unsigned int flags, unsigned int acl_id, onm_tc_ace_element_t * ace_element);
+int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear);

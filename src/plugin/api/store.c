@@ -39,7 +39,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
         if (i->interface.ingress.acl_sets.acl_set){
             
-            SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: applying acls for interface %s",interface_id);
+            SRPLG_LOG_INF(PLUGIN_NAME, "Applying acls for interface %s",interface_id);
             
             int if_idx = rtnl_link_get_ifindex(link);
             LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
@@ -50,8 +50,9 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
                 //  Add interface qdisc with shared tc block for the acl name
                 // TODO use safe sysrepo call
-                tcnl_modify_ingress_qdisc_shared_block(nl_ctx,if_idx,acl_id);
-                SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s is set to interface %s ingress",ingress_acl_name,interface_id);
+                SRPLG_LOG_INF(PLUGIN_NAME, "Add ACL name %s ingress qdisc to interface %s",ingress_acl_name,interface_id);
+                tcnl_qdisc_modify_ingress_shared_block(nl_ctx,if_idx,acl_id);
+                
 
                 // check if shared block already exists:
                 /*if (tcnl_tc_block_exists(nl_ctx,acl_id) == true)
@@ -63,8 +64,12 @@ int acls_store_api(onm_tc_ctx_t *ctx)
                 else
                 {*/
                     // if no, get ACL content and apply it on netlink
-                    SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
-                    tcnl_filter_flower_modify(acl_id,ctx->running_acls_list);
+                    //SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
+                error = tcnl_block_modify(ctx->running_acls_list, acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+                
+                if (error < 0){
+                    goto out;
+                }
                     
                 //}
                 
@@ -89,7 +94,7 @@ out:
     // dealloc nl_ctx data
 
     if (nl_ctx->socket != NULL) {
-        nl_socket_free(nl_ctx->socket);
+        //nl_socket_free(nl_ctx->socket);
     }
 
     if (nl_ctx->link_cache != NULL) {
@@ -97,8 +102,5 @@ out:
     }
 
     // address and neighbor caches should be freed by their functions (_load_address and _load_neighbor)
-
-    return error;
-
     return error;
 }
