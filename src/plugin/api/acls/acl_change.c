@@ -18,7 +18,7 @@
 #include "plugin/api/tcnl.h"
 #include "plugin/store.h"
 
-int set_changes_to_running_acls(onm_tc_ctx_t * ctx){
+int reload_running_acls_list(onm_tc_ctx_t * ctx){
 	onm_tc_acls_list_hash_free(&ctx->running_acls_list);
 	onm_tc_store(ctx,ctx->running_session,false);
 }
@@ -44,7 +44,7 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 				break;
 			case DEFAULT_CHANGE_OPERATION:
 				// handle ACEs change operations.
-				if (iter->acl.type_change_op != SR_OPER_DEFAULT){
+				if (iter->acl.type_change_op != DEFAULT_CHANGE_OPERATION){
 					// handle acl type change event.
 					// ignored for now as we currently don't look at acl type in tcnl
 				}
@@ -57,7 +57,7 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 					SRPLG_LOG_INF(PLUGIN_NAME, "Apply ace event changes of ace %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
 					ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
 					if (ret < 0){
-						printf("return of apply_events_ace_changes %d\n",ret);
+						SRPLG_LOG_ERR(PLUGIN_NAME, "Apply ace event changes failed");
 						return ret;
 					}
 				}

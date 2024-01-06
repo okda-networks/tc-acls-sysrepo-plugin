@@ -581,7 +581,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
         srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer));
         srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer));
         
-        if (change_ctx->operation == SR_OP_CREATED || change_ctx->operation == SR_OP_MOVED){
+        if (change_ctx->operation == SR_OP_CREATED || change_ctx->operation == SR_OP_MOVED || change_ctx->operation == SR_OP_DELETED){
             // copy all running acls list aces to events list.
             // iterate over running acls
             HASH_ITER(hh, ctx->running_acls_list, iter, tmp)
@@ -608,36 +608,38 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                     LL_FOREACH(iter->acl.aces.ace, ace_iter){
                         printf("previous list name %s iter ace name %s\n",prev_list_name,ace_iter->ace.name);
                         // if the ace name is the ace of which the event have placed re-ordered ace after
-                        if (strcmp(ace_iter->ace.name,prev_list_name)==0 || strcmp(prev_list_name,"")==0){                            
-                            // get the reordered ace
-                            onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
-                            if (!event_ace){
-                                // this means that the ace is created SR_OP_CREATED not moved
-                                ensure_ace_exists_in_acls_list(&ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+                        if (change_ctx->operation != SR_OP_DELETED){
+                            if (strcmp(ace_iter->ace.name,prev_list_name)==0 || strcmp(prev_list_name,"")==0){                            
+                                // get the reordered ace
                                 onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
-                                // change the name change op to SR_OP_CREATED
-                                onm_tc_ace_hash_element_set_ace_name(&event_ace,ace_name_buffer,SR_OP_CREATED);
-                                LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
-                                if (strcmp(prev_list_name,"")==0){
-                                    // ace is ordered first in the list
-                                    LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                if (!event_ace){
+                                    // this means that the ace is created SR_OP_CREATED not moved
+                                    ensure_ace_exists_in_acls_list(&ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+                                    onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+                                    // change the name change op to SR_OP_CREATED
+                                    onm_tc_ace_hash_element_set_ace_name(&event_ace,ace_name_buffer,SR_OP_CREATED);
+                                    LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                    if (strcmp(prev_list_name,"")==0){
+                                        // ace is ordered first in the list
+                                        LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                    }
+                                    else {
+                                        // set ace user order
+                                        event_ace->next = ace_iter->next;
+                                        ace_iter->next = event_ace; 
+                                    }  
                                 }
                                 else {
-                                    // set ace user order
-                                    event_ace->next = ace_iter->next;
-                                    ace_iter->next = event_ace; 
-                                }  
-                            }
-                            else {
-                                LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
-                                if (strcmp(prev_list_name,"")==0){
-                                    // ace is ordered first in the list
-                                    LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
-                                }
-                                else {
-                                    // set ace user order
-                                    event_ace->next = ace_iter->next;
-                                    ace_iter->next = event_ace;
+                                    LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                    if (strcmp(prev_list_name,"")==0){
+                                        // ace is ordered first in the list
+                                        LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
+                                    }
+                                    else {
+                                        // set ace user order
+                                        event_ace->next = ace_iter->next;
+                                        ace_iter->next = event_ace;
+                                    }
                                 }
                             }
                         }
@@ -651,9 +653,13 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
             {
                 if (strcmp(iter->acl.name,acl_name_buffer)==0){
                     LL_FOREACH(iter->acl.aces.ace, ace_iter){
-                        ace_prio_counter +=10;
-                        onm_tc_ace_hash_element_set_ace_priority(&ace_iter,ace_prio_counter,SR_OP_MOVED);
-                        onm_tc_ace_hash_element_set_ace_handle(&ace_iter,DEFAULT_TCM_HANDLE);
+                        // don't assign new priority order to deleted aces
+                        if (ace_iter->ace.name_change_op!=SR_OP_DELETED){
+                            ace_prio_counter +=10;
+                            onm_tc_ace_hash_element_set_ace_priority(&ace_iter,ace_prio_counter,SR_OP_MOVED);
+                            onm_tc_ace_hash_element_set_ace_handle(&ace_iter,DEFAULT_TCM_HANDLE);
+                        }
+                        
                     }
                 }
             }            

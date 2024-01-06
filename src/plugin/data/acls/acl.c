@@ -82,6 +82,7 @@ int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char*
 
 int onm_tc_acl_hash_element_set_type(onm_tc_acl_hash_element_t** el, const char* type,sr_change_oper_t change_operation)
 {
+    // this is an identifity ref, don't use strcmp if you need to compare string, use strstr
     //TODO fix data type
     if ((*el)->acl.type) {
     //    FREE_SAFE((*el)->acl.type);
@@ -592,7 +593,6 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
 
                     port_str_to_port_attr(port_attr, lower_str, upper_str, NULL, PORT_NOOP, PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
                     SRPC_SAFE_CALL_ERR(error, set_ace_port_range(new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
-                    //SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_match_port_operator(&new_ace_element, port_attr,DEFAULT_CHANGE_OPERATION), error_out);
 
                     tcp_src_range_lower_port_node = NULL;
                     tcp_src_range_upper_port_node = NULL;
@@ -651,7 +651,6 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
                 }
                 // set actions data
                 if(action_forwarding_node){
-                    printf("ace action value %s\n",lyd_get_value(action_forwarding_node));
                     SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_action_forwarding(&new_ace_element, lyd_get_value(action_forwarding_node),DEFAULT_CHANGE_OPERATION), error_out);
                     action_forwarding_node = NULL;
                 }

@@ -65,7 +65,8 @@ int acls_store_api(onm_tc_ctx_t *ctx)
                 {*/
                     // if no, get ACL content and apply it on netlink
                     //SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
-                error = tcnl_filter_modify_acl(acl_id,ctx->running_acls_list,RTM_NEWTFILTER,0);
+                error = tcnl_block_modify(ctx->running_acls_list, acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+                
                 if (error < 0){
                     goto out;
                 }
@@ -93,7 +94,7 @@ out:
     // dealloc nl_ctx data
 
     if (nl_ctx->socket != NULL) {
-        nl_socket_free(nl_ctx->socket);
+        //nl_socket_free(nl_ctx->socket);
     }
 
     if (nl_ctx->link_cache != NULL) {

@@ -78,7 +78,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	else if (event == SR_EV_DONE)
 	{
 		// error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
-		set_changes_to_running_acls(ctx);
+		reload_running_acls_list(ctx);
 		// Done with the change, free the change acls list
 		onm_tc_acls_list_hash_free(&ctx->events_acls_list);
 		if (error)
@@ -92,21 +92,22 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	{
 		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
 
+		// ace name (SR_OP_CREATED, SR_OP_DELETED)
+		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/*", xpath), error_out);
+		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
+
+
 		// handle reorder of aces (SR_OP_CREATED, SR_OP_MOVED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/*", xpath), error_out);
         SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, reorder_events_acls_aces_from_change_ctx,events_acl_init, events_acl_free), error_out);
 
-		onm_tc_acls_list_print_debug(ctx->events_acls_list);
+		
 		// events list cleanup: remove aces that had no change on their priority from events list
 		remove_unchanged_priority_aces_from_events_list(ctx);
 
 		// acl  name (SR_OP_CREATED, SR_OP_DELETED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/*", xpath), error_out);
         SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, onm_tc_events_acls_hash_add_acl_element,events_acl_init, events_acl_free), error_out);
-
-		// ace  name (SR_OP_CREATED, SR_OP_DELETED)
-		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/*", xpath), error_out);
-		SRPC_SAFE_CALL_ERR(rc, srpc_iterate_changes(ctx, session, change_xpath_buffer, events_acls_hash_update_ace_element_from_change_ctx, events_acl_init, events_acl_free), error_out);
 
 		// match on eth (SR_OP_CREATED, SR_OP_DELETED, SR_OP_MODIFIED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/aces/ace/matches/eth/*", xpath), error_out);
