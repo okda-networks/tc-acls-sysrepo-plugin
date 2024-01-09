@@ -255,6 +255,7 @@ struct onm_tc_acl_element {
 
 struct onm_tc_aps_acl_set {
     char * name;
+    sr_change_oper_t name_change_op;
 };
 
 struct onm_tc_aps_acl_sets {

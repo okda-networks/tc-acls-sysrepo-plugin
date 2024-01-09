@@ -22,10 +22,10 @@
 /*
     Linked list operations
 */
-/* prepend since ordering doesn't matter - O(1) */
+/* used append instead of prepend since we process the last added attachment point acl-set */
 #define ONM_TC_APS_ACL_SET_ADD_ELEMENT(ll_ptr, new_element_ptr) \
     do {                                                        \
-        LL_PREPEND(ll_ptr, new_element_ptr);                    \
+        LL_APPEND(ll_ptr, new_element_ptr);                    \
     } while (0)
     
 #define ONM_TC_APS_ACL_SET_NEW(ll_ptr) \

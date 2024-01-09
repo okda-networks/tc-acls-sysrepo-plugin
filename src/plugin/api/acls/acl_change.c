@@ -19,6 +19,7 @@
 #include "plugin/store.h"
 
 int reload_running_acls_list(onm_tc_ctx_t * ctx){
+	SRPLG_LOG_INF(PLUGIN_NAME, "Reloading running acls list from sysrepo");
 	onm_tc_acls_list_hash_free(&ctx->running_acls_list);
 	onm_tc_store(ctx,ctx->running_session,false);
 }
@@ -32,15 +33,17 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 	int ret = 0;
     onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
-	char* acl_name = NULL;
+	
     HASH_ITER(hh, events_acls, iter, tmp)
 	{
+		const char* acl_name = iter->acl.name;
+		const unsigned int acl_id = iter->acl.acl_id;
 		switch (iter->acl.name_change_op) {
 			case SR_OP_CREATED:
-				// handle complete acl creation.
+				// complete acl creation.
 				break;
 			case SR_OP_DELETED:
-				// handle complete acl deletion.
+				// complete acl deletion.
 				break;
 			case DEFAULT_CHANGE_OPERATION:
 				// handle ACEs change operations.
@@ -48,9 +51,6 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 					// handle acl type change event.
 					// ignored for now as we currently don't look at acl type in tcnl
 				}
-				acl_name = iter->acl.name;
-				unsigned int acl_id = iter->acl.acl_id;
-				const char * acl_name = iter->acl.name;
 				// iterate over aces
 				LL_FOREACH(iter->acl.aces.ace, ace_iter)
 				{

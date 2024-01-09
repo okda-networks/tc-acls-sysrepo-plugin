@@ -30,6 +30,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#include <linux/limits.h>
+#include "plugin/data/attachment_points/attachment_points.h"
+
 /*
     Libyang conversion functions.
 */
@@ -117,13 +121,14 @@ int onm_tc_aps_interface_hash_element_set_interface_id (onm_tc_aps_interface_has
     return 0;
 }
 
-int onm_tc_aps_interface_hash_element_set_acl_name(onm_tc_aps_acl_set_element_t** el, const char* acl_name)
+int onm_tc_aps_interface_hash_element_set_acl_name(onm_tc_aps_acl_set_element_t** el, const char* acl_name, sr_change_oper_t name_change_op)
 {
     if ((*el)->acl_set.name) {
         FREE_SAFE((*el)->acl_set.name);
     }
     if (acl_name) {
         (*el)->acl_set.name = xstrdup(acl_name);
+        (*el)->acl_set.name_change_op = name_change_op;
         return (*el)->acl_set.name == NULL;
     }
 
@@ -142,6 +147,67 @@ onm_tc_aps_acl_set_element_t* onm_tc_aps_acl_set_hash_element_new(void)
     new_aps_acl_set_element->acl_set = (onm_tc_aps_acl_set_t) { 0 };
 
     return new_aps_acl_set_element;
+}
+
+
+int events_aps_hash_update_from_change_ctx(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
+{
+    int error = 0;
+    const struct lyd_node * node = change_ctx->node;
+    const char *node_name = LYD_NAME(node);
+	const char *node_value = lyd_get_value(node);
+    onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
+    char change_path[PATH_MAX] = {0};
+    char interface_id[100] = {0};
+    char ace_name_buffer[100] = {0};
+
+    struct lyd_node * grand_parent_node = &(node->parent->node.parent->node.parent->node);
+    const char *grand_parent_node_name = LYD_NAME(grand_parent_node);
+    
+    onm_tc_aps_acl_set_element_t* new_egress_acl_set_element = NULL;
+    printf("node name %s, node value %s\n",node_name,node_value);
+    if (node_value){
+        error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
+        SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "interface", "interface-id", interface_id, sizeof(interface_id)), error_out);
+
+        onm_tc_aps_interface_hash_element_t* updated_interface_element = onm_tc_aps_interface_hash_get_element(&ctx->events_attachment_points_list,interface_id);
+        
+        // ensure interface element exists
+        if (!updated_interface_element){
+            // create new element
+            printf("setting updated interface element to new \n");
+            updated_interface_element = onm_tc_aps_interface_hash_element_new();
+            SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_interface_id(&updated_interface_element, interface_id), error_out);
+            ONM_TC_APS_ACL_SET_NEW(updated_interface_element->interface.ingress.acl_sets.acl_set);
+            ONM_TC_APS_ACL_SET_NEW(updated_interface_element->interface.egress.acl_sets.acl_set);
+            onm_tc_aps_interface_hash_add_element(&ctx->events_attachment_points_list, updated_interface_element);
+        }
+
+        printf("interface name %s grand parent name %s, acl_name %s\n",interface_id, grand_parent_node_name, node_name);
+        // check if change is on ingress interface set
+        if (strcmp(grand_parent_node_name,"ingress")== 0){
+            
+            onm_tc_aps_acl_set_element_t* ingress_acl_set_element = onm_tc_aps_acl_set_hash_element_new();
+
+            SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&ingress_acl_set_element, node_value,change_ctx->operation), error_out);
+            // add ingress acl_set list to main interfaces list
+            ONM_TC_APS_ACL_SET_ADD_ELEMENT(updated_interface_element->interface.ingress.acl_sets.acl_set, ingress_acl_set_element);
+        }
+        if (strcmp(grand_parent_node_name,"egress")== 0){
+            onm_tc_aps_acl_set_element_t*  egress_acl_set_element = onm_tc_aps_acl_set_hash_element_new();
+            SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&egress_acl_set_element, node_value,change_ctx->operation), error_out);
+            ONM_TC_APS_ACL_SET_ADD_ELEMENT(updated_interface_element->interface.egress.acl_sets.acl_set, egress_acl_set_element);
+        }
+
+        
+        goto out;
+    }
+
+error_out:
+	return error;
+
+out:
+	return error;
 }
 
 
@@ -194,7 +260,7 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
                     new_ingress_acl_set_element = onm_tc_aps_acl_set_hash_element_new();
                     SRPC_SAFE_CALL_PTR(aps_acl_name, srpc_ly_tree_get_child_leaf(aps_ingress_acl_set_list_node, "name"), error_out);
                     if (aps_acl_name){
-                        SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_ingress_acl_set_element, lyd_get_value(aps_acl_name)), error_out);
+                        SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_ingress_acl_set_element, lyd_get_value(aps_acl_name),DEFAULT_CHANGE_OPERATION), error_out);
                         aps_acl_name = NULL;
                     }
                     // add ingress acl_set list to main interfaces list
@@ -218,7 +284,7 @@ int onm_tc_aps_interface_hash_from_ly(onm_tc_aps_interface_hash_element_t** inte
                     new_egress_acl_set_element = onm_tc_aps_acl_set_hash_element_new();
                     SRPC_SAFE_CALL_PTR(aps_acl_name, srpc_ly_tree_get_child_leaf(aps_egress_acl_set_list_node, "name"), error_out);                 
                     if (aps_acl_name){
-                        SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_egress_acl_set_element, lyd_get_value(aps_acl_name)), error_out);
+                        SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_acl_name(&new_egress_acl_set_element, lyd_get_value(aps_acl_name), DEFAULT_CHANGE_OPERATION), error_out);
                         aps_acl_name = NULL;
                     }
 
@@ -263,16 +329,14 @@ void onm_tc_aps_interface_hash_print_debug(const onm_tc_aps_interface_hash_eleme
 
         if (iter->interface.ingress.acl_sets.acl_set){
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ingress:");
-            LL_FOREACH(iter->interface.ingress.acl_sets.acl_set, acl_set_iter)
-            {
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s", acl_set_iter->acl_set.name);
+            LL_FOREACH(iter->interface.ingress.acl_sets.acl_set, acl_set_iter){
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s (change operation %d)", acl_set_iter->acl_set.name, acl_set_iter->acl_set.name_change_op);
             }
         }
         if (iter->interface.egress.acl_sets.acl_set){
             SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+egress:");
-            LL_FOREACH(iter->interface.egress.acl_sets.acl_set, acl_set_iter)
-            {
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s", acl_set_iter->acl_set.name);
+            LL_FOREACH(iter->interface.egress.acl_sets.acl_set, acl_set_iter){
+                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s (change operation %d)", acl_set_iter->acl_set.name,acl_set_iter->acl_set.name_change_op);
             }
         }
 

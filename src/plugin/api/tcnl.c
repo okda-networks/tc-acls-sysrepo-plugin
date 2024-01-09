@@ -6,31 +6,6 @@ https://github.com/iproute2/iproute2/blob/main/tc/tc_util.c
 
 #include "tcnl.h"
 
-// TODO delete those after moving qdisc to libnl
-int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,int alen)
-{
-	int len = RTA_LENGTH(alen);
-	struct rtattr *rta;
-	if (NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len) > maxlen) {
-		fprintf(stderr,
-			"addattr_l ERROR: message exceeded bound of %d\n",
-			maxlen);
-		return -1;
-	}
-	rta = NLMSG_TAIL(n);
-	rta->rta_type = type;
-	rta->rta_len = len;
-	if (alen)
-		memcpy(RTA_DATA(rta), data, alen);
-	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len);
-	return 0;
-}
-
-int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data)
-{
-	return addattr_l(n, maxlen, type, &data, sizeof(__u32));
-}
-
 int get_u16(__u16 *val, const char *arg, int base)
 {
 	unsigned long res;
@@ -151,141 +126,6 @@ int ipv6_prefix_to_netmask(struct in6_addr *netmask, uint8_t prefix_length) {
     return 0;
 }
 
-// add or update ingress qdisc block id for a given interface.
-int tcnl_qdisc_modify_ingress_shared_block(onm_tc_nl_ctx_t* nl_ctx, int if_idx, uint32_t tca_block_id)
-{
-    struct nl_request req;
-    int ret;
-
-    // Prepare netlink message
-    memset(&req, 0, sizeof(req));
-    req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
-    req.nlh.nlmsg_flags = NLM_F_CREATE | NLM_F_REPLACE | NLM_F_EXCL | NLM_F_REQUEST;
-    req.nlh.nlmsg_type = RTM_NEWQDISC;
-    req.tcm.tcm_family = AF_UNSPEC;
-    req.tcm.tcm_handle = TC_H_MAKE(0xffff, 0);
-    req.tcm.tcm_parent = TC_H_INGRESS;
-    req.tcm.tcm_info = 0;
-    req.tcm.tcm_ifindex = if_idx;
-    addattr_l(&req.nlh,sizeof(req),TCA_KIND,"ingress",strlen("ingress"));
-    addattr32(&req.nlh,sizeof(req),TCA_INGRESS_BLOCK,tca_block_id);
-
-    // Send netlink message
-    SRPLG_LOG_DBG(PLUGIN_NAME, "NETLINK: applying acl %d for interface ID %d",tca_block_id, if_idx);
-    ret = nl_sendto(nl_ctx->socket, &req, req.nlh.nlmsg_len);
-    if (ret == -1) {
-        SRPLG_LOG_ERR(PLUGIN_NAME, "NETLINK: failed to apply acl %d for interface ID %d",tca_block_id, if_idx);
-        return -1;
-    }
-    return 0;
-}
-
-bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx, unsigned int tca_block_id) {
-    int sockfd, ret;
-    bool result = false;
-    struct sockaddr_nl src_addr, dest_addr;
-    struct nlmsghdr *nlh_recv;
-    struct iovec iov_send, iov_recv;
-    struct msghdr msg_send, msg_recv;
-
-    // Create a socket
-    sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-    if (sockfd == -1) {
-        perror("Error creating socket");
-        return false;
-    }
-
-    // Fill in the source and destination addresses
-    memset(&src_addr, 0, sizeof(src_addr));
-    src_addr.nl_family = AF_NETLINK;
-    src_addr.nl_pid = getpid();
-
-    if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
-        perror("Error binding socket");
-        close(sockfd);
-        return false;
-    }
-
-    struct nl_request req;
-    memset(&req, 0, sizeof(req));
-    req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
-    req.nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-    req.nlh.nlmsg_type = RTM_GETTFILTER;
-    req.tcm.tcm_parent = TC_H_UNSPEC;
-    req.tcm.tcm_family = AF_UNSPEC;
-    req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
-    req.tcm.tcm_block_index = tca_block_id;
-
-    iov_send.iov_base = &req;
-    iov_send.iov_len = req.nlh.nlmsg_len;
-
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.nl_family = AF_NETLINK;
-
-    memset(&msg_send, 0, sizeof(msg_send));
-    msg_send.msg_name = (void *)&dest_addr;
-    msg_send.msg_namelen = sizeof(dest_addr);
-    msg_send.msg_iov = &iov_send;
-    msg_send.msg_iovlen = 1;
-
-    ret = sendmsg(sockfd, &msg_send, 0);
-    if (ret == -1) {
-        perror("Error sending Netlink message");
-        close(sockfd);
-        return false;
-    }
-
-    iov_recv.iov_base = malloc(MAX_MSG);
-    if (!iov_recv.iov_base) {
-        perror("Error allocating memory");
-        close(sockfd);
-        return false;
-    }
-    iov_recv.iov_len = MAX_MSG;
-
-    bool done = false;
-    while (!done) {
-        memset(&msg_recv, 0, sizeof(msg_recv));
-        msg_recv.msg_name = (void *)&src_addr;
-        msg_recv.msg_namelen = sizeof(src_addr);
-        msg_recv.msg_iov = &iov_recv;
-        msg_recv.msg_iovlen = 1;
-
-        ret = recvmsg(sockfd, &msg_recv, 0);
-        if (ret < 0) {
-            perror("Error receiving Netlink message");
-            free(iov_recv.iov_base);
-            close(sockfd);
-            return false;
-        }
-
-        for (nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
-            NLMSG_OK(nlh_recv, ret);
-            nlh_recv = NLMSG_NEXT(nlh_recv, ret)) {
-            SRPLG_LOG_DBG(PLUGIN_NAME, "tcnl_tc_block_exists: block ID %d rcv msg type %d",tca_block_id, nlh_recv->nlmsg_type);
-            if (nlh_recv->nlmsg_type == NLMSG_DONE) {
-                done = true;
-                break;
-            }
-
-            if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
-                free(iov_recv.iov_base);
-                close(sockfd);
-                return false;
-            }
-
-            if (nlh_recv->nlmsg_type == RTM_NEWTFILTER) {
-                result = true;
-                break;
-            }
-        }
-    }
-
-    free(iov_recv.iov_base);
-    close(sockfd);
-    return result;
-}
-
 static int __tcnl_flower_put_ip_addr(char *str, int family,int addr4_type, int mask4_type, int addr6_type, int mask6_type,struct nl_msg *msg)
 {
     int prefix_length;
@@ -365,7 +205,6 @@ static int tcnl_flower_parse_ip_addr(char *str, __be16 eth_type,int addr4_type, 
 	return __tcnl_flower_put_ip_addr(str, family, addr4_type, mask4_type,
 				      addr6_type, mask6_type, msg);
 }
-
 //TODO this function is NOT correct
 __be16 generate_neq_mask(__be16 port_be) {
     uint16_t port = ntohs(port_be);
@@ -640,7 +479,6 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
 
     return ret;
 }
-
 int tcnl_flower_put_action(struct nl_msg *msg, onm_tc_ace_element_t* ace){
     const char *action_kind = "gact";
     struct tc_gact gact_params = { 0 };
@@ -722,43 +560,165 @@ static int nl_msg_recv_cb(struct nl_msg *msg, void *arg) {
     return NL_OK;
 }
 
-int tcnl_filter_modify(onm_tc_ace_element_t* ace, unsigned int acl_id, onm_tc_ctx_t * ctx,unsigned int request_type, unsigned int flags, bool override){
+// migrate to libnl
+bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx, unsigned int tca_block_id) {
+    int sockfd, ret;
+    bool result = false;
+    struct sockaddr_nl src_addr, dest_addr;
+    struct nlmsghdr *nlh_recv;
+    struct iovec iov_send, iov_recv;
+    struct msghdr msg_send, msg_recv;
+
+    // Create a socket
+    sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    if (sockfd == -1) {
+        perror("Error creating socket");
+        return false;
+    }
+
+    // Fill in the source and destination addresses
+    memset(&src_addr, 0, sizeof(src_addr));
+    src_addr.nl_family = AF_NETLINK;
+    src_addr.nl_pid = getpid();
+
+    if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
+        perror("Error binding socket");
+        close(sockfd);
+        return false;
+    }
+
+    struct nl_request req;
+    memset(&req, 0, sizeof(req));
+    req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
+    req.nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+    req.nlh.nlmsg_type = RTM_GETTFILTER;
+    req.tcm.tcm_parent = TC_H_UNSPEC;
+    req.tcm.tcm_family = AF_UNSPEC;
+    req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
+    req.tcm.tcm_block_index = tca_block_id;
+
+    iov_send.iov_base = &req;
+    iov_send.iov_len = req.nlh.nlmsg_len;
+
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    dest_addr.nl_family = AF_NETLINK;
+
+    memset(&msg_send, 0, sizeof(msg_send));
+    msg_send.msg_name = (void *)&dest_addr;
+    msg_send.msg_namelen = sizeof(dest_addr);
+    msg_send.msg_iov = &iov_send;
+    msg_send.msg_iovlen = 1;
+
+    ret = sendmsg(sockfd, &msg_send, 0);
+    if (ret == -1) {
+        perror("Error sending Netlink message");
+        close(sockfd);
+        return false;
+    }
+
+    iov_recv.iov_base = malloc(MAX_MSG);
+    if (!iov_recv.iov_base) {
+        perror("Error allocating memory");
+        close(sockfd);
+        return false;
+    }
+    iov_recv.iov_len = MAX_MSG;
+
+    bool done = false;
+    while (!done) {
+        memset(&msg_recv, 0, sizeof(msg_recv));
+        msg_recv.msg_name = (void *)&src_addr;
+        msg_recv.msg_namelen = sizeof(src_addr);
+        msg_recv.msg_iov = &iov_recv;
+        msg_recv.msg_iovlen = 1;
+
+        ret = recvmsg(sockfd, &msg_recv, 0);
+        if (ret < 0) {
+            perror("Error receiving Netlink message");
+            free(iov_recv.iov_base);
+            close(sockfd);
+            return false;
+        }
+
+        for (nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
+            NLMSG_OK(nlh_recv, ret);
+            nlh_recv = NLMSG_NEXT(nlh_recv, ret)) {
+            SRPLG_LOG_INF(PLUGIN_NAME, "tcnl_tc_block_exists: block ID %d rcv msg type %d",tca_block_id, nlh_recv->nlmsg_type);
+            if (nlh_recv->nlmsg_type == NLMSG_DONE) {
+                done = true;
+                break;
+            }
+
+            if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
+                free(iov_recv.iov_base);
+                close(sockfd);
+                return false;
+            }
+
+            if (nlh_recv->nlmsg_type == RTM_NEWTFILTER) {
+                result = true;
+                break;
+            }
+        }
+    }
+
+    free(iov_recv.iov_base);
+    close(sockfd);
+    return result;
+}
+int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id){
+    // Allocate a new Netlink message
+    int ret = 0;
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d prepare netlink message",if_idx);
+    *msg = nlmsg_alloc_simple(request_type, flags);
+    if (!*msg) {
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d failed to allocate nlmsg memory",if_idx);
+        return -1;
+    }
+    struct tcmsg tcm = {0};
+    // Prepare tcmsg structure
+    tcm.tcm_family = AF_UNSPEC;
+    tcm.tcm_ifindex = if_idx;
+    tcm.tcm_info = 0;
+    tcm.tcm_handle = TC_H_MAKE(0xffff, 0);
+    tcm.tcm_parent = TC_H_CLSACT;
+    if (strcmp(qdisc_kind,"ingress")){
+        tcm.tcm_parent = TC_H_INGRESS;
+    }
+    ret = nlmsg_append(*msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
+    
+    nla_put(*msg,TCA_KIND,strlen(qdisc_kind)+1,qdisc_kind);
+    if (ingress_block_id != 0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set ingress block ID %d",if_idx,ingress_block_id);
+        ret = nla_put_s32(*msg,TCA_INGRESS_BLOCK,ingress_block_id);
+        if (ret < 0){
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Failed to set ingress block ID %d",if_idx,ingress_block_id);
+            return ret;
+        }
+    }
+    if (egress_block_id != 0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set egress block ID %d",if_idx,egress_block_id);
+        ret = nla_put_s32(*msg,TCA_EGRESS_BLOCK,egress_block_id);
+        if (ret < 0){
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set rgress block ID %d",if_idx,egress_block_id);
+            return ret;
+        }
+    }
+    return 0;
+}
+int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id, bool override){
     struct nl_msg *msg;
     int ret = 0;
-    if(override && request_type != RTM_DELTFILTER){
-        ret = tcnl_set_filter_msg(&msg,RTM_DELTFILTER,0,acl_id,ace);
-        if (ret < 0) return ret;
-        // don't return error for this tcnl_talk instance.
-        // it is expect to delete a filter that doesn't exist on tc (when override is used)
-        // this will through an error of object not found
-        ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+    unsigned int flags = 0;
+    if(request_type == RTM_NEWQDISC){
+        flags = NLM_F_CREATE | NLM_F_REPLACE | NLM_F_EXCL;
     }
-    ret = tcnl_set_filter_msg(&msg,request_type,flags,acl_id,ace);
-    if (ret < 0){
-        return ret;
+    if(!override && request_type == RTM_NEWQDISC){
+        flags = NLM_F_CREATE;
     }
+    ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
+    if (ret < 0) return ret;
     ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
-    return ret;
-}
-
-int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id, onm_tc_ctx_t * ctx, int request_type, unsigned int flags){
-    const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
-    int ret = 0;
-    HASH_ITER(hh, acls_hash, iter, tmp)
-    {   
-        if (iter->acl.acl_id == acl_id)
-        {
-            onm_tc_ace_element_t* ace_iter = NULL;
-            // iterate over aces
-            LL_FOREACH(iter->acl.aces.ace, ace_iter)
-            {
-                ret = tcnl_filter_modify(ace_iter,acl_id,ctx,request_type,flags,true);
-                if (ret < 0){
-                    return ret;
-                }
-            }
-        } 
-    }
     return ret;
 }
 
@@ -942,8 +902,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
     nla_nest_end(*msg, opts);
     return ret;
 }
-
-int tcnl_set_filter_msg(struct nl_msg **msg, int request_type, unsigned int flags, unsigned int acl_id, onm_tc_ace_element_t * ace_element) {
+int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flags, unsigned int acl_id, onm_tc_ace_element_t * ace_element) {
     if(ace_element == NULL){
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL] Invalid ACE elemenent");
         return -1;
@@ -1063,23 +1022,53 @@ int tcnl_set_filter_msg(struct nl_msg **msg, int request_type, unsigned int flag
 
     return ret;
 }
+int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned int acl_id, unsigned int request_type, unsigned int flags, bool override){
+    struct nl_msg *msg;
+    int ret = 0;
+    if(override && request_type != RTM_DELTFILTER){
+        ret = tcnl_set_filter_msg(&msg,RTM_DELTFILTER,0,acl_id,ace);
+        if (ret < 0) return ret;
+        // don't return error for this tcnl_talk instance.
+        // it is expect to delete a filter that doesn't exist on tc (when override is used)
+        // this will through an error of object not found
+        ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+    }
+    ret = tcnl_set_filter_msg(&msg,request_type,flags,acl_id,ace);
+    if (ret < 0){
+        return ret;
+    }
+    ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
+    return ret;
+}
+int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id, onm_tc_ctx_t * ctx, int request_type, unsigned int flags){
+    const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
+    int ret = 0;
+    HASH_ITER(hh, acls_hash, iter, tmp)
+    {   
+        if (iter->acl.acl_id == acl_id)
+        {
+            onm_tc_ace_element_t* ace_iter = NULL;
+            // iterate over aces
+            LL_FOREACH(iter->acl.aces.ace, ace_iter)
+            {
+                ret = tcnl_filter_modify(ctx,ace_iter,acl_id,request_type,flags,true);
+                if (ret < 0){
+                    return ret;
+                }
+            }
+        } 
+    }
+    return ret;
+}
 
 int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear){
     int ret = 0;
     // Initialize and connect to Netlink
-    //sock = nl_socket_alloc();
     struct nl_sock * sock = ctx->nl_ctx.socket;
     if (!sock) {
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Failed to create netlink socket.");
         return -1;
     }
-    /*if (nl_connect(sock, NETLINK_ROUTE) < 0) {
-        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Failed to connect netlink socket.");
-        nl_socket_free(sock);
-        return -1;
-    }*/
-
-    // Send the message
     ret = nl_send_auto(sock, *msg);
     if (ret < 0) {
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Failed to send netlink message '%s'",nl_geterror(ret));
@@ -1092,7 +1081,7 @@ int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool
     // Receive messages
     ret = nl_recvmsgs_default(sock);
     if (ret < 0) {
-        if (ret != -12) // hide object not found error
+        //if (ret != -12) // hide object not found error
             SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Error receiving netlink messages'%d %s'",ret,nl_geterror(ret));
         nlmsg_free(*msg);
         //nl_socket_free(sock);
