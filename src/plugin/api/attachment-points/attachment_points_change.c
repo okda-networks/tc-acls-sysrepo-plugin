@@ -60,13 +60,15 @@ int apply_attachment_points_events_list_changes(void *priv)
 					case SR_OP_CREATED:
 						ret = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, "clsact", if_idx, acl_id,0,true);
 						if (ret < 0) return ret;
-						if (!tcnl_tc_block_exists(&ctx->nl_ctx,acl_id)){
+						if (!tcnl_block_exists(ctx,acl_id)){
 							ret = tcnl_block_modify(ctx->running_acls_list,acl_id,ctx,RTM_NEWTFILTER,NLM_F_CREATE);
-							if (ret < 0){
-								return ret;
+							// if acl not found in running acls list, it must have been configured at the same change event that sets the attachment point
+							// get the acl and apply it from events acls list.
+							if (ret == -11) {
+								ret = tcnl_block_modify(ctx->events_acls_list,acl_id,ctx,RTM_NEWTFILTER,NLM_F_CREATE);
+								if (ret < 0) return ret;
 							}
 						}
-						if (ret<0) return ret;
 						break;
 					case SR_OP_MODIFIED:
 						break;

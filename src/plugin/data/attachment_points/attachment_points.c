@@ -165,7 +165,6 @@ int events_aps_hash_update_from_change_ctx(void *priv, sr_session_ctx_t *session
     const char *grand_parent_node_name = LYD_NAME(grand_parent_node);
     
     onm_tc_aps_acl_set_element_t* new_egress_acl_set_element = NULL;
-    printf("node name %s, node value %s\n",node_name,node_value);
     if (node_value){
         error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
         SRPC_SAFE_CALL_ERR(error, srpc_extract_xpath_key_value(change_path, "interface", "interface-id", interface_id, sizeof(interface_id)), error_out);
@@ -175,15 +174,12 @@ int events_aps_hash_update_from_change_ctx(void *priv, sr_session_ctx_t *session
         // ensure interface element exists
         if (!updated_interface_element){
             // create new element
-            printf("setting updated interface element to new \n");
             updated_interface_element = onm_tc_aps_interface_hash_element_new();
             SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_element_set_interface_id(&updated_interface_element, interface_id), error_out);
             ONM_TC_APS_ACL_SET_NEW(updated_interface_element->interface.ingress.acl_sets.acl_set);
             ONM_TC_APS_ACL_SET_NEW(updated_interface_element->interface.egress.acl_sets.acl_set);
             onm_tc_aps_interface_hash_add_element(&ctx->events_attachment_points_list, updated_interface_element);
         }
-
-        printf("interface name %s grand parent name %s, acl_name %s\n",interface_id, grand_parent_node_name, node_name);
         // check if change is on ingress interface set
         if (strcmp(grand_parent_node_name,"ingress")== 0){
             

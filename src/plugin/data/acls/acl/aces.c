@@ -577,7 +577,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
     
     if (strcmp(node_name,"ace")==0){
         error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
-        printf("\n\nevent operation %d,previous list %s, on change path %s\n",change_ctx->operation,prev_list_name,change_path);
+        //printf("\n\nevent operation %d,previous list %s, on change path %s\n",change_ctx->operation,prev_list_name,change_path);
         srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer));
         srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer));
         
@@ -606,7 +606,6 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                 // if the events acl name matches with change event acl name
                 if (strcmp(iter->acl.name,acl_name_buffer)==0){
                     LL_FOREACH(iter->acl.aces.ace, ace_iter){
-                        printf("previous list name %s iter ace name %s\n",prev_list_name,ace_iter->ace.name);
                         // if the ace name is the ace of which the event have placed re-ordered ace after
                         if (change_ctx->operation != SR_OP_DELETED){
                             if (strcmp(ace_iter->ace.name,prev_list_name)==0 || strcmp(prev_list_name,"")==0){                            

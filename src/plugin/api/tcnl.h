@@ -96,5 +96,6 @@ int ll_proto_a2n(unsigned short *id, const char *buf);
 
 
 int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id);
-int tcnl_set_filter_msg(struct nl_msg **msg, int request_type, unsigned int flags, unsigned int acl_id, onm_tc_ace_element_t * ace_element);
+
+bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id);
 int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear);

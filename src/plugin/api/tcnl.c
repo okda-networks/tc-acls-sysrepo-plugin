@@ -559,113 +559,16 @@ static int nl_msg_recv_cb(struct nl_msg *msg, void *arg) {
 
     return NL_OK;
 }
-
-// migrate to libnl
-bool tcnl_tc_block_exists(onm_tc_nl_ctx_t* nl_ctx, unsigned int tca_block_id) {
-    int sockfd, ret;
-    bool result = false;
-    struct sockaddr_nl src_addr, dest_addr;
-    struct nlmsghdr *nlh_recv;
-    struct iovec iov_send, iov_recv;
-    struct msghdr msg_send, msg_recv;
-
-    // Create a socket
-    sockfd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-    if (sockfd == -1) {
-        perror("Error creating socket");
-        return false;
+bool filter_exists = false;
+static int rcv_is_filter_cb(struct nl_msg *msg, void *arg) {
+    struct nlmsghdr *nlh = nlmsg_hdr(msg);
+    //SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Received message type: %d",nlh->nlmsg_type);
+    if (nlh->nlmsg_type==RTM_NEWTFILTER){
+        filter_exists = true;
     }
-
-    // Fill in the source and destination addresses
-    memset(&src_addr, 0, sizeof(src_addr));
-    src_addr.nl_family = AF_NETLINK;
-    src_addr.nl_pid = getpid();
-
-    if (bind(sockfd, (struct sockaddr *)&src_addr, sizeof(src_addr)) == -1) {
-        perror("Error binding socket");
-        close(sockfd);
-        return false;
-    }
-
-    struct nl_request req;
-    memset(&req, 0, sizeof(req));
-    req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg));
-    req.nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-    req.nlh.nlmsg_type = RTM_GETTFILTER;
-    req.tcm.tcm_parent = TC_H_UNSPEC;
-    req.tcm.tcm_family = AF_UNSPEC;
-    req.tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
-    req.tcm.tcm_block_index = tca_block_id;
-
-    iov_send.iov_base = &req;
-    iov_send.iov_len = req.nlh.nlmsg_len;
-
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.nl_family = AF_NETLINK;
-
-    memset(&msg_send, 0, sizeof(msg_send));
-    msg_send.msg_name = (void *)&dest_addr;
-    msg_send.msg_namelen = sizeof(dest_addr);
-    msg_send.msg_iov = &iov_send;
-    msg_send.msg_iovlen = 1;
-
-    ret = sendmsg(sockfd, &msg_send, 0);
-    if (ret == -1) {
-        perror("Error sending Netlink message");
-        close(sockfd);
-        return false;
-    }
-
-    iov_recv.iov_base = malloc(MAX_MSG);
-    if (!iov_recv.iov_base) {
-        perror("Error allocating memory");
-        close(sockfd);
-        return false;
-    }
-    iov_recv.iov_len = MAX_MSG;
-
-    bool done = false;
-    while (!done) {
-        memset(&msg_recv, 0, sizeof(msg_recv));
-        msg_recv.msg_name = (void *)&src_addr;
-        msg_recv.msg_namelen = sizeof(src_addr);
-        msg_recv.msg_iov = &iov_recv;
-        msg_recv.msg_iovlen = 1;
-
-        ret = recvmsg(sockfd, &msg_recv, 0);
-        if (ret < 0) {
-            perror("Error receiving Netlink message");
-            free(iov_recv.iov_base);
-            close(sockfd);
-            return false;
-        }
-
-        for (nlh_recv = (struct nlmsghdr *)iov_recv.iov_base;
-            NLMSG_OK(nlh_recv, ret);
-            nlh_recv = NLMSG_NEXT(nlh_recv, ret)) {
-            SRPLG_LOG_INF(PLUGIN_NAME, "tcnl_tc_block_exists: block ID %d rcv msg type %d",tca_block_id, nlh_recv->nlmsg_type);
-            if (nlh_recv->nlmsg_type == NLMSG_DONE) {
-                done = true;
-                break;
-            }
-
-            if (nlh_recv->nlmsg_type == NLMSG_ERROR) {
-                free(iov_recv.iov_base);
-                close(sockfd);
-                return false;
-            }
-
-            if (nlh_recv->nlmsg_type == RTM_NEWTFILTER) {
-                result = true;
-                break;
-            }
-        }
-    }
-
-    free(iov_recv.iov_base);
-    close(sockfd);
-    return result;
+    return NL_OK;
 }
+
 int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id){
     // Allocate a new Netlink message
     int ret = 0;
@@ -1042,11 +945,12 @@ int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned i
 }
 int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id, onm_tc_ctx_t * ctx, int request_type, unsigned int flags){
     const onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
-    int ret = 0;
+    int ret = -11;
     HASH_ITER(hh, acls_hash, iter, tmp)
     {   
         if (iter->acl.acl_id == acl_id)
         {
+            ret = 0;
             onm_tc_ace_element_t* ace_iter = NULL;
             // iterate over aces
             LL_FOREACH(iter->acl.aces.ace, ace_iter)
@@ -1059,6 +963,27 @@ int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id
         } 
     }
     return ret;
+}
+
+
+bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id){
+    struct nl_msg *msg;
+    struct tcmsg tcm = {0};
+    int ret = 0;
+    filter_exists = false;
+    int request_type = RTM_GETTFILTER;
+    int flags = NLM_F_DUMP, protocol = 0, prio = 0;
+    msg = nlmsg_alloc_simple(request_type, flags);
+	tcm.tcm_parent = TC_H_UNSPEC;
+	tcm.tcm_family = AF_UNSPEC;
+    tcm.tcm_info = TC_H_MAKE(prio<<16, protocol);
+    tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
+	tcm.tcm_block_index = acl_id;
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Checking if acl block ID %d exits on linux tc",acl_id);
+    ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
+    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK %d] Block %s",acl_id, filter_exists ? "exists" : "does not exist");
+    return filter_exists;
 }
 
 int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear){

@@ -10,7 +10,7 @@
 static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *parent_container);
 static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container);
 
-int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session,bool run_api)
+int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, bool store_aps, bool run_api)
 {
 	int error = 0;
 	sr_data_t *subtree = NULL;
@@ -32,8 +32,28 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session,bool run_api)
 		},		
 	};
 
-	for (size_t i = 0; i < ARRAY_SIZE(store_values); i++) {
-		const srpc_startup_store_t *store = &store_values[i];
+	if (store_acls && store_aps){
+		for (size_t i = 0; i < ARRAY_SIZE(store_values); i++) {
+			const srpc_startup_store_t *store = &store_values[i];
+			SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
+			error = store->cb(ctx, subtree->tree);
+			if (error != 0) {
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
+				goto error_out;
+			}
+		}
+	}
+	else if (store_acls && !store_aps){
+		const srpc_startup_store_t *store = &store_values[0];
+		SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
+		error = store->cb(ctx, subtree->tree);
+		if (error != 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
+			goto error_out;
+		}
+	}
+	else if (!store_acls && store_aps){
+		const srpc_startup_store_t *store = &store_values[1];
 		SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
 		error = store->cb(ctx, subtree->tree);
 		if (error != 0) {
@@ -54,17 +74,6 @@ error_out:
 out:
 	if (subtree) {
 		sr_release_data(subtree);
-	}
-
-	if(ctx->attachment_points_interface_hash_element)
-	{
-		//TODO define hash free function
-		//onm_tc_acl_hash_free(&ctx->attachment_points_interface_hash_element);
-	}
-	if(ctx->running_acls_list)
-	{
-		//TODO define hash free function
-		//onm_tc_acl_hash_free(&ctx->attachment_points_interface_hash_element);
 	}
 
 	return error;
