@@ -554,9 +554,9 @@ int ensure_ace_exists_in_acls_list(onm_tc_acl_hash_element_t** acl_hash, const c
 
     // make sure ace exists
     if (!updated_ace){
-        SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s is not present in events acls hash, creating new ACE element.",ace_name);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event ACE name %s is not present in events acls hash, creating new ACE element.",acl_name, ace_name);
         updated_ace = onm_tc_ace_hash_element_new();
-        SRPLG_LOG_INF(PLUGIN_NAME, "Change event didn't happen on ACE name %s, setting ACE name change operation to default.",ace_name);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event didn't happen on ACE name %s, setting ACE name change operation to default.",acl_name, ace_name);
         error = onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name,DEFAULT_CHANGE_OPERATION);
         error = acls_list_add_ace_element(acl_hash,acl_name,updated_ace);
     }
@@ -577,7 +577,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
     
     if (strcmp(node_name,"ace")==0){
         error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
-        printf("\n\nevent operation %d,previous list %s, on change path %s\n",change_ctx->operation,prev_list_name,change_path);
+        //printf("\n\nevent operation %d,previous list %s, on change path %s\n",change_ctx->operation,prev_list_name,change_path);
         srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer));
         srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer));
         
@@ -603,21 +603,21 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
             // iterate over events acls list to order them according to user order
             HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
             {
-                // if the events acl name matches with change event acl name
-                if (strcmp(iter->acl.name,acl_name_buffer)==0){
+                // if the events acl name matches with change event acl name and its not a new acl
+                if (strcmp(iter->acl.name,acl_name_buffer)==0 && iter->acl.name_change_op != SR_OP_CREATED){
                     LL_FOREACH(iter->acl.aces.ace, ace_iter){
-                        printf("previous list name %s iter ace name %s\n",prev_list_name,ace_iter->ace.name);
-                        // if the ace name is the ace of which the event have placed re-ordered ace after
                         if (change_ctx->operation != SR_OP_DELETED){
                             if (strcmp(ace_iter->ace.name,prev_list_name)==0 || strcmp(prev_list_name,"")==0){                            
                                 // get the reordered ace
                                 onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
+                                // if ace is not not found (after copy of running aces to events list), it means that the ace is created SR_OP_CREATED not moved
                                 if (!event_ace){
-                                    // this means that the ace is created SR_OP_CREATED not moved
+                                    // create the ace and get its pointer.
                                     ensure_ace_exists_in_acls_list(&ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                                     onm_tc_ace_element_t * event_ace = onm_tc_get_ace_in_acl_list_by_name(ctx->events_acls_list,acl_name_buffer,ace_name_buffer);
                                     // change the name change op to SR_OP_CREATED
                                     onm_tc_ace_hash_element_set_ace_name(&event_ace,ace_name_buffer,SR_OP_CREATED);
+                                    // delete the ace from its current position and re-order it.
                                     LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
                                     if (strcmp(prev_list_name,"")==0){
                                         // ace is ordered first in the list
@@ -629,6 +629,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                                         ace_iter->next = event_ace; 
                                     }  
                                 }
+                                // ace is found, this means it was moved
                                 else {
                                     LL_DELETE(ctx->events_acls_list->acl.aces.ace,event_ace);
                                     if (strcmp(prev_list_name,"")==0){
@@ -662,8 +663,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                         
                     }
                 }
-            }            
-
+            }
         }
         return 0;
 
@@ -671,7 +671,6 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
 }
 
 int remove_unchanged_priority_aces_from_events_list(void *priv){
-
     onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
     onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
@@ -684,7 +683,7 @@ int remove_unchanged_priority_aces_from_events_list(void *priv){
                 if (running_ace->ace.priority == ace_iter->ace.priority && ace_iter->ace.name_change_op == DEFAULT_CHANGE_OPERATION){
                     // ace order didn't change
                     // delete the ace from change list
-
+                    // TODO free ace memory after delete
                     LL_DELETE(ctx->events_acls_list->acl.aces.ace,ace_iter);
                 }
             }
@@ -726,25 +725,25 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
         // make sure ace exists
         if (!updated_ace)
         {
-            SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s is not present in events acls hash, creating new ACE element.",ace_name_buffer);
+            SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event ACE name %s is not present in events acls hash, creating new ACE element.",acl_name_buffer,ace_name_buffer);
             updated_ace = onm_tc_ace_hash_element_new();
             // if the change event happened on the ace name.
             if (strcmp(node_name,"name")==0){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Change event happned on ACE name %s, setting ACE name operation to %d.",ace_name_buffer,change_ctx->operation);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event happned on ACE name %s, setting ACE name operation to %d.",acl_name_buffer,ace_name_buffer,change_ctx->operation);
                 onm_tc_ace_hash_element_set_ace_name(&updated_ace,node_value,change_ctx->operation);
             }
             else {
-                SRPLG_LOG_INF(PLUGIN_NAME, "Change event didn't happen on ACE name %s, setting ACE name change operation to default.",ace_name_buffer);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event didn't happen on ACE name %s, setting ACE name change operation to default.",acl_name_buffer,ace_name_buffer);
                 onm_tc_ace_hash_element_set_ace_name(&updated_ace,ace_name_buffer,DEFAULT_CHANGE_OPERATION);
             }
             // if the updated ace exists in the running_acls list, set the same ace priority
             if (running_ace){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s has a corresponding ACE in running acls list, setting ACE priority to %d.",ace_name_buffer,running_ace->ace.priority);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event ACE name %s has a corresponding ACE in running acls list, setting ACE priority to %d.",acl_name_buffer,ace_name_buffer,running_ace->ace.priority);
                 onm_tc_ace_hash_element_set_ace_priority(&updated_ace,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
                 onm_tc_ace_hash_element_set_ace_handle(&updated_ace,running_ace->ace.handle);
             }
             else {
-                SRPLG_LOG_INF(PLUGIN_NAME, "Change event ACE name %s has no corresponding ACE in running acls list, setting ACE priority to 0.",ace_name_buffer);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Change event ACE name %s has no corresponding ACE in running acls list, setting ACE priority to 0.",acl_name_buffer,ace_name_buffer);
                 onm_tc_ace_hash_element_set_ace_priority(&updated_ace,0,DEFAULT_CHANGE_OPERATION);
                 onm_tc_ace_hash_element_set_ace_handle(&updated_ace,DEFAULT_TCM_HANDLE);
             }
@@ -753,7 +752,7 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
         }
 
         //update ace in events acls list
-        SRPC_SAFE_CALL_ERR(error, ace_element_update_from_lyd_node(updated_ace,node,change_ctx->operation),error_out);
+        SRPC_SAFE_CALL_ERR(error, ace_element_update_from_lyd_node(updated_ace,node,change_ctx->operation,acl_name_buffer),error_out);
         
         goto out;
     }
@@ -765,7 +764,7 @@ out:
 	return error;
 }
 
-int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const struct lyd_node * node, sr_change_oper_t change_operation) {
+int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const struct lyd_node * node, sr_change_oper_t change_operation, char * acl_name) {
     int error = 0;
     const char *node_name = LYD_NAME(node);
     const char *node_value = lyd_get_value(node);
@@ -777,8 +776,7 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
         return -1;
     }
     if (strcmp(node_name,"name") != 0){
-        //printf("ADD ACL DATA:\n\tNode Name: %s\n\tNode Value: %s\n\tParent Node Name: %s\n\tGrandParent Name: %s\n\tOperation: %d\n",node_name,node_value,parent_node_name,grand_parent_node_name,change_operation);
-        SRPLG_LOG_INF(PLUGIN_NAME, "Update change ACE %s element '%s' value %s, change operation %d.",updated_ace->ace.name,node_name,node_value,change_operation);
+     SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Update change ACE %s element '%s' value %s, change operation %d.",acl_name,updated_ace->ace.name,node_name,node_value,change_operation);
     }
 
     //L2 match
@@ -791,7 +789,6 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
     }
 
     if (strcmp(node_name,"destination-mac-address")==0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "Update change ACE %s, element '%s' value %s",updated_ace->ace.name,node_name,node_value);
         onm_tc_ace_hash_element_set_match_dst_mac_addr(&updated_ace, node_value,change_operation);
     }
 
@@ -805,7 +802,7 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
         if (ll_proto_a2n(&ether_type, node_value))
         {
             // TODO revise: currently this failure will set ethertype to ALL
-            SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to update ACE %s element '%s' value '%s'.",updated_ace->ace.name,node_name,node_value);
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] Failed to update ACE %s element '%s' value '%s'",acl_name,updated_ace->ace.name,node_name,node_value);
             return -1;
         }
         else
@@ -968,7 +965,7 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
     goto out;
 
 port_attr_error_out:
-    SRPLG_LOG_ERR(PLUGIN_NAME, "ACE '%s' Illegal port attributes (node name '%s', node value '%s')",updated_ace->ace.name,node_name,node_value);
+    SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] ACE '%s' Illegal port attributes (node name '%s', node value '%s')",acl_name,updated_ace->ace.name,node_name,node_value);
     
     return error;
 
@@ -978,7 +975,6 @@ error_out:
 out:
     return 0; // Update successful
 }
-
 
 void onm_tc_ace_hash_print_debug(const onm_tc_ace_element_t* ace_iter)
 {

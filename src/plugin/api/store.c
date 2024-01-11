@@ -44,35 +44,18 @@ int acls_store_api(onm_tc_ctx_t *ctx)
             int if_idx = rtnl_link_get_ifindex(link);
             LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
             {
-                
                 ingress_acl_name = acl_set_iter->acl_set.name;
                 unsigned int acl_id = acl_name2id(ingress_acl_name);
 
                 //  Add interface qdisc with shared tc block for the acl name
                 // TODO use safe sysrepo call
                 SRPLG_LOG_INF(PLUGIN_NAME, "Add ACL name %s ingress qdisc to interface %s",ingress_acl_name,interface_id);
-                tcnl_qdisc_modify_ingress_shared_block(nl_ctx,if_idx,acl_id);
-                
-
-                // check if shared block already exists:
-                /*if (tcnl_tc_block_exists(nl_ctx,acl_id) == true)
-                {
-                    // if yes, no further action needed.
-                    // TODO evalulate if we need to iterate through acl aces and compair netlink config vs sysrepo config
-                    SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d exists, no further action is needed",ingress_acl_name,acl_id);
-                }
-                else
-                {*/
-                    // if no, get ACL content and apply it on netlink
-                    //SRPLG_LOG_INF(PLUGIN_NAME, "NETLINK: ACL name %s ID %d needs to be configured in a new shared block",ingress_acl_name,acl_id);
+                tcnl_qdisc_modify(ctx,RTM_NEWQDISC,DEFAULT_QDISC_KIND,if_idx,acl_id,0,true);
                 error = tcnl_block_modify(ctx->running_acls_list, acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
                 
                 if (error < 0){
                     goto out;
                 }
-                    
-                //}
-                
             }
         }
         if (i->interface.egress.acl_sets.acl_set){
