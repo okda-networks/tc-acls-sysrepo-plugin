@@ -29,7 +29,6 @@ int get_u16(__u16 *val, const char *arg, int base)
 	*val = res;
 	return 0;
 }
-
 int get_be16(__be16 *val, const char *arg, int base)
 {
 	__u16 v;
@@ -40,7 +39,6 @@ int get_be16(__be16 *val, const char *arg, int base)
 
 	return ret;
 }
-
 int proto_a2n(unsigned short *id, const char *buf, const struct proto *proto_tb, size_t tb_len)
 {
 	int i;
@@ -55,13 +53,11 @@ int proto_a2n(unsigned short *id, const char *buf, const struct proto *proto_tb,
 
 	return 0;
 }
-
 int ll_proto_a2n(unsigned short *id, const char *buf)
 {
 	size_t len_tb = ARRAY_SIZE(llproto_names);
 	return proto_a2n(id, buf, llproto_names, len_tb);
 }
-
 int ll_addr_a2n(char *lladdr, int len, const char *lladdr_str)
 {
     int i;
@@ -90,7 +86,6 @@ int ll_addr_a2n(char *lladdr, int len, const char *lladdr_str)
     }
     return i + 1;
 }
-
 int ipv4_prefix_to_netmask(struct in_addr *netmask, int prefix_length) {
     if (netmask == NULL) {
         return -1;
@@ -102,7 +97,6 @@ int ipv4_prefix_to_netmask(struct in_addr *netmask, int prefix_length) {
     netmask->s_addr = htonl(prefix_length ? (0xFFFFFFFF << (32 - prefix_length)) : 0);
     return 0;
 }
-
 int ipv6_prefix_to_netmask(struct in6_addr *netmask, uint8_t prefix_length) {
     if (netmask == NULL) {
         return -1;

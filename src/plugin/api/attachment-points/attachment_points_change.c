@@ -13,28 +13,19 @@ int acls_attachment_points_change_interface_init(void *priv)
 	return error;
 }
 
-
-
 int apply_attachment_points_events_list_changes(void *priv)
 {
 	int ret = 0;
 	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
-	
 	onm_tc_nl_ctx_t* nl_ctx = &ctx->nl_ctx;
-
     // TODO free link and link_cache at the end of this function
     struct rtnl_link *link;
-    //struct nl_cache *link_cache;
-
     const onm_tc_aps_interface_hash_element_t *interface_element = NULL, *aps_tmp = NULL;
     onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
-
-
 
 	char* interface_id = NULL;
     char* ingress_acl_name = NULL;
     char* egress_acl_name = NULL;
-
 
     ret = rtnl_link_alloc_cache(nl_ctx->socket, AF_UNSPEC, &nl_ctx->link_cache);
 	if (ret < 0){
@@ -58,7 +49,7 @@ int apply_attachment_points_events_list_changes(void *priv)
 				switch (acl_set_iter->acl_set.name_change_op) {
 					struct nl_msg *msg;
 					case SR_OP_CREATED:
-						ret = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, "clsact", if_idx, acl_id,0,true);
+						ret = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						if (ret < 0) return ret;
 						if (!tcnl_block_exists(ctx,acl_id)){
 							ret = tcnl_block_modify(ctx->running_acls_list,acl_id,ctx,RTM_NEWTFILTER,NLM_F_CREATE);
@@ -73,7 +64,7 @@ int apply_attachment_points_events_list_changes(void *priv)
 					case SR_OP_MODIFIED:
 						break;
 					case SR_OP_DELETED:
-						ret = tcnl_qdisc_modify(ctx,RTM_DELQDISC, "clsact", if_idx, acl_id,0,true);
+						ret = tcnl_qdisc_modify(ctx,RTM_DELQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						if (ret<0) return ret;
 						break;
 					case SR_OP_MOVED:
