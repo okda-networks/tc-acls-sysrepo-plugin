@@ -569,62 +569,6 @@ static int rcv_is_filter_cb(struct nl_msg *msg, void *arg) {
     return NL_OK;
 }
 
-int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id){
-    // Allocate a new Netlink message
-    int ret = 0;
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d prepare netlink message",if_idx);
-    *msg = nlmsg_alloc_simple(request_type, flags);
-    if (!*msg) {
-        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d failed to allocate nlmsg memory",if_idx);
-        return -1;
-    }
-    struct tcmsg tcm = {0};
-    // Prepare tcmsg structure
-    tcm.tcm_family = AF_UNSPEC;
-    tcm.tcm_ifindex = if_idx;
-    tcm.tcm_info = 0;
-    tcm.tcm_handle = TC_H_MAKE(0xffff, 0);
-    tcm.tcm_parent = TC_H_CLSACT;
-    if (strcmp(qdisc_kind,"ingress")){
-        tcm.tcm_parent = TC_H_INGRESS;
-    }
-    ret = nlmsg_append(*msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
-    
-    nla_put(*msg,TCA_KIND,strlen(qdisc_kind)+1,qdisc_kind);
-    if (ingress_block_id != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set ingress block ID %d",if_idx,ingress_block_id);
-        ret = nla_put_s32(*msg,TCA_INGRESS_BLOCK,ingress_block_id);
-        if (ret < 0){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Failed to set ingress block ID %d",if_idx,ingress_block_id);
-            return ret;
-        }
-    }
-    if (egress_block_id != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set egress block ID %d",if_idx,egress_block_id);
-        ret = nla_put_s32(*msg,TCA_EGRESS_BLOCK,egress_block_id);
-        if (ret < 0){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set rgress block ID %d",if_idx,egress_block_id);
-            return ret;
-        }
-    }
-    return 0;
-}
-int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id, bool override){
-    struct nl_msg *msg;
-    int ret = 0;
-    unsigned int flags = 0;
-    if(request_type == RTM_NEWQDISC){
-        flags = NLM_F_CREATE | NLM_F_REPLACE | NLM_F_EXCL;
-    }
-    if(!override && request_type == RTM_NEWQDISC){
-        flags = NLM_F_CREATE;
-    }
-    ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
-    if (ret < 0) return ret;
-    ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
-    return ret;
-}
-
 int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
     if (!ace){
         SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ace is NULL");
@@ -964,8 +908,6 @@ int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id
     }
     return ret;
 }
-
-
 bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id){
     struct nl_msg *msg;
     struct tcmsg tcm = {0};
@@ -984,6 +926,62 @@ bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id){
     ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
     SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK %d] Block %s",acl_id, filter_exists ? "exists" : "does not exist");
     return filter_exists;
+}
+
+int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id){
+    // Allocate a new Netlink message
+    int ret = 0;
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d prepare netlink message",if_idx);
+    *msg = nlmsg_alloc_simple(request_type, flags);
+    if (!*msg) {
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d failed to allocate nlmsg memory",if_idx);
+        return -1;
+    }
+    struct tcmsg tcm = {0};
+    // Prepare tcmsg structure
+    tcm.tcm_family = AF_UNSPEC;
+    tcm.tcm_ifindex = if_idx;
+    tcm.tcm_info = 0;
+    tcm.tcm_handle = TC_H_MAKE(0xffff, 0);
+    tcm.tcm_parent = TC_H_CLSACT;
+    if (strcmp(qdisc_kind,"ingress")){
+        tcm.tcm_parent = TC_H_INGRESS;
+    }
+    ret = nlmsg_append(*msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
+    
+    nla_put(*msg,TCA_KIND,strlen(qdisc_kind)+1,qdisc_kind);
+    if (ingress_block_id != 0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set ingress block ID %d",if_idx,ingress_block_id);
+        ret = nla_put_s32(*msg,TCA_INGRESS_BLOCK,ingress_block_id);
+        if (ret < 0){
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Failed to set ingress block ID %d",if_idx,ingress_block_id);
+            return ret;
+        }
+    }
+    if (egress_block_id != 0){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set egress block ID %d",if_idx,egress_block_id);
+        ret = nla_put_s32(*msg,TCA_EGRESS_BLOCK,egress_block_id);
+        if (ret < 0){
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set rgress block ID %d",if_idx,egress_block_id);
+            return ret;
+        }
+    }
+    return 0;
+}
+int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id, bool override){
+    struct nl_msg *msg;
+    int ret = 0;
+    unsigned int flags = 0;
+    if(request_type == RTM_NEWQDISC){
+        flags = NLM_F_CREATE | NLM_F_REPLACE | NLM_F_EXCL;
+    }
+    if(!override && request_type == RTM_NEWQDISC){
+        flags = NLM_F_CREATE;
+    }
+    ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
+    if (ret < 0) return ret;
+    ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
+    return ret;
 }
 
 int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear){
