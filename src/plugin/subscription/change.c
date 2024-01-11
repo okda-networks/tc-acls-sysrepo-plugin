@@ -82,7 +82,6 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 		//onm_tc_acls_list_print_debug(ctx->running_acls_list);
 		// Done with the change, free the change acls list
 		if (&ctx->events_acls_list){
-			printf("free change ctx\n");
 			onm_tc_acls_list_hash_free(&ctx->events_acls_list);
 		}
 	}
@@ -196,7 +195,6 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 		SRPC_SAFE_CALL_ERR_COND(error, error < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/egress/acl-sets/acl-set/*", xpath), error_out);
 		error = srpc_iterate_changes(ctx, session, change_xpath_buffer, events_aps_hash_update_from_change_ctx, acls_attachment_points_change_interface_init, acls_attachment_points_change_interface_free);
 		
-		//onm_tc_aps_interface_hash_print_debug(ctx->events_attachment_points_list);
 
 		error = apply_attachment_points_events_list_changes(ctx);
 		if (error)

@@ -232,10 +232,10 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 
         LL_FOREACH(iter->acl.aces.ace, ace_iter){
 			if (!ace_iter->ace.name){
-				SRPLG_LOG_ERR(PLUGIN_NAME, "Bad ACE element");
+				SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] Validation failed, bad ACE element",iter->acl.name);
 				return -1;
 			}
-			SRPLG_LOG_INF(PLUGIN_NAME, "Validating ACE '%s' data, event change operation '%d'",
+			SRPLG_LOG_INF(PLUGIN_NAME, "[%s] Validating ACE '%s' data, event change operation '%d'",iter->acl.name,
 			ace_iter->ace.name, ace_iter->ace.name_change_op);
 			// ACE name event operation can only be SR_OP_CREATED or SR_OP_DELETED, only newely created aces don't need validation against running acls hash
 			if (ace_iter->ace.name_change_op == SR_OP_CREATED){
@@ -245,36 +245,36 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 			
 			// ace name not found in running acls list; should never meet this condition since skipping new aces validation
 			if (!running_ace){
-				SRPLG_LOG_ERR(PLUGIN_NAME, "Validation failed, modified ACE %s not found in ACL Name %s",ace_iter->ace.name, iter->acl.name);
+				SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] Validation failed, modified ACE %s not found in ACL Name %s",iter->acl.name,ace_iter->ace.name, iter->acl.name);
                 return -1;
 			}
             // ensure to set ace priority to match the running ace priority (SR_OP_MOVED will be handeld in a different function)
             //onm_tc_ace_hash_element_set_ace_priority(&ace_iter,running_ace->ace.priority,DEFAULT_CHANGE_OPERATION);
 
 			if(!ace_iter->ace.matches.eth.source_address && running_ace->ace.matches.eth.source_address){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' source mac address",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.source_address;
 				onm_tc_ace_hash_element_set_match_src_mac_addr(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.eth.source_address_mask && running_ace->ace.matches.eth.source_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source mac address mask", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' source mac address mask",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.source_address_mask;
 				onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 			if(!ace_iter->ace.matches.eth.destination_address && running_ace->ace.matches.eth.destination_address){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination mac address", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION]Update ACE '%s' destination mac address",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.destination_address;
 				onm_tc_ace_hash_element_set_match_dst_mac_addr(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.eth.destination_address_mask && running_ace->ace.matches.eth.destination_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination mac address mask", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' destination mac address mask",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.destination_address_mask;
 				onm_tc_ace_hash_element_set_match_dst_mac_addr_mask(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 
 			// TODO do more testing here
             if(ace_iter->ace.matches.eth.ethertype == 0 && running_ace->ace.matches.eth.ethertype !=0){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' ethertype", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' ethertype",iter->acl.name, ace_iter->ace.name);
 				uint16_t node_value = running_ace->ace.matches.eth.ethertype;
 				ace_iter->ace.matches.eth.ethertype = node_value;
 				ace_iter->ace.matches.eth.ethertype_change_op = DEFAULT_CHANGE_OPERATION;
@@ -282,28 +282,28 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 
 			// IPv4
             if(!ace_iter->ace.matches.ipv4.source_network && running_ace->ace.matches.ipv4.source_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source ipv4 network", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' source ipv4 network",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv4.source_network;
 				onm_tc_ace_hash_element_set_match_ipv4_src_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.ipv4.destination_network && running_ace->ace.matches.ipv4.destination_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination ipv4 network", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' destination ipv4 network",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv4.destination_network;
 				onm_tc_ace_hash_element_set_match_ipv4_dst_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 
 			// IPv6
             if(!ace_iter->ace.matches.ipv6.source_network && running_ace->ace.matches.ipv6.source_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' source ipv6 network", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' source ipv6 network",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv6.source_network;
 				onm_tc_ace_hash_element_set_match_ipv6_src_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
             if(!ace_iter->ace.matches.ipv6.destination_network && running_ace->ace.matches.ipv6.destination_network){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' destination ipv6 network", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' destination ipv6 network",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.ipv6.destination_network;
 				onm_tc_ace_hash_element_set_match_ipv6_dst_network(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
-
+            // TODO update logging and possible add if statement to only check if tcp or udp ports are set.
 			// port single, operator and range
 			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
 			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
@@ -312,7 +312,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 
 			// action forwarding
 			if(ace_iter->ace.actions.forwarding == FORWARD_NOOP){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' action forwarding", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' action forwarding",iter->acl.name, ace_iter->ace.name);
 				forwarding_action_t node_value = running_ace->ace.actions.forwarding;
 				ace_iter->ace.actions.forwarding = node_value;
 				ace_iter->ace.actions.forwarding_change_op = DEFAULT_CHANGE_OPERATION;
@@ -320,7 +320,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 
 			// action logging
             if(ace_iter->ace.actions.logging == LOG_NOOP && running_ace->ace.actions.logging != LOG_NOOP){
-                SRPLG_LOG_INF(PLUGIN_NAME, "Update ACE '%s' action logging", ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][]VALIDATION] Update ACE '%s' action logging",iter->acl.name, ace_iter->ace.name);
 				logging_action_t node_value = running_ace->ace.actions.logging;
 				ace_iter->ace.actions.logging = node_value;
 				ace_iter->ace.actions.forwarding_change_op = DEFAULT_CHANGE_OPERATION;

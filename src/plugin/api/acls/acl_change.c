@@ -20,9 +20,10 @@
 
 int reload_running_acls_list(onm_tc_ctx_t * ctx){
 	SRPLG_LOG_INF(PLUGIN_NAME, "Reloading running acls list from sysrepo");
-	onm_tc_acls_list_hash_free(&ctx->running_acls_list);
+	if (&ctx->running_acls_list){
+		onm_tc_acls_list_hash_free(&ctx->running_acls_list);
+	}
 	onm_tc_store(ctx,ctx->running_session,true,false,false);
-	printf("done reload\n");
 }
 
 int apply_events_acls_changes(onm_tc_ctx_t * ctx){
@@ -41,7 +42,7 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 		const unsigned int acl_id = iter->acl.acl_id;
 		switch (iter->acl.name_change_op) {
 			case SR_OP_CREATED:
-				// complete acl creation.
+				// complete acl creation
 				break;
 			case SR_OP_DELETED:
 				// complete acl deletion.

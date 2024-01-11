@@ -214,6 +214,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		}
 	}
 
+/*
 	// subscribe every rpc in running session
 	for (size_t i = 0; i < ARRAY_SIZE(rpcs); i++) {
 		const srpc_rpc_t *rpc = &rpcs[i];
@@ -241,7 +242,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			}
 		}
 	}
-
+*/
 	goto out;
 
 error_out:
