@@ -561,6 +561,7 @@ int ensure_ace_exists_in_acls_list(onm_tc_acl_hash_element_t** acl_hash, const c
 }
 
 int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx){
+    
     int error = 0;
     const struct lyd_node * node = change_ctx->node;
     const char *node_name = LYD_NAME(node);
@@ -572,16 +573,15 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
     char ace_name_buffer[100] = {0};
     onm_tc_acl_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_ace_element_t* ace_iter = NULL;
-    
     if (strcmp(node_name,"ace")==0){
         error = (lyd_path(change_ctx->node, LYD_PATH_STD, change_path, sizeof(change_path)) != NULL);
-        //printf("\n\nevent operation %d,previous list %s, on change path %s\n",change_ctx->operation,prev_list_name,change_path);
         srpc_extract_xpath_key_value(change_path, "acl", "name", acl_name_buffer, sizeof(acl_name_buffer));
         srpc_extract_xpath_key_value(change_path, "ace", "name", ace_name_buffer, sizeof(ace_name_buffer));
-        
+        SRPLG_LOG_INF(PLUGIN_NAME, "[%s][%s] Starting a new change event ACEs priority validation process", acl_name_buffer, ace_name_buffer);
         if (change_ctx->operation == SR_OP_CREATED || change_ctx->operation == SR_OP_MOVED || change_ctx->operation == SR_OP_DELETED){
             // copy all running acls list aces to events list.
             // iterate over running acls
+            SRPLG_LOG_INF(PLUGIN_NAME, "[PRIO VALIDATION] Copying running acls list to events acls list");
             HASH_ITER(hh, ctx->running_acls_list, iter, tmp)
             {
                 // if the running acl name matches change event acl name
@@ -597,8 +597,9 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                 }
             }
             // done copy
-
+            //onm_tc_acls_list_print_debug(ctx->running_acls_list);
             // iterate over events acls list to order them according to user order
+            SRPLG_LOG_INF(PLUGIN_NAME, "[PRIO VALIDATION] Reording aces in events list");
             HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
             {
                 // if the events acl name matches with change event acl name and its not a new acl
@@ -622,6 +623,10 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                                         LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
                                     }
                                     else {
+                                        if (ace_iter->next == event_ace){
+                                            SRPLG_LOG_ERR(PLUGIN_NAME, "[PRIO VALIDATION] Bad ACE moved event, trying to set ace %s next element to itself", event_ace->ace.name);
+                                            return -1;
+                                        }
                                         // set ace user order
                                         event_ace->next = ace_iter->next;
                                         ace_iter->next = event_ace; 
@@ -635,6 +640,10 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                                         LL_PREPEND(ctx->events_acls_list->acl.aces.ace,event_ace);
                                     }
                                     else {
+                                        if (ace_iter->next == event_ace){
+                                            SRPLG_LOG_ERR(PLUGIN_NAME, "[PRIO VALIDATION] Bad ACE moved event, trying to set ace %s next element to itself", event_ace->ace.name);
+                                            return -1;
+                                        }
                                         // set ace user order
                                         event_ace->next = ace_iter->next;
                                         ace_iter->next = event_ace;
@@ -646,6 +655,7 @@ int reorder_events_acls_aces_from_change_ctx(void *priv, sr_session_ctx_t *sessi
                 }
             }
 
+            SRPLG_LOG_INF(PLUGIN_NAME, "[PRIO VALIDATION] Setting events list aces priority values");
             // iterate again over events acls list to set new order priority
             uint16_t ace_prio_counter = 0;
             HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
@@ -673,6 +683,7 @@ int remove_unchanged_priority_aces_from_events_list(void *priv){
     onm_tc_ace_element_t* ace_iter = NULL;
     onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
     // iterate one last time to delete unchanged priority aces
+    SRPLG_LOG_INF(PLUGIN_NAME, "[PRIO VALIDATION] Removing unchanged priority aces from events list");
     HASH_ITER(hh, ctx->events_acls_list, iter, tmp)
     {
         LL_FOREACH(iter->acl.aces.ace, ace_iter){

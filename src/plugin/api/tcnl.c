@@ -991,7 +991,7 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
     int ret = 0;
     unsigned int flags = 0;
     if(request_type == RTM_NEWQDISC){
-        flags = NLM_F_CREATE | NLM_F_REPLACE | NLM_F_EXCL;
+        flags = NLM_F_CREATE | NLM_F_REPLACE ;
     }
     if(!override && request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE;
