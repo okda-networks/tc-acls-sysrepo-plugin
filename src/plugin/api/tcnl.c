@@ -343,7 +343,6 @@ static int tcnl_flower_put_port_and_operator(struct nl_msg *msg, __u8 ip_proto, 
 
         case PORT_EQUAL:
             ret = nla_put_s16(msg,port_key, port);
-            printf("set port eq %d\n",(int)port);
             if (ret < 0){
                 SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'eq', failed to set port number");
                 return ret;
@@ -650,7 +649,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
                 return ret;
             }
             if (ace->ace.matches.eth.source_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s]Match Source mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match Source mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                 ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_address_mask);
                 if(ret < 0){
                     SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Invalid MAC Address Mask format '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);

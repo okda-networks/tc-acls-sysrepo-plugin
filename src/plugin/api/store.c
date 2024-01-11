@@ -19,9 +19,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
     onm_tc_nl_ctx_t* nl_ctx = &ctx->nl_ctx;
 
-    // TODO free link and link_cache at the end of this function
-    struct rtnl_link *link;
-    //struct nl_cache *link_cache;
+    struct rtnl_link *link = NULL;
 
     const onm_tc_aps_interface_hash_element_t *i = NULL, *aps_tmp = NULL;
     onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
@@ -69,19 +67,14 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 error_out:
     error = -1;
 
-    //if (!element_added) {
-        //interfaces_interface_hash_element_free(&new_element);
-    //}
-
 out:
     // dealloc nl_ctx data
 
-    if (nl_ctx->socket != NULL) {
-        //nl_socket_free(nl_ctx->socket);
-    }
-
     if (nl_ctx->link_cache != NULL) {
         nl_cache_free(nl_ctx->link_cache);
+    }
+    if (link != NULL){
+        rtnl_link_put(link);
     }
 
     // address and neighbor caches should be freed by their functions (_load_address and _load_neighbor)

@@ -204,7 +204,6 @@ int onm_tc_ace_hash_element_set_action_forwarding(onm_tc_ace_element_t** el, con
 // TODO add action str to identity enum translation
 int onm_tc_ace_hash_element_set_action_logging(onm_tc_ace_element_t** el, const char* action, sr_change_oper_t change_operation)
 {
-    //TODO: fix data type
     /*
     if ((*el)->ace.actions.logging) {
         FREE_SAFE((*el)->ace.actions.logging);
@@ -411,7 +410,6 @@ onm_tc_ace_element_t* onm_tc_ace_hash_element_new(void)
 
 void onm_tc_ace_element_free(onm_tc_ace_element_t** el)
 {
-    //TODO fix this function to free all ACL and ACE elements
     if (*el) {
         // name
         if ((*el)->ace.name) {

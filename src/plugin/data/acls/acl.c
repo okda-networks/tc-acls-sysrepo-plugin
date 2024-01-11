@@ -140,11 +140,9 @@ void onm_tc_acl_element_hash_free(onm_tc_acl_hash_element_t** el)
             //free((*el)->acl.type);
         }
 
-        //attachment points TODO handeld on a seperate function
 
         // ace list
         // TODO add all ACE entries
-        // TODO fix data type
         if ((*el)->acl.aces.ace) {
             ONM_TC_ACL_LIST_FREE((*el)->acl.aces.ace);
         }
@@ -729,7 +727,6 @@ error_out:
 
 out:
     if (new_element) {
-        //TODO fix this function not cause a memeory leak, not all data are freed now
         onm_tc_acl_element_hash_free(&new_element);
     }
 

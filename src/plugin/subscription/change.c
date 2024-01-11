@@ -15,7 +15,6 @@
 #include "plugin/data/acls/acl.h"
 #include "plugin/data/acls/acl/aces.h"
 
-// TODO for debugging, remove later
 int change_path_print(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;

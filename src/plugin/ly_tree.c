@@ -15,7 +15,6 @@ int onm_tc_ly_tree_create_acls_attachment_points(const struct ly_ctx *ly_ctx, st
 
 int onm_tc_ly_tree_create_acls_attachment_points_interface(const struct ly_ctx *ly_ctx, struct lyd_node *attachment_points_node, struct lyd_node **interface_node, const char *interface_id)
 {
-    // TODO: fix this for multiple keys with SRPC library and review interface_id key
     return srpc_ly_tree_create_list(ly_ctx, attachment_points_node, interface_node, "interface", "name", interface_id);
 }
 
@@ -31,13 +30,11 @@ int onm_tc_ly_tree_create_acls_attachment_points_interface_egress_acl_sets(const
 
 int onm_tc_ly_tree_create_acls_attachment_points_interface_egress_acl_sets_acl_set(const struct ly_ctx *ly_ctx, struct lyd_node *acl_sets_node, struct lyd_node **acl_set_node, const char *name)
 {
-    // TODO: fix this for multiple keys with SRPC library
     return srpc_ly_tree_create_list(ly_ctx, acl_sets_node, acl_set_node, "acl-set", "name", name);
 }
 
 int onm_tc_ly_tree_create_acls_attachment_points_interface_egress_acl_sets_acl_set_ace_statistics(const struct ly_ctx *ly_ctx, struct lyd_node *acl_set_node, struct lyd_node **ace_statistics_node, const char *name)
 {
-    // TODO: fix this for multiple keys with SRPC library
     return srpc_ly_tree_create_list(ly_ctx, acl_set_node, ace_statistics_node, "ace-statistics", "name", name);
 }
 
@@ -73,13 +70,11 @@ int onm_tc_ly_tree_create_acls_attachment_points_interface_ingress_acl_sets(cons
 
 int onm_tc_ly_tree_create_acls_attachment_points_interface_ingress_acl_sets_acl_set(const struct ly_ctx *ly_ctx, struct lyd_node *acl_sets_node, struct lyd_node **acl_set_node, const char *name)
 {
-    // TODO: fix this for multiple keys with SRPC library
     return srpc_ly_tree_create_list(ly_ctx, acl_sets_node, acl_set_node, "acl-set", "name", name);
 }
 
 int onm_tc_ly_tree_create_acls_attachment_points_interface_ingress_acl_sets_acl_set_ace_statistics(const struct ly_ctx *ly_ctx, struct lyd_node *acl_set_node, struct lyd_node **ace_statistics_node, const char *name)
 {
-    // TODO: fix this for multiple keys with SRPC library
     return srpc_ly_tree_create_list(ly_ctx, acl_set_node, ace_statistics_node, "ace-statistics", "name", name);
 }
 
@@ -110,7 +105,6 @@ int onm_tc_ly_tree_create_acls_attachment_points_interface_interface_id(const st
 
 int onm_tc_ly_tree_create_acls_acl(const struct ly_ctx *ly_ctx, struct lyd_node *acls_node, struct lyd_node **acl_node, const char *name)
 {
-    // TODO: fix this for multiple keys with SRPC library
     return srpc_ly_tree_create_list(ly_ctx, acls_node, acl_node, "acl", "name", name);
 }
 
@@ -121,7 +115,6 @@ int onm_tc_ly_tree_create_acls_acl_aces(const struct ly_ctx *ly_ctx, struct lyd_
 
 int onm_tc_ly_tree_create_acls_acl_aces_ace(const struct ly_ctx *ly_ctx, struct lyd_node *aces_node, struct lyd_node **ace_node, const char *name)
 {
-    // TODO: fix this for multiple keys with SRPC library
     return srpc_ly_tree_create_list(ly_ctx, aces_node, ace_node, "ace", "name", name);
 }
 

@@ -47,7 +47,6 @@ typedef struct onm_tc_acl_hash_element onm_tc_acl_hash_element_t;
 typedef struct onm_tc_aps_interface_hash_element onm_tc_aps_interface_hash_element_t;
 
 
-//TODO Add more details to interface definition
 struct ietf_interface {
     char * name;
 };
@@ -278,7 +277,6 @@ struct onm_tc_aps_egress {
 };
 
 struct onm_tc_aps_interface {
-    //TODO review interface_id type (referes to interface name)
     char * interface_id;
     onm_tc_aps_ingress_t ingress;
     onm_tc_aps_egress_t egress;

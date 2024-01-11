@@ -19,7 +19,7 @@ int apply_attachment_points_events_list_changes(void *priv)
 	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *) priv;
 	onm_tc_nl_ctx_t* nl_ctx = &ctx->nl_ctx;
     // TODO free link and link_cache at the end of this function
-    struct rtnl_link *link;
+    struct rtnl_link * link = NULL;
     const onm_tc_aps_interface_hash_element_t *interface_element = NULL, *aps_tmp = NULL;
     onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
 
@@ -76,8 +76,20 @@ int apply_attachment_points_events_list_changes(void *priv)
 	
 	goto out;
 error_out:
+	if (link != NULL){
+		rtnl_link_put(link);
+	}
+	if (nl_ctx->link_cache != NULL) {
+        nl_cache_free(nl_ctx->link_cache);
+    }
 	return -1;
 out:
+	if (link != NULL){
+		rtnl_link_put(link);
+	}
+	if (nl_ctx->link_cache != NULL) {
+        nl_cache_free(nl_ctx->link_cache);
+    }
 	return 0;
 }
 
