@@ -65,8 +65,8 @@ unsigned int acl_name2id(const char *str) {
     return hash;
 }
 
-int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name, sr_change_oper_t change_operation)
-{
+int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name, sr_change_oper_t change_operation){
+    if (strchr(name, '\n') != NULL) return -1;
     if ((*el)->acl.name) {
         FREE_SAFE((*el)->acl.name);
     }

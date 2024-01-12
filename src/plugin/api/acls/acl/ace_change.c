@@ -15,7 +15,8 @@ bool is_change_op_in_set(int change_op, const int change_op_set[], size_t set_si
 }
 
 onm_tc_ace_element_t* extract_ace_elements_with_change_ops(const onm_tc_ace_element_t* ace, const int change_op_set[], size_t set_size) {
-    if (ace == NULL || set_size == 0) {
+    int error = 0;
+	if (ace == NULL || set_size == 0) {
         return NULL;
     }
 
@@ -154,7 +155,8 @@ onm_tc_ace_element_t* extract_ace_elements_with_change_ops(const onm_tc_ace_elem
 
 	if (is_updated){
 		SRPLG_LOG_INF(PLUGIN_NAME, "Change event extract change operation set success, ACE name %s, Priority %d",ace->ace.name,ace->ace.priority);
-		onm_tc_ace_hash_element_set_ace_name(&ret_ace,ace->ace.name, ace->ace.name_change_op);
+		error = onm_tc_ace_hash_element_set_ace_name(&ret_ace,ace->ace.name, ace->ace.name_change_op);
+		if (error) return NULL;
 		onm_tc_ace_hash_element_set_ace_priority(&ret_ace,ace->ace.priority, ace->ace.prio_change_op);
 		onm_tc_ace_hash_element_set_ace_handle(&ret_ace,ace->ace.handle);
 	}
