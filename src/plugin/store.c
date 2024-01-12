@@ -17,7 +17,7 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, 
 
 	error = sr_get_subtree(session, ONM_TC_ACLS_CONTAINER_YANG_PATH, 0, &subtree);
 	if (error) {
-		SRPLG_LOG_ERR(PLUGIN_NAME, "sr_get_subtree() error (%d): %s", error, sr_strerror(error));
+		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to get subtree of ACLs container from sysrepo, error (%d): %s", error, sr_strerror(error));
 		goto error_out;
 	}
 
@@ -64,12 +64,13 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, 
 
 	if (run_api){
 		// apply to netlink through api store function.
-		acls_store_api(ctx);
+		error = acls_store_api(ctx);
+		if (error < 0) return error;
 	}
 	goto out;
 
 error_out:
-	error = -1;
+	error = error;
 
 out:
 	if (subtree) {
@@ -91,8 +92,8 @@ static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *par
 	aps_container_node = srpc_ly_tree_get_child_container(parent_container, "attachment-points");
     aps_interface_list_node = srpc_ly_tree_get_child_list(aps_container_node, "interface");
     if (aps_interface_list_node == NULL) {
-        SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_get_child_leaf returned NULL for 'attachment-points/interface'");
-        goto error_out;
+        SRPLG_LOG_INF(PLUGIN_NAME, "No attachment point configuration to be applied");
+        goto out;
     }
 
     // map libyang data to the interfaces hash
@@ -122,12 +123,13 @@ static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
 
     acl_node = srpc_ly_tree_get_child_list(parent_container, "acl");
     if (acl_node == NULL) {
-        SRPLG_LOG_ERR(PLUGIN_NAME, "srpc_ly_tree_get_child_leaf returned NULL for 'acls'");
-        goto error_out;
+        SRPLG_LOG_INF(PLUGIN_NAME, "No ACLs configuration to be applied");
+        goto out;
     }
 
     // map libyang data to the acl hash
-    SRPC_SAFE_CALL_ERR(error, onm_tc_acls_list_from_ly(&acl_hash, acl_node), error_out);
+    error =  onm_tc_acls_list_from_ly(&acl_hash, acl_node);
+	if (error) goto error_out;
 
     //onm_tc_acls_list_print_debug(acl_hash);
 
@@ -142,7 +144,7 @@ static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
     goto out;
 
 error_out:
-    error = -1;
+    return error;
 
 out:
 	return error;

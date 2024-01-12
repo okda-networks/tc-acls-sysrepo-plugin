@@ -386,8 +386,14 @@ static int tcnl_flower_parse_tcp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
                     ace->ace.matches.tcp.source_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.tcp.source_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.tcp.source_port.upper_port);
-        ret = tcnl_flower_put_port_range(msg, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
-        if (ret) return ret;
+        if (lower_port == upper_port){
+            ret = tcnl_flower_put_port_and_operator (msg, IPPROTO_TCP, lower_port, TCA_FLOWER_KEY_TCP_SRC,TCA_FLOWER_KEY_TCP_SRC_MASK,TCA_FLOWER_KEY_PORT_SRC_MIN,TCA_FLOWER_KEY_PORT_SRC_MAX, PORT_EQUAL);
+            if (ret) return ret;
+        }
+        else{
+            ret = tcnl_flower_put_port_range(msg, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+            if (ret) return ret;
+        }
     }
 
     // Handle TCP destination port
@@ -412,8 +418,14 @@ static int tcnl_flower_parse_tcp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
             ace->ace.matches.tcp.destination_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.tcp.destination_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.tcp.destination_port.upper_port);
-        ret = tcnl_flower_put_port_range(msg, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
-        if (ret) return ret;
+        if (lower_port == upper_port){
+            ret = tcnl_flower_put_port_and_operator(msg, IPPROTO_TCP, lower_port, TCA_FLOWER_KEY_TCP_DST, TCA_FLOWER_KEY_TCP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, PORT_EQUAL);
+            if (ret) return ret;
+        }
+        else {
+            ret = tcnl_flower_put_port_range(msg, IPPROTO_TCP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
+            if (ret) return ret;
+        }
     }
 
     return ret;
@@ -442,8 +454,14 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
         ace->ace.matches.udp.source_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.udp.source_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.udp.source_port.upper_port);
-        ret = tcnl_flower_put_port_range(msg, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
-        if (ret) return ret;
+        if (lower_port == upper_port){
+            ret = tcnl_flower_put_port_and_operator(msg, IPPROTO_UDP, lower_port, TCA_FLOWER_KEY_UDP_SRC, TCA_FLOWER_KEY_UDP_SRC_MASK,TCA_FLOWER_KEY_PORT_SRC_MIN,TCA_FLOWER_KEY_PORT_SRC_MAX, PORT_EQUAL);
+            if (ret) return ret;
+        }
+        else {
+            ret = tcnl_flower_put_port_range(msg, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_SRC_MIN, TCA_FLOWER_KEY_PORT_SRC_MAX);
+            if (ret) return ret;
+        }  
     }
 
     // Handle UDP destination port
@@ -467,8 +485,14 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
             ace->ace.matches.udp.destination_port.port_operator);
         __be16 lower_port = htons(ace->ace.matches.udp.destination_port.lower_port);
         __be16 upper_port = htons(ace->ace.matches.udp.destination_port.upper_port);
-        ret = tcnl_flower_put_port_range(msg, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
-        if (ret) return ret;
+        if (lower_port == upper_port){
+            ret = tcnl_flower_put_port_and_operator(msg, IPPROTO_UDP, lower_port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, PORT_EQUAL);
+            if (ret) return ret;
+        }
+        else {
+            ret = tcnl_flower_put_port_range(msg, IPPROTO_UDP, lower_port, upper_port, TCA_FLOWER_KEY_PORT_DST_MIN, TCA_FLOWER_KEY_PORT_DST_MAX);
+            if (ret) return ret;
+        }
     }
 
     return ret;
@@ -625,7 +649,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
                 return ret;
             }
             if (ace->ace.matches.eth.source_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s]Match Source mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match Source mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                 ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_address_mask);
                 if(ret < 0){
                     SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Invalid MAC Address Mask format '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
@@ -967,7 +991,7 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
     int ret = 0;
     unsigned int flags = 0;
     if(request_type == RTM_NEWQDISC){
-        flags = NLM_F_CREATE | NLM_F_REPLACE | NLM_F_EXCL;
+        flags = NLM_F_CREATE | NLM_F_REPLACE ;
     }
     if(!override && request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE;

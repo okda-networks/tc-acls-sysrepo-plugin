@@ -306,7 +306,6 @@ error_out:
 
 out:
     if (new_element) {
-        //TODO fix this function not cause a memeory leak, not all data are freed now
         onm_tc_aps_interface_hash_element_free(&new_element);
     }
 
