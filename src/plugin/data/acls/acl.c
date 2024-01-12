@@ -66,7 +66,10 @@ unsigned int acl_name2id(const char *str) {
 }
 
 int onm_tc_acl_hash_element_set_name(onm_tc_acl_hash_element_t** el, const char* name, sr_change_oper_t change_operation){
-    if (strchr(name, '\n') != NULL) return -1;
+    if (strchr(name, '\n') != NULL){
+        SRPLG_LOG_ERR(PLUGIN_NAME, "Bad ACL name %s",name);
+        return -1;
+    }
     if ((*el)->acl.name) {
         FREE_SAFE((*el)->acl.name);
     }
@@ -368,7 +371,8 @@ int onm_tc_acl_element_from_ly(onm_tc_acl_hash_element_t** acl_hash_element, con
 
     //set data
     if (acl_name_node){
-        SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(acl_hash_element, lyd_get_value(acl_name_node),DEFAULT_CHANGE_OPERATION), error_out);  
+        error = onm_tc_acl_hash_element_set_name(acl_hash_element, lyd_get_value(acl_name_node),DEFAULT_CHANGE_OPERATION);
+        if (error) goto error_out; 
     }
     if (acl_type_node){
         SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_type(acl_hash_element, lyd_get_value(acl_type_node),DEFAULT_CHANGE_OPERATION), error_out);
@@ -392,7 +396,8 @@ int onm_tc_acl_element_from_ly(onm_tc_acl_hash_element_t** acl_hash_element, con
             //parse ace data
             if (ace_name_node){
                 ace_prio_counter +=10;
-                SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_name(&new_ace_element, lyd_get_value(ace_name_node),DEFAULT_CHANGE_OPERATION), error_out);
+                error = onm_tc_ace_hash_element_set_ace_name(&new_ace_element, lyd_get_value(ace_name_node),DEFAULT_CHANGE_OPERATION);
+                if (error) goto error_out;
                 SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_priority(&new_ace_element, ace_prio_counter , DEFAULT_CHANGE_OPERATION), error_out);
                 SRPC_SAFE_CALL_ERR(error, onm_tc_ace_hash_element_set_ace_handle(&new_ace_element, DEFAULT_TCM_HANDLE), error_out);
                 ace_name_node = NULL;
@@ -710,9 +715,11 @@ int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct 
         // create new element
         new_element = onm_tc_acl_hash_element_new();
 
-        onm_tc_acl_element_from_ly(&new_element,acl_iter);
+        error = onm_tc_acl_element_from_ly(&new_element,acl_iter);
+        if (error) return error;
         // add acl element to acls list
         error = onm_tc_acls_hash_add_acl_element(acl_hash, new_element);
+        if (error) return error;
 
         // set to NULL
         new_element = NULL;

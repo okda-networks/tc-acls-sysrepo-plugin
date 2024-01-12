@@ -18,7 +18,10 @@
 
 int onm_tc_ace_hash_element_set_ace_name(onm_tc_ace_element_t** el, const char* name, sr_change_oper_t change_operation)
 {
-    if (strchr(name, '\n') != NULL) return -1;
+    if (strchr(name, '\n') != NULL){
+        SRPLG_LOG_ERR(PLUGIN_NAME, "Bad ACE name %s",name);
+        return -1;
+    }
     if ((*el)->ace.name) {
         FREE_SAFE((*el)->ace.name);
     }

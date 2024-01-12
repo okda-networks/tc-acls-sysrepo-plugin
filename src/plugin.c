@@ -180,9 +180,9 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			}
 			// successfully applied startup config on netlink tc
 			// copy contents of the startup ds to running ds
-			//error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
+			error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
 			if (error) {
-				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
+				SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to copy startup config into running config, error (%d): %s", error, sr_strerror(error));
 				goto error_out;
 			}
 		}

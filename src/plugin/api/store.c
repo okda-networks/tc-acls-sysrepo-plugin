@@ -65,7 +65,14 @@ int acls_store_api(onm_tc_ctx_t *ctx)
     }
 
 error_out:
-    error = -1;
+    if (nl_ctx->link_cache != NULL) {
+        nl_cache_free(nl_ctx->link_cache);
+    }
+    if (link != NULL){
+        rtnl_link_put(link);
+    }
+
+    return error;
 
 out:
     // dealloc nl_ctx data
