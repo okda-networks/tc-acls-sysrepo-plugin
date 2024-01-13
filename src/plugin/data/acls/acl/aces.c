@@ -767,8 +767,8 @@ int events_acls_hash_update_ace_element_from_change_ctx(void *priv, sr_session_c
         }
 
         //update ace in events acls list
-        SRPC_SAFE_CALL_ERR(error, ace_element_update_from_lyd_node(updated_ace,node,change_ctx->operation,acl_name_buffer),error_out);
-        
+        error = ace_element_update_from_lyd_node(updated_ace,node,change_ctx->operation,acl_name_buffer);
+        if (error) goto error_out;
         goto out;
     }
 
@@ -852,28 +852,42 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     uint16_t port = updated_ace->ace.matches.tcp.source_port.port;
                     port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
+                    error = port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr,change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name,"port")==0){ // tcp source port, single port value
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
+                    error = port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = set_ace_port_single(updated_ace, port_attr,change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name,"lower-port")==0 ){ // tcp source port, port range
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
-                    //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr,change_operation);
+                    error = port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = set_ace_port_range_lower_port(updated_ace, port_attr,change_operation);
                     free(port_attr);
                 }
                 
                 if (strcmp(node_name,"upper-port")==0){ // tcp source port, port range
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP), port_attr_error_out);
-                    //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr,change_operation);
+                    error = port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP,PORT_ATTR_SRC,PORT_ATTR_PROTO_TCP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = set_ace_port_range_upper_port(updated_ace, port_attr,change_operation);
                     free(port_attr); 
                 }
@@ -881,28 +895,42 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
             else if (strcmp(grand_parent_node_name, "udp") == 0) {
                 if (strcmp(node_name, "port") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP,PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
+                    error = port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP,PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = set_ace_port_single(updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name, "operator") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                     port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr,PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
+                    error = port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr,PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name, "lower-port") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP,PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
-                    //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
+                    error = port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP,PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = set_ace_port_range_lower_port(updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
                 if (strcmp(node_name, "upper-port") == 0) {
                     onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                    SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP), port_attr_error_out);
-                    //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
+                    error = port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP, PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+                    if (error) {
+                        free(port_attr);
+                        goto port_attr_error_out;
+                    }
                     error = set_ace_port_range_upper_port(updated_ace, port_attr, change_operation);
                     free(port_attr);
                 }
@@ -913,27 +941,41 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
             if (strcmp(node_name, "operator") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                 port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr,  PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
+                error = port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr,  PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
+                error = port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = set_ace_port_single(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "lower-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP,  PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
-                //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
+                error = port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP,  PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = set_ace_port_range_lower_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "upper-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP), port_attr_error_out);
-                //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
+                error = port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = set_ace_port_range_upper_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
@@ -941,7 +983,11 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
         else if (strcmp(grand_parent_node_name, "udp") == 0) {
             if (strcmp(node_name, "port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP), port_attr_error_out);
+                error = port_str_to_port_attr(port_attr,NULL,NULL,node_value,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = set_ace_port_single(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
@@ -949,20 +995,30 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
                 port_operator_t port_opr = onm_tc_ace_port_oper_a2i(node_value);
                 error = port_str_to_port_attr(port_attr,NULL,NULL,NULL,port_opr, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "lower-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP), port_attr_error_out);
-                //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
+                error = port_str_to_port_attr(port_attr,node_value,NULL,NULL,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = set_ace_port_range_lower_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
             if (strcmp(node_name, "upper-port") == 0) {
                 onm_tc_port_attributes_t *port_attr = malloc(sizeof(onm_tc_port_attributes_t));
-                SRPC_SAFE_CALL_ERR(error, port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP), port_attr_error_out);
-                //error = onm_tc_ace_hash_element_set_match_port_operator(&updated_ace, port_attr, change_operation);
+                error = port_str_to_port_attr(port_attr,NULL,node_value,NULL,PORT_NOOP, PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+                if (error) {
+                    free(port_attr);
+                    goto port_attr_error_out;
+                }
                 error = set_ace_port_range_upper_port(updated_ace, port_attr, change_operation);
                 free(port_attr);
             }
@@ -981,7 +1037,6 @@ int ace_element_update_from_lyd_node(onm_tc_ace_element_t* updated_ace,const str
 
 port_attr_error_out:
     SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] ACE '%s' Illegal port attributes (node name '%s', node value '%s')",acl_name,updated_ace->ace.name,node_name,node_value);
-    
     return error;
 
 error_out:

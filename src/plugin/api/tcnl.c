@@ -202,7 +202,8 @@ static int tcnl_flower_parse_ip_addr(char *str, __be16 eth_type,int addr4_type, 
 //TODO this function is NOT correct
 __be16 generate_neq_mask(__be16 port_be) {
     uint16_t port = ntohs(port_be);
-    uint16_t mask = ~port;
+    uint16_t mask = ntohs(MIN_PORT_NUMBER) ^ ~port;
+    mask = mask ^ ~(ntohs(MAX_PORT_NUMBER));
     return htons(mask); 
 }
 static int tcnl_flower_put_port_range(struct nl_msg *msg, __u8 ip_proto, __be16 lower_port, __be16 upper_port, int port_min_key, int port_max_key) {
@@ -307,37 +308,30 @@ static int tcnl_flower_put_port_and_operator(struct nl_msg *msg, __u8 ip_proto, 
             port_lower = htons(MIN_PORT_NUMBER);
             port_middle = port;
             port_upper = htons(MAX_PORT_NUMBER);
-            if (ntohs(port_middle) < MIN_PORT_NUMBER || ntohs(port_middle) > MAX_PORT_NUMBER){
-                ret = tcnl_flower_put_port_range(msg,ip_proto,port_lower,port_upper,range_min_key, range_max_key);
+            if (ntohs(port_middle) > MIN_PORT_NUMBER && ntohs(port_middle) < MAX_PORT_NUMBER){
+                __be16 mask = generate_neq_mask(port);
+                ret = nla_put_s16(msg,port_key,port);
                 if (ret < 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port number");
                     return ret;
-                }
-                break;
-            } else if (ntohs(port_middle) == ntohs(port_lower))
-            {
+                    }
+                ret = nla_put_s16(msg,port_mask_key, mask);
+                if (ret < 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port mask");
+                    return ret;
+                    }
+            }
+            else if (ntohs(port_middle) == ntohs(port_lower)){
                 ret = tcnl_flower_put_port_range(msg,ip_proto,ntohs(ntohs(port_middle)+1),port_upper,range_min_key, range_max_key);
                 if (ret < 0){
                     return ret;
                 }
-                break;
-            } else if (ntohs(port_middle) == ntohs(port_upper))
-            {
+            }
+            else if (ntohs(port_middle) == ntohs(port_upper)){
                 ret = tcnl_flower_put_port_range(msg,ip_proto,port_lower,htons(ntohs(port_middle)-1),range_min_key, range_max_key);
                 if (ret < 0){
                     return ret;
                 }
-                break;
-            }
-            __be16 mask = generate_neq_mask(port);
-            ret = nla_put_s16(msg,port_key,port);
-            if (ret < 0){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port number");
-                return ret;
-            }
-            ret = nla_put_s16(msg,port_mask_key, mask);
-            if (ret < 0){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port mask");
-                return ret;
             }
             break;
 
