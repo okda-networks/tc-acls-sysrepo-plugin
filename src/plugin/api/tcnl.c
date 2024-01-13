@@ -974,7 +974,7 @@ int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags
         SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set egress block ID %d",if_idx,egress_block_id);
         ret = nla_put_s32(*msg,TCA_EGRESS_BLOCK,egress_block_id);
         if (ret < 0){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set rgress block ID %d",if_idx,egress_block_id);
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set egress block ID %d",if_idx,egress_block_id);
             return ret;
         }
     }
@@ -986,12 +986,18 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
     unsigned int flags = 0;
     if(request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE | NLM_F_REPLACE ;
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d",qdisc_kind,if_idx);
     }
     if(!override && request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE;
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d",qdisc_kind,if_idx);
+    }
+    if (request_type == RTM_DELQDISC){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Delete %s qdisc on interface %d",qdisc_kind,if_idx);
     }
     ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
     if (ret < 0) return ret;
+    
     ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
     return ret;
 }

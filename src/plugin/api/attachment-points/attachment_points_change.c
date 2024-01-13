@@ -49,6 +49,7 @@ int apply_attachment_points_events_list_changes(void *priv)
 				switch (acl_set_iter->acl_set.name_change_op) {
 					struct nl_msg *msg;
 					case SR_OP_CREATED:
+						ret = tcnl_qdisc_modify(ctx,RTM_DELQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						ret = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						if (ret < 0) return ret;
 						if (!tcnl_block_exists(ctx,acl_id)){
