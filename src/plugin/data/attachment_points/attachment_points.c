@@ -316,22 +316,22 @@ void onm_tc_aps_interface_hash_print_debug(const onm_tc_aps_interface_hash_eleme
 {
     const onm_tc_aps_interface_hash_element_t *iter = NULL, *tmp = NULL;
     onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
-    SRPLG_LOG_INF(PLUGIN_NAME, "+ attachment-points: ");
+    SRPLG_LOG_DBG(PLUGIN_NAME, "+ attachment-points: ");
     HASH_ITER(hh, aps_interface_hash, iter, tmp)
     {
-        SRPLG_LOG_INF(PLUGIN_NAME, "| \t+ interface %s: ", iter->interface.interface_id);
-        SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\tinterface-id = %s", iter->interface.interface_id);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "| \t+ interface %s: ", iter->interface.interface_id);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\tinterface-id = %s", iter->interface.interface_id);
 
         if (iter->interface.ingress.acl_sets.acl_set){
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+ingress:");
+            SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t+ingress:");
             LL_FOREACH(iter->interface.ingress.acl_sets.acl_set, acl_set_iter){
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s (change operation %d)", acl_set_iter->acl_set.name, acl_set_iter->acl_set.name_change_op);
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s (change operation %d)", acl_set_iter->acl_set.name, acl_set_iter->acl_set.name_change_op);
             }
         }
         if (iter->interface.egress.acl_sets.acl_set){
-            SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t+egress:");
+            SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t+egress:");
             LL_FOREACH(iter->interface.egress.acl_sets.acl_set, acl_set_iter){
-                SRPLG_LOG_INF(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s (change operation %d)", acl_set_iter->acl_set.name,acl_set_iter->acl_set.name_change_op);
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|---- ACL Name: %s (change operation %d)", acl_set_iter->acl_set.name,acl_set_iter->acl_set.name_change_op);
             }
         }
 

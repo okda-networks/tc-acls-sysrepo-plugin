@@ -202,7 +202,8 @@ static int tcnl_flower_parse_ip_addr(char *str, __be16 eth_type,int addr4_type, 
 //TODO this function is NOT correct
 __be16 generate_neq_mask(__be16 port_be) {
     uint16_t port = ntohs(port_be);
-    uint16_t mask = ~port;
+    uint16_t mask = ntohs(MIN_PORT_NUMBER) ^ ~port;
+    mask = mask ^ ~(ntohs(MAX_PORT_NUMBER));
     return htons(mask); 
 }
 static int tcnl_flower_put_port_range(struct nl_msg *msg, __u8 ip_proto, __be16 lower_port, __be16 upper_port, int port_min_key, int port_max_key) {
@@ -307,37 +308,30 @@ static int tcnl_flower_put_port_and_operator(struct nl_msg *msg, __u8 ip_proto, 
             port_lower = htons(MIN_PORT_NUMBER);
             port_middle = port;
             port_upper = htons(MAX_PORT_NUMBER);
-            if (ntohs(port_middle) < MIN_PORT_NUMBER || ntohs(port_middle) > MAX_PORT_NUMBER){
-                ret = tcnl_flower_put_port_range(msg,ip_proto,port_lower,port_upper,range_min_key, range_max_key);
+            if (ntohs(port_middle) > MIN_PORT_NUMBER && ntohs(port_middle) < MAX_PORT_NUMBER){
+                __be16 mask = generate_neq_mask(port);
+                ret = nla_put_s16(msg,port_key,port);
                 if (ret < 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port number");
                     return ret;
-                }
-                break;
-            } else if (ntohs(port_middle) == ntohs(port_lower))
-            {
+                    }
+                ret = nla_put_s16(msg,port_mask_key, mask);
+                if (ret < 0){
+                    SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port mask");
+                    return ret;
+                    }
+            }
+            else if (ntohs(port_middle) == ntohs(port_lower)){
                 ret = tcnl_flower_put_port_range(msg,ip_proto,ntohs(ntohs(port_middle)+1),port_upper,range_min_key, range_max_key);
                 if (ret < 0){
                     return ret;
                 }
-                break;
-            } else if (ntohs(port_middle) == ntohs(port_upper))
-            {
+            }
+            else if (ntohs(port_middle) == ntohs(port_upper)){
                 ret = tcnl_flower_put_port_range(msg,ip_proto,port_lower,htons(ntohs(port_middle)-1),range_min_key, range_max_key);
                 if (ret < 0){
                     return ret;
                 }
-                break;
-            }
-            __be16 mask = generate_neq_mask(port);
-            ret = nla_put_s16(msg,port_key,port);
-            if (ret < 0){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port number");
-                return ret;
-            }
-            ret = nla_put_s16(msg,port_mask_key, mask);
-            if (ret < 0){
-                SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] port 'neq', failed to set port mask");
-                return ret;
             }
             break;
 
@@ -361,7 +355,7 @@ static int tcnl_flower_parse_tcp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
     // Handle TCP source port
     if (ace->ace.matches.tcp.source_port.port_operator != PORT_NOOP) {
         __be16 port = htons(ace->ace.matches.tcp.source_port.port);
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Source Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Source Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
                     ace->ace.name,
                     ace->ace.matches.tcp.source_port.port,
                     ace->ace.matches.tcp.source_port.lower_port, 
@@ -378,7 +372,7 @@ static int tcnl_flower_parse_tcp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
         if (ret) return ret;
     }
     else if (ace->ace.matches.tcp.source_port.lower_port != 0 && ace->ace.matches.tcp.source_port.upper_port !=0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Source Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Source Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
                     ace->ace.name,
                     ace->ace.matches.tcp.source_port.port,
                     ace->ace.matches.tcp.source_port.lower_port, 
@@ -398,7 +392,7 @@ static int tcnl_flower_parse_tcp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
 
     // Handle TCP destination port
     if (ace->ace.matches.tcp.destination_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Destination Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Destination Single Port (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.tcp.destination_port.port,
             ace->ace.matches.tcp.destination_port.lower_port, 
@@ -410,7 +404,7 @@ static int tcnl_flower_parse_tcp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
         if (ret) return ret;
     } 
     else if (ace->ace.matches.tcp.destination_port.lower_port != 0 && ace->ace.matches.tcp.destination_port.upper_port != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Destination Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match TCP Destination Port Range (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.tcp.destination_port.port,
             ace->ace.matches.tcp.destination_port.lower_port, 
@@ -434,7 +428,7 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
     int ret = 0;
     // Handle UDP source port
     if (ace->ace.matches.udp.source_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
         ace->ace.name,
         ace->ace.matches.udp.source_port.port,
         ace->ace.matches.udp.source_port.lower_port, 
@@ -446,7 +440,7 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
         if (ret) return ret;
     }
     else if (ace->ace.matches.udp.source_port.lower_port != 0 && ace->ace.matches.udp.source_port.upper_port !=0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Source Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
         ace->ace.name,
         ace->ace.matches.udp.source_port.port,
         ace->ace.matches.udp.source_port.lower_port, 
@@ -466,7 +460,7 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
 
     // Handle UDP destination port
     if (ace->ace.matches.udp.destination_port.port_operator != PORT_NOOP) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.udp.destination_port.port,
             ace->ace.matches.udp.destination_port.lower_port, 
@@ -477,7 +471,7 @@ static int tcnl_flower_parse_udp_ports(struct nl_msg *msg, onm_tc_ace_element_t 
         ret = tcnl_flower_put_port_and_operator(msg, IPPROTO_UDP, port, TCA_FLOWER_KEY_UDP_DST, TCA_FLOWER_KEY_UDP_DST_MASK,TCA_FLOWER_KEY_PORT_DST_MIN,TCA_FLOWER_KEY_PORT_DST_MAX, ace->ace.matches.udp.destination_port.port_operator);
         if (ret) return ret;
     } else if (ace->ace.matches.udp.destination_port.lower_port != 0 && ace->ace.matches.udp.destination_port.upper_port != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s Match UDP Destination Port/Range (port %d, lower_port %d, upper_port %d, operator %d)", 
             ace->ace.name,
             ace->ace.matches.udp.destination_port.port,
             ace->ace.matches.udp.destination_port.lower_port, 
@@ -580,7 +574,7 @@ static int nl_msg_recv_cb(struct nl_msg *msg, void *arg) {
 bool filter_exists = false;
 static int rcv_is_filter_cb(struct nl_msg *msg, void *arg) {
     struct nlmsghdr *nlh = nlmsg_hdr(msg);
-    //SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Received message type: %d",nlh->nlmsg_type);
+    //SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Received message type: %d",nlh->nlmsg_type);
     if (nlh->nlmsg_type==RTM_NEWTFILTER){
         filter_exists = true;
     }
@@ -589,11 +583,11 @@ static int rcv_is_filter_cb(struct nl_msg *msg, void *arg) {
 
 int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
     if (!ace){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ace is NULL");
+        SRPLG_LOG_WRN(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ace is NULL");
         return -1;
     }
     int ret = 0;
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s",ace->ace.name);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS] ACE Name %s",ace->ace.name);
     struct nlmsghdr *nlhdr = nlmsg_hdr(*msg);
     
     if (!nlhdr) {
@@ -631,11 +625,11 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
     }
     else {
         // TODO review this
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] EtherType is set to 'ALL'",ace->ace.name);
+        SRPLG_LOG_WRN(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] EtherType is set to 'ALL'",ace->ace.name);
     }
 
     if(ace->ace.matches.eth.source_address){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match source mac address '%s'",ace->ace.name, ace->ace.matches.eth.source_address);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match source mac address '%s'",ace->ace.name, ace->ace.matches.eth.source_address);
         char addr[ETH_ALEN];
         ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.source_address);
         if (ret < 0){
@@ -649,7 +643,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
                 return ret;
             }
             if (ace->ace.matches.eth.source_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match Source mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
+                SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match Source mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
                 ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.source_address_mask);
                 if(ret < 0){
                     SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Invalid MAC Address Mask format '%s'",ace->ace.name, ace->ace.matches.eth.source_address_mask);
@@ -666,11 +660,11 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
         }
     }
     if(ace->ace.matches.eth.destination_address){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match destination mac address '%s'",ace->ace.name, ace->ace.matches.eth.destination_address);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match destination mac address '%s'",ace->ace.name, ace->ace.matches.eth.destination_address);
         char addr[ETH_ALEN];
         ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.destination_address);
         if (ret < 0){
-           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s]Invalid MAC address format '%s'",ace->ace.name, ace->ace.matches.eth.destination_address); 
+           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Invalid MAC address format '%s'",ace->ace.name, ace->ace.matches.eth.destination_address); 
            return ret;
         }
         else{
@@ -680,7 +674,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
                 return ret;
             }
             if (ace->ace.matches.eth.destination_address_mask){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match destination mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
+                SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match destination mac address mask '%s'",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
                 ret = ll_addr_a2n(addr,sizeof(addr),ace->ace.matches.eth.destination_address_mask);
                 if( ret < 0){
                     SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Invalid MAC address mask format '%s'",ace->ace.name, ace->ace.matches.eth.destination_address_mask);
@@ -698,7 +692,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
     }
 
     if(ace->ace.matches.ipv4.source_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match source IPv4 network '%s'",ace->ace.name, ace->ace.matches.ipv4.source_network);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match source IPv4 network '%s'",ace->ace.name, ace->ace.matches.ipv4.source_network);
         ret = tcnl_flower_parse_ip_addr(ace->ace.matches.ipv4.source_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_SRC,
 						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
@@ -712,7 +706,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
         }
     }
     if(ace->ace.matches.ipv4.destination_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match destination IPv4 network '%s'.",ace->ace.name, ace->ace.matches.ipv4.destination_network);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match destination IPv4 network '%s'.",ace->ace.name, ace->ace.matches.ipv4.destination_network);
         ret = tcnl_flower_parse_ip_addr(ace->ace.matches.ipv4.destination_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_DST,
 						   TCA_FLOWER_KEY_IPV4_DST_MASK,
@@ -727,7 +721,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
     }
 
     if(ace->ace.matches.ipv6.source_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match source IPv6 network '%s'.",ace->ace.name, ace->ace.matches.ipv6.source_network);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match source IPv6 network '%s'.",ace->ace.name, ace->ace.matches.ipv6.source_network);
         ret = tcnl_flower_parse_ip_addr(ace->ace.matches.ipv6.source_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_SRC,
 						   TCA_FLOWER_KEY_IPV4_SRC_MASK,
@@ -741,7 +735,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
         }
     }
     if(ace->ace.matches.ipv6.destination_network){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_network);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Match Destination IPv6 Network = %s",ace->ace.name, ace->ace.matches.ipv6.destination_network);
         ret = tcnl_flower_parse_ip_addr(ace->ace.matches.ipv6.destination_network, eth_type,
 						   TCA_FLOWER_KEY_IPV4_DST,
 						   TCA_FLOWER_KEY_IPV4_DST_MASK,
@@ -800,7 +794,7 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
     tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
     tcm.tcm_block_index = acl_id;
     tcm.tcm_handle = tcm_handle;
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE] ACE Name '%s'",ace_element->ace.name);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE] ACE Name '%s'",ace_element->ace.name);
     if (request_type == RTM_NEWTFILTER)
     {
         if(ace_element->ace.matches.ipv6._is_set == 1){
@@ -821,7 +815,7 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
             //ipv4 or ipv6 ? TODO look at acl type
             proto_buf = "ipv4";
         }
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Protocol Buffer '%s'.",ace_element->ace.name,proto_buf);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Protocol Buffer '%s'.",ace_element->ace.name,proto_buf);
 
         // set ip protocol version
         if (proto_buf){
@@ -830,7 +824,7 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
                 tcm.tcm_info = TC_H_MAKE(priority<<16, htons(ETH_P_ALL));
             }
             else {
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Set EtherType to %d.",ace_element->ace.name,htons(proto_id));
+                SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Set EtherType to %d.",ace_element->ace.name,htons(proto_id));
                 tcm.tcm_info = TC_H_MAKE(priority<<16, proto_id);
             }
         }
@@ -838,17 +832,17 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
             // ethertype is not specified in ACE config
             // check if ethertype is specified in ethernet match.
             if (ace_element->ace.matches.eth.ethertype != 0){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] L2 match ethertype %d.",ace_element->ace.name,ace_element->ace.matches.eth.ethertype);
+                SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] L2 match ethertype %d.",ace_element->ace.name,ace_element->ace.matches.eth.ethertype);
                 tcm.tcm_info = TC_H_MAKE(priority<<16, ace_element->ace.matches.eth.ethertype);
             }
             else {
-                SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Protocol is not specified, set EtherType to ALL",ace_element->ace.name);
+                SRPLG_LOG_WRN(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Protocol is not specified, set EtherType to ALL",ace_element->ace.name);
                 tcm.tcm_info = TC_H_MAKE(priority<<16, htons(ETH_P_ALL));
             } 
         }
     }
     else {
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Request type %d requres not setting a protocol",ace_element->ace.name,request_type);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Request type %d requres not setting a protocol",ace_element->ace.name,request_type);
         tcm.tcm_info = TC_H_MAKE(priority<<16, 0);
     }
     // Add tcmsg to the message
@@ -860,7 +854,7 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
 
     // GET filter stops here.
     if (request_type == RTM_GETTFILTER){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE] Building Get filter message is complete, filter priority %d, filter handle %d.",priority,tcm_handle);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE] Building Get filter message is complete, filter priority %d, filter handle %d.",priority,tcm_handle);
         return ret;
     }
 
@@ -869,11 +863,11 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Failed add flower kind attribute.",ace_element->ace.name);
         return ret;
     }
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Added filter kind 'flower'",ace_element->ace.name);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Added filter kind 'flower'",ace_element->ace.name);
 
     // DELETED filter stops here.
     if (request_type == RTM_DELTFILTER){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Building delete filter message is complete, filter priority %d, filter handle %d.",ace_element->ace.name, priority,tcm_handle);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][FILTER UPDATE][%s] Building delete filter message is complete, filter priority %d, filter handle %d.",ace_element->ace.name, priority,tcm_handle);
         return ret;
     }
 
@@ -890,13 +884,19 @@ int tcnl_set_filter_msg(struct nl_msg** msg, int request_type, unsigned int flag
 int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned int acl_id, unsigned int request_type, unsigned int flags, bool override){
     struct nl_msg *msg;
     int ret = 0;
+    if (request_type == RTM_DELTFILTER){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][BLOCK %d][DELETE FILTER] Deleting filter priority %d",acl_id,ace->ace.priority);
+    }
     if(override && request_type != RTM_DELTFILTER){
-        ret = tcnl_set_filter_msg(&msg,RTM_DELTFILTER,0,acl_id,ace);
-        if (ret < 0) return ret;
-        // don't return error for this tcnl_talk instance.
-        // it is expect to delete a filter that doesn't exist on tc (when override is used)
-        // this will through an error of object not found
-        ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][BLOCK %d][SET FILTER] Overriding filter priority %d with ACE %s",acl_id, ace->ace.priority, ace->ace.name);
+        if (tcnl_filter_prio_exists(ctx,acl_id,ace->ace.priority)){
+            ret = tcnl_set_filter_msg(&msg,RTM_DELTFILTER,0,acl_id,ace);
+            if (ret < 0) return ret;
+            // don't return error for this tcnl_talk instance.
+            // it is expect to delete a filter that doesn't exist on tc (when override is used)
+            // this will through an error of object not found
+            ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+        }
     }
     ret = tcnl_set_filter_msg(&msg,request_type,flags,acl_id,ace);
     if (ret < 0){
@@ -939,17 +939,37 @@ bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id){
     tcm.tcm_info = TC_H_MAKE(prio<<16, protocol);
     tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
 	tcm.tcm_block_index = acl_id;
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Checking if acl block ID %d exits on linux tc",acl_id);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Checking if acl block ID %d exits on linux tc",acl_id);
     ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
     ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK %d] Block %s",acl_id, filter_exists ? "exists" : "does not exist");
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK BLOCK %d] Block %s",acl_id, filter_exists ? "exists" : "does not exist");
     return filter_exists;
 }
+bool tcnl_filter_prio_exists(onm_tc_ctx_t * ctx, unsigned int acl_id, unsigned int prio){
+    struct nl_msg *msg;
+    struct tcmsg tcm = {0};
+    int ret = 0;
+    filter_exists = false;
+    int request_type = RTM_GETTFILTER;
+    int flags = NLM_F_DUMP, protocol = 0;
+    msg = nlmsg_alloc_simple(request_type, flags);
+	tcm.tcm_parent = TC_H_UNSPEC;
+	tcm.tcm_family = AF_UNSPEC;
+    tcm.tcm_info = TC_H_MAKE(prio<<16, protocol);
+    tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
+	tcm.tcm_block_index = acl_id;
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK FILTER] Checking if acl block ID %d filter priority %d exits on linux tc",acl_id,prio);
+    ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
+    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK FILTER][%d] Filter priority %d %s",acl_id, prio, filter_exists ? "exists" : "does not exist");
+    return filter_exists;
+}
+
 
 int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id){
     // Allocate a new Netlink message
     int ret = 0;
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d prepare netlink message",if_idx);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d prepare netlink message",if_idx);
     *msg = nlmsg_alloc_simple(request_type, flags);
     if (!*msg) {
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE] Interface ID %d failed to allocate nlmsg memory",if_idx);
@@ -969,7 +989,7 @@ int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags
     
     nla_put(*msg,TCA_KIND,strlen(qdisc_kind)+1,qdisc_kind);
     if (ingress_block_id != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set ingress block ID %d",if_idx,ingress_block_id);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set ingress block ID %d",if_idx,ingress_block_id);
         ret = nla_put_s32(*msg,TCA_INGRESS_BLOCK,ingress_block_id);
         if (ret < 0){
             SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Failed to set ingress block ID %d",if_idx,ingress_block_id);
@@ -977,10 +997,10 @@ int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags
         }
     }
     if (egress_block_id != 0){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set egress block ID %d",if_idx,egress_block_id);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC UPDATE][INTF ID %d] Set egress block ID %d",if_idx,egress_block_id);
         ret = nla_put_s32(*msg,TCA_EGRESS_BLOCK,egress_block_id);
         if (ret < 0){
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set rgress block ID %d",if_idx,egress_block_id);
+            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][interface ID %d] Failed to set egress block ID %d",if_idx,egress_block_id);
             return ret;
         }
     }
@@ -992,12 +1012,18 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
     unsigned int flags = 0;
     if(request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE | NLM_F_REPLACE ;
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d",qdisc_kind,if_idx);
     }
     if(!override && request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE;
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d",qdisc_kind,if_idx);
+    }
+    if (request_type == RTM_DELQDISC){
+        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Delete %s qdisc on interface %d",qdisc_kind,if_idx);
     }
     ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
     if (ret < 0) return ret;
+    
     ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
     return ret;
 }
@@ -1015,20 +1041,18 @@ int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool
         SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Failed to send netlink message '%s'",nl_geterror(ret));
         return ret;
     }
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][TALK] Send netlink message success");
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][TALK] Send netlink message success");
     
     // Receive message callabck
     nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, rcv_callback, NULL);
     // Receive messages
     ret = nl_recvmsgs_default(sock);
     if (ret < 0) {
-        //if (ret != -12) // hide object not found error
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Error receiving netlink messages'%d %s'",ret,nl_geterror(ret));
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Error receiving netlink messages'%d %s'",ret,nl_geterror(ret));
         nlmsg_free(*msg);
-        //nl_socket_free(sock);
         return ret;
     }
-    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][TALK] Send netlink message response is '%s'",nl_geterror(ret));
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][TALK] Send netlink message response is '%s'",nl_geterror(ret));
     // Clean up
     if (msg_clear){
         nlmsg_free(*msg);

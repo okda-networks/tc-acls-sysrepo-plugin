@@ -195,7 +195,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 
 		error = onm_tc_store(ctx, running_session,true,true,true);
 		if (error) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from startup datastore to the system... exiting");
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from running datastore to the system... exiting");
 			goto error_out;
 		}
 	}

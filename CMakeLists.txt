@@ -37,21 +37,7 @@ set(
     src/plugin/api/store.c
     src/plugin/api/attachment-points/attachment_points_change.c
     src/plugin/api/acls/acl_change.c
-    #src/plugin/api/acls/acl/change.c
     src/plugin/api/acls/acl/ace_change.c
-    #src/plugin/api/acls/acl/aces/ace/change.c
-    #src/plugin/api/acls/acl/aces/ace/actions/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/icmp/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/udp/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/udp/destination-port/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/udp/source-port/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/tcp/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/tcp/destination-port/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/tcp/source-port/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/ipv6/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/ipv4/change.c
-    #src/plugin/api/acls/acl/aces/ace/matches/eth/change.c
 )
 
 # plugin library

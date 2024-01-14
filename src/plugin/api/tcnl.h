@@ -74,5 +74,6 @@ int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id
 int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id, bool override);
 int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned int acl_id,unsigned int request_type, unsigned int flags, bool override_exisitng);
 bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id);
+bool tcnl_filter_prio_exists(onm_tc_ctx_t * ctx, unsigned int acl_id, unsigned int prio);
 
 int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear);

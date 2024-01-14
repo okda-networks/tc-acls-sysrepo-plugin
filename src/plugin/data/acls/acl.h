@@ -2,7 +2,7 @@
 #include <srpc.h>
 #include "plugin/context.h"
 
-#define VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO) \
+#define VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ACL_NAME, ACE_ITER, PROTO, PORT_FIELD, LOG_MSG, PORT_ATTR_DIR, PORT_ATTR_PROTO) \
     do { \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port == 0 ) { \
             if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator == PORT_NOOP && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port == 0) { \
@@ -13,26 +13,25 @@
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.single_port_change_op = DEFAULT_CHANGE_OPERATION; \
                 (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.range_port_change_op = DEFAULT_CHANGE_OPERATION; \
                 (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
-                SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
             } \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port != 0) { \
-            SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+            SRPLG_LOG_DBG(PLUGIN_NAME, LOG_MSG, ACL_NAME, (ACE_ITER)->ace.name); \
             (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port = running_ace->ace.matches.PROTO.PORT_FIELD.lower_port; \
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port == 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.lower_port != 0) { \
-            SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+            SRPLG_LOG_DBG(PLUGIN_NAME, LOG_MSG, ACL_NAME, (ACE_ITER)->ace.name); \
             (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.upper_port = running_ace->ace.matches.PROTO.PORT_FIELD.upper_port;\
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port != 0 && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator == PORT_NOOP) { \
-            SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+            SRPLG_LOG_DBG(PLUGIN_NAME, LOG_MSG, ACL_NAME, (ACE_ITER)->ace.name); \
             (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator = running_ace->ace.matches.PROTO.PORT_FIELD.port_operator; \
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
         } \
         if ((ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port_operator != PORT_NOOP && (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port == 0) { \
-            SRPLG_LOG_INF(PLUGIN_NAME, LOG_MSG, (ACE_ITER)->ace.name); \
+            SRPLG_LOG_DBG(PLUGIN_NAME, LOG_MSG, ACL_NAME, (ACE_ITER)->ace.name); \
             (ACE_ITER)->ace.matches.PROTO.PORT_FIELD.port = running_ace->ace.matches.PROTO.PORT_FIELD.port;\
             (ACE_ITER)->ace.matches.PROTO._is_set = running_ace->ace.matches.PROTO._is_set; \
         } \
