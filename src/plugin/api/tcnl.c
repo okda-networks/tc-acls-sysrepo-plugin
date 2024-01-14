@@ -664,7 +664,7 @@ int tcnl_put_flower_options(struct nl_msg** msg, onm_tc_ace_element_t* ace){
         char addr[ETH_ALEN];
         ret = ll_addr_a2n(addr, sizeof(addr), ace->ace.matches.eth.destination_address);
         if (ret < 0){
-           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s]Invalid MAC address format '%s'",ace->ace.name, ace->ace.matches.eth.destination_address); 
+           SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][FLOWER_OPTIONS][%s] Invalid MAC address format '%s'",ace->ace.name, ace->ace.matches.eth.destination_address); 
            return ret;
         }
         else{
@@ -885,12 +885,14 @@ int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned i
     struct nl_msg *msg;
     int ret = 0;
     if(override && request_type != RTM_DELTFILTER){
-        ret = tcnl_set_filter_msg(&msg,RTM_DELTFILTER,0,acl_id,ace);
-        if (ret < 0) return ret;
-        // don't return error for this tcnl_talk instance.
-        // it is expect to delete a filter that doesn't exist on tc (when override is used)
-        // this will through an error of object not found
-        ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+        if (tcnl_filter_prio_exists(ctx,acl_id,ace->ace.priority)){
+            ret = tcnl_set_filter_msg(&msg,RTM_DELTFILTER,0,acl_id,ace);
+            if (ret < 0) return ret;
+            // don't return error for this tcnl_talk instance.
+            // it is expect to delete a filter that doesn't exist on tc (when override is used)
+            // this will through an error of object not found
+            ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+        }
     }
     ret = tcnl_set_filter_msg(&msg,request_type,flags,acl_id,ace);
     if (ret < 0){
@@ -939,6 +941,26 @@ bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id){
     SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK BLOCK %d] Block %s",acl_id, filter_exists ? "exists" : "does not exist");
     return filter_exists;
 }
+bool tcnl_filter_prio_exists(onm_tc_ctx_t * ctx, unsigned int acl_id, unsigned int prio){
+    struct nl_msg *msg;
+    struct tcmsg tcm = {0};
+    int ret = 0;
+    filter_exists = false;
+    int request_type = RTM_GETTFILTER;
+    int flags = NLM_F_DUMP, protocol = 0;
+    msg = nlmsg_alloc_simple(request_type, flags);
+	tcm.tcm_parent = TC_H_UNSPEC;
+	tcm.tcm_family = AF_UNSPEC;
+    tcm.tcm_info = TC_H_MAKE(prio<<16, protocol);
+    tcm.tcm_ifindex = TCM_IFINDEX_MAGIC_BLOCK;
+	tcm.tcm_block_index = acl_id;
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK FILTER] Checking if acl block ID %d filter priority %d exits on linux tc",acl_id,prio);
+    ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
+    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
+    SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][CHECK FILTER][%d] Filter priority %d %s",acl_id, prio, filter_exists ? "exists" : "does not exist");
+    return filter_exists;
+}
+
 
 int tcnl_set_qdisc_msg(struct nl_msg** msg, int request_type, unsigned int flags, char * qdisc_kind, int if_idx, uint32_t ingress_block_id, uint32_t egress_block_id){
     // Allocate a new Netlink message
@@ -1022,10 +1044,8 @@ int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool
     // Receive messages
     ret = nl_recvmsgs_default(sock);
     if (ret < 0) {
-        //if (ret != -12) // hide object not found error
-            SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Error receiving netlink messages'%d %s'",ret,nl_geterror(ret));
+        SRPLG_LOG_ERR(PLUGIN_NAME, "[TCNL][TALK] Error receiving netlink messages'%d %s'",ret,nl_geterror(ret));
         nlmsg_free(*msg);
-        //nl_socket_free(sock);
         return ret;
     }
     SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][TALK] Send netlink message response is '%s'",nl_geterror(ret));

@@ -263,7 +263,7 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
 				onm_tc_ace_hash_element_set_match_src_mac_addr_mask(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
 			if(!ace_iter->ace.matches.eth.destination_address && running_ace->ace.matches.eth.destination_address){
-                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION]Update ACE '%s' destination mac address",iter->acl.name, ace_iter->ace.name);
+                SRPLG_LOG_INF(PLUGIN_NAME, "[%s][VALIDATION] Update ACE '%s' destination mac address",iter->acl.name, ace_iter->ace.name);
 				char * node_value = running_ace->ace.matches.eth.destination_address;
 				onm_tc_ace_hash_element_set_match_dst_mac_addr(&ace_iter,node_value,DEFAULT_CHANGE_OPERATION);
             }
@@ -306,10 +306,10 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
             }
             // TODO update logging and possible add if statement to only check if tcp or udp ports are set.
 			// port single, operator and range
-			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, tcp, source_port, "Update ACE '%s' tcp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, tcp, destination_port, "Update ACE '%s' tcp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, udp, source_port, "Update ACE '%s' udp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
-			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(ace_iter, udp, destination_port, "Update ACE '%s' udp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(iter->acl.name, ace_iter, tcp, source_port, "[%s][VALIDATION] Update ACE '%s' tcp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(iter->acl.name, ace_iter, tcp, destination_port, "[%s][VALIDATION] Update ACE '%s' tcp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_TCP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(iter->acl.name, ace_iter, udp, source_port, "[%s][VALIDATION] Update ACE '%s' udp source port info", PORT_ATTR_SRC, PORT_ATTR_PROTO_UDP);
+			VALIDATE_AND_UPDATE_EVENT_PORT_OR_RANGE(iter->acl.name, ace_iter, udp, destination_port, "[%s][VALIDATION] Update ACE '%s' udp destination port info", PORT_ATTR_DST, PORT_ATTR_PROTO_UDP);
 
 			// action forwarding
 			if(ace_iter->ace.actions.forwarding == FORWARD_NOOP){

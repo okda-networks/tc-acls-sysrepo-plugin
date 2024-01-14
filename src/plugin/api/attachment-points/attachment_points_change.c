@@ -49,6 +49,7 @@ int apply_attachment_points_events_list_changes(void *priv)
 				switch (acl_set_iter->acl_set.name_change_op) {
 					struct nl_msg *msg;
 					case SR_OP_CREATED:
+						SRPLG_LOG_INF(PLUGIN_NAME, "Add ACL name %s qdisc to interface %s",ingress_acl_name,interface_id);
 						ret = tcnl_qdisc_modify(ctx,RTM_DELQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						ret = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						if (ret < 0) return ret;
@@ -65,6 +66,7 @@ int apply_attachment_points_events_list_changes(void *priv)
 					case SR_OP_MODIFIED:
 						break;
 					case SR_OP_DELETED:
+						SRPLG_LOG_INF(PLUGIN_NAME, "Delete ACL name %s qdisc from interface %s",ingress_acl_name,interface_id);
 						ret = tcnl_qdisc_modify(ctx,RTM_DELQDISC, DEFAULT_QDISC_KIND, if_idx, acl_id,0,true);
 						if (ret<0) return ret;
 						break;
