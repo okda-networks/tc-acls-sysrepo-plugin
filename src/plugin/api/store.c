@@ -47,7 +47,7 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
                 //  Add interface qdisc with shared tc block for the acl name
                 // TODO use safe sysrepo call
-                SRPLG_LOG_INF(PLUGIN_NAME, "Add ACL name %s qdisc to interface %s",ingress_acl_name,interface_id);
+                SRPLG_LOG_DBG(PLUGIN_NAME, "Add ACL name %s qdisc to interface %s",ingress_acl_name,interface_id);
                 error = tcnl_qdisc_modify(ctx,RTM_DELQDISC,DEFAULT_QDISC_KIND,if_idx,acl_id,0,true);
                 error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC,DEFAULT_QDISC_KIND,if_idx,acl_id,0,true);
                 if (error < 0) goto out;

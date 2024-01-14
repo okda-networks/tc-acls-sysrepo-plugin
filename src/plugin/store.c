@@ -35,7 +35,7 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, 
 	if (store_acls && store_aps){
 		for (size_t i = 0; i < ARRAY_SIZE(store_values); i++) {
 			const srpc_startup_store_t *store = &store_values[i];
-			SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "Store name %s", store->name);
 			error = store->cb(ctx, subtree->tree);
 			if (error != 0) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
@@ -45,7 +45,7 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, 
 	}
 	else if (store_acls && !store_aps){
 		const srpc_startup_store_t *store = &store_values[0];
-		SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Store name %s", store->name);
 		error = store->cb(ctx, subtree->tree);
 		if (error != 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
@@ -54,7 +54,7 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, 
 	}
 	else if (!store_acls && store_aps){
 		const srpc_startup_store_t *store = &store_values[1];
-		SRPLG_LOG_INF(PLUGIN_NAME, "Store name %s", store->name);
+		SRPLG_LOG_DBG(PLUGIN_NAME, "Store name %s", store->name);
 		error = store->cb(ctx, subtree->tree);
 		if (error != 0) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Startup store callback failed for value %s", store->name);
@@ -92,7 +92,7 @@ static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *par
 	aps_container_node = srpc_ly_tree_get_child_container(parent_container, "attachment-points");
     aps_interface_list_node = srpc_ly_tree_get_child_list(aps_container_node, "interface");
     if (aps_interface_list_node == NULL) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "No attachment point configuration to be applied");
+        SRPLG_LOG_WRN(PLUGIN_NAME, "No attachment point configuration to be applied");
         goto out;
     }
 
@@ -123,7 +123,7 @@ static int onm_tc_store_acl(void *priv, const struct lyd_node *parent_container)
 
     acl_node = srpc_ly_tree_get_child_list(parent_container, "acl");
     if (acl_node == NULL) {
-        SRPLG_LOG_INF(PLUGIN_NAME, "No ACLs configuration to be applied");
+        SRPLG_LOG_WRN(PLUGIN_NAME, "No ACLs configuration to be applied");
         goto out;
     }
 

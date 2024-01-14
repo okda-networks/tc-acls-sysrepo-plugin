@@ -9,14 +9,34 @@ volatile int exit_application = 0;
 
 static void sigint_handler(__attribute__((unused)) int signum);
 
-int main(void)
+int main(int argc, char *argv[])
 {
     int error = SR_ERR_OK;
     sr_conn_ctx_t *connection = NULL;
     sr_session_ctx_t *session = NULL;
     void *private_data = NULL;
 
-    sr_log_stderr(SR_LL_INF);
+    
+    if (argc > 1) {
+        for (int i = 1; i < argc; i++) {
+            if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
+                if (strcmp(argv[i + 1], "warn") == 0 || strcmp(argv[i + 1], "warning") == 0 || strcmp(argv[i + 1], "wrn") == 0) {
+                    sr_log_stderr(SR_LL_WRN);
+                    break;
+                } else if (strcmp(argv[i + 1], "inf") == 0 || strcmp(argv[i + 1], "info") == 0 || strcmp(argv[i + 1], "information") == 0) {
+                    sr_log_stderr(SR_LL_INF);
+                    break;
+                } else if (strcmp(argv[i + 1], "dbg") == 0 || strcmp(argv[i + 1], "debug") == 0 || strcmp(argv[i + 1], "debugging") == 0) {
+                    sr_log_stderr(SR_LL_DBG);
+                    break;
+                }
+            }
+        }
+    }
+    else {
+        sr_log_stderr(SR_LL_INF);
+    }
+    
 
     /* connect to sysrepo */
     error = sr_connect(SR_CONN_DEFAULT, &connection);
@@ -57,6 +77,6 @@ out:
 
 static void sigint_handler(__attribute__((unused)) int signum)
 {
-    SRPLG_LOG_INF(PLUGIN_NAME, "Sigint called, exiting...");
+    SRPLG_LOG_WRN(PLUGIN_NAME, "Sigint called, exiting...");
     exit_application = 1;
 }

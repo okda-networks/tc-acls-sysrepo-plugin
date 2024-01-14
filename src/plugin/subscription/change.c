@@ -34,7 +34,7 @@ int change_path_print(void *priv, sr_session_ctx_t *session, const srpc_change_c
 		goto error_out;
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "Change PATH PRINT: %s;\n\t New Value: %s;\n\t Previous Value: %s;\n\t Previous list: %s;\n\t Operation: %d,\n\tchange path %s",
+	SRPLG_LOG_DBG(PLUGIN_NAME, "Change PATH PRINT: %s;\n\t New Value: %s;\n\t Previous Value: %s;\n\t Previous list: %s;\n\t Operation: %d,\n\tchange path %s",
 	node_name, node_value,prev_value,prev_list, change_ctx->operation,change_path);
 
 	goto out;
@@ -86,7 +86,7 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	}
 	else if (event == SR_EV_CHANGE)
 	{
-		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
+		SRPLG_LOG_INF(PLUGIN_NAME, "Processing changes on xpath %s", xpath);
 
 		// ACL Name (complete acl SR_OP_CREATED, SR_OP_DELETED)
 		SRPC_SAFE_CALL_ERR_COND(rc, rc < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/*", xpath), error_out);
@@ -180,7 +180,7 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 		onm_tc_aps_interface_hash_free(&ctx->events_attachment_points_list);
 		if (error)
 		{
-			SRPLG_LOG_ERR(PLUGIN_NAME, "sr_copy_config() error (%d): %s", error, sr_strerror(error));
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to free events attachment points list, error (%d)", error);
 			goto error_out;
 		}
 	}
@@ -189,8 +189,6 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 		SRPC_SAFE_CALL_ERR_COND(error, error < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/ingress/acl-sets/acl-set/*", xpath), error_out);
 		error = srpc_iterate_changes(ctx, session, change_xpath_buffer, events_aps_hash_update_from_change_ctx, acls_attachment_points_change_interface_init, acls_attachment_points_change_interface_free);
 		// todo error handling
-
-		SRPLG_LOG_INF(PLUGIN_NAME, "Changes on xpath %s", xpath);
 		SRPC_SAFE_CALL_ERR_COND(error, error < 0, snprintf(change_xpath_buffer, sizeof(change_xpath_buffer), "%s/egress/acl-sets/acl-set/*", xpath), error_out);
 		error = srpc_iterate_changes(ctx, session, change_xpath_buffer, events_aps_hash_update_from_change_ctx, acls_attachment_points_change_interface_init, acls_attachment_points_change_interface_free);
 		

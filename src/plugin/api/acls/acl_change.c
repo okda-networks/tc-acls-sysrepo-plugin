@@ -19,7 +19,7 @@
 #include "plugin/store.h"
 
 int reload_running_acls_list(onm_tc_ctx_t * ctx){
-	SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Reloading running acls list from sysrepo");
+	SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Reloading running acls list from sysrepo");
 	if (&ctx->running_acls_list){
 		onm_tc_acls_list_hash_free(&ctx->running_acls_list);
 	}
@@ -29,7 +29,7 @@ int reload_running_acls_list(onm_tc_ctx_t * ctx){
 int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 	onm_tc_acl_hash_element_t * events_acls = ctx->events_acls_list;
 	if (events_acls == NULL){
-		SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] No change operation of 'add', 'delete' or 'modify' to be applied");
+		SRPLG_LOG_WRN(PLUGIN_NAME, "[CHANGE EVENT] No change operation of 'add', 'delete' or 'modify' to be applied");
 		return 0;
 	}
 	int ret = 0;
@@ -55,18 +55,33 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 				}
 				// iterate over aces
 				if (tcnl_block_exists(ctx,acl_id)){
+					// first apply ace delete changes
 					LL_FOREACH(iter->acl.aces.ace, ace_iter)
 					{
-						SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply ace event changes of ace %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
-						ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
-						if (ret < 0){
-							SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Apply ace event changes failed");
-							return ret;
+						if (ace_iter->ace.name_change_op == SR_OP_DELETED){
+							SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event, ace name %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
+							ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
+							if (ret < 0){
+								SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event changes failed");
+								return ret;
+							}
+						}
+					}
+					// then apply all other event types
+					LL_FOREACH(iter->acl.aces.ace, ace_iter)
+					{
+						if (ace_iter->ace.name_change_op != SR_OP_DELETED){
+							SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Apply ace change event, ace name %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
+							ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
+							if (ret < 0){
+								SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event changes failed");
+								return ret;
+							}
 						}
 					}
 				}
 				else {
-					SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] ACL %s doesn't exits on linux tc, ignore its ACEs change operation",iter->acl.name);
+					SRPLG_LOG_WRN(PLUGIN_NAME, "[CHANGE EVENT] ACL %s doesn't exits on linux tc, ignore its ACEs change operation",iter->acl.name);
 				}
 				break;
 				
