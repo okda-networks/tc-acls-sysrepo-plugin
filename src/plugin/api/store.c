@@ -14,9 +14,6 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 {
     int error = 0;
     char* interface_id = NULL;
-    char* ingress_acl_name = NULL;
-    char* egress_acl_name = NULL;
-
     onm_tc_nl_ctx_t* nl_ctx = &ctx->nl_ctx;
 
     struct rtnl_link *link = NULL;
@@ -31,62 +28,63 @@ int acls_store_api(onm_tc_ctx_t *ctx)
 
     HASH_ITER(hh, ctx->attachment_points_interface_hash_element, i, aps_tmp)
     {
+        unsigned int ingress_acl_id = 0, egress_acl_id = 0;
         interface_id = i->interface.interface_id;
         /* lookup interface index of interface_id */
-        SRPC_SAFE_CALL_PTR(link, rtnl_link_get_by_name(nl_ctx->link_cache, interface_id), error_out);
+        link = rtnl_link_get_by_name(nl_ctx->link_cache, interface_id);
+        if (link == NULL) goto error_out;
 
+        int if_idx = rtnl_link_get_ifindex(link);
         if (i->interface.ingress.acl_sets.acl_set){
-            
-            SRPLG_LOG_INF(PLUGIN_NAME, "Applying acls for interface %s",interface_id);
-            
-            int if_idx = rtnl_link_get_ifindex(link);
-            LL_FOREACH(i->interface.ingress.acl_sets.acl_set, acl_set_iter)
-            {
-                ingress_acl_name = acl_set_iter->acl_set.name;
-                unsigned int acl_id = acl_name2id(ingress_acl_name);
-
-                //  Add interface qdisc with shared tc block for the acl name
-                // TODO use safe sysrepo call
-                SRPLG_LOG_DBG(PLUGIN_NAME, "Add ACL name %s qdisc to interface %s",ingress_acl_name,interface_id);
-                error = tcnl_qdisc_modify(ctx,RTM_DELQDISC,DEFAULT_QDISC_KIND,if_idx,acl_id,0,true);
-                error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC,DEFAULT_QDISC_KIND,if_idx,acl_id,0,true);
-                if (error < 0) goto out;
-
-                error = tcnl_block_modify(ctx->running_acls_list, acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
-                
-                if (error < 0){
-                    goto out;
-                }
-            }
+            // get the first element only
+            ingress_acl_id = acl_name2id(i->interface.ingress.acl_sets.acl_set->acl_set.name);
+            SRPLG_LOG_DBG(PLUGIN_NAME, "Add ingress ACL name %s to interface %s qdisc",i->interface.ingress.acl_sets.acl_set->acl_set.name,interface_id);            
         }
         if (i->interface.egress.acl_sets.acl_set){
-            LL_FOREACH(i->interface.egress.acl_sets.acl_set, acl_set_iter)
-            {
-                egress_acl_name = acl_set_iter->acl_set.name;
+            // get the first element only
+            egress_acl_id = acl_name2id(i->interface.egress.acl_sets.acl_set->acl_set.name);
+            SRPLG_LOG_DBG(PLUGIN_NAME, "Add egress ACL %s to interface %s qdisc",i->interface.egress.acl_sets.acl_set->acl_set.name,interface_id);  
+        }
+
+        if (ingress_acl_id != 0 || egress_acl_id !=0 ){
+            // delete existing qdisc
+            if (tcnl_qdisc_exists(ctx,if_idx,DEFAULT_QDISC_KIND)){
+                error = tcnl_qdisc_modify(ctx,RTM_DELQDISC,DEFAULT_QDISC_KIND,if_idx,0,0,true);
+            }
+            // add new qdisc
+            error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC,DEFAULT_QDISC_KIND,if_idx,ingress_acl_id,egress_acl_id,true);
+            if (error < 0) goto out;
+
+            // apply acl ingress tc block
+            if (ingress_acl_id != 0){
+                error = tcnl_block_modify(ctx->running_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+                if (error < 0) goto out;
+            }
+            // apply egress acl tc bock
+            if (egress_acl_id != 0 && egress_acl_id != ingress_acl_id){
+                error = tcnl_block_modify(ctx->running_acls_list, egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+                if (error < 0) goto out;
+            }
+        }
+        // no acl applied on interface, delete any existing qdisc
+        else if (ingress_acl_id == 0 && egress_acl_id == 0){
+            if (tcnl_qdisc_exists(ctx,if_idx,DEFAULT_QDISC_KIND)){
+                error = tcnl_qdisc_modify(ctx,RTM_DELQDISC,DEFAULT_QDISC_KIND,if_idx,0,0,true);
             }
         }
     }
+    goto out;
 
 error_out:
-    if (nl_ctx->link_cache != NULL) {
-        nl_cache_free(nl_ctx->link_cache);
-    }
-    if (link != NULL){
-        rtnl_link_put(link);
-    }
-
-    return error;
+    SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to apply interface %s qdisc", interface_id); 
 
 out:
     // dealloc nl_ctx data
-
     if (nl_ctx->link_cache != NULL) {
         nl_cache_free(nl_ctx->link_cache);
     }
     if (link != NULL){
         rtnl_link_put(link);
     }
-
-    // address and neighbor caches should be freed by their functions (_load_address and _load_neighbor)
     return error;
 }

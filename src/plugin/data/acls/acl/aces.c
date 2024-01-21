@@ -369,7 +369,6 @@ int set_ace_port_range(onm_tc_ace_element_t* el, onm_tc_port_attributes_t* port_
     return 0;
 }
 
-
 int onm_tc_ace_hash_element_set_match_port_operator(onm_tc_ace_element_t** el, onm_tc_port_attributes_t* port_attr, sr_change_oper_t change_operation) {
     if (port_attr->proto == PORT_ATTR_PROTO_TCP) {
         if (port_attr->direction == PORT_ATTR_SRC) {

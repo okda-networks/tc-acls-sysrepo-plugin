@@ -330,7 +330,6 @@ int validate_and_update_events_acls_hash(onm_tc_ctx_t * ctx){
     }
 }
 
-
 int onm_tc_acl_element_from_ly(onm_tc_acl_hash_element_t** acl_hash_element, const struct lyd_node* acl_element_node)
 {
     int error = 0;
@@ -690,7 +689,6 @@ error_out:
 out:
     return error;
 }
-
 
 int onm_tc_acls_list_from_ly(onm_tc_acl_hash_element_t** acl_hash, const struct lyd_node* acl_list_node){
     int error = 0;

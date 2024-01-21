@@ -563,12 +563,9 @@ int tcnl_flower_put_action(struct nl_msg *msg, onm_tc_ace_element_t* ace){
 }
 
 // Callback function for handling incoming messages
-static int nl_msg_recv_cb(struct nl_msg *msg, void *arg) {
+static int rcv_default_cb(struct nl_msg *msg, void *arg) {
     struct nlmsghdr *nlh = nlmsg_hdr(msg);
-
-    // Print the message type
-    printf("Received message type: %d\n", nlh->nlmsg_type);
-
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL] Received message type: %d",nlh->nlmsg_type);
     return NL_OK;
 }
 bool filter_exists = false;
@@ -578,6 +575,19 @@ static int rcv_is_filter_cb(struct nl_msg *msg, void *arg) {
     if (nlh->nlmsg_type==RTM_NEWTFILTER){
         filter_exists = true;
     }
+    return NL_OK;
+}
+bool qdisc_exists = false;
+static int rcv_is_qdisc_found_cb(struct nl_msg *msg, void *arg) {
+    struct nlmsghdr *nlh = nlmsg_hdr(msg);
+    struct tcmsg *tcm = nlmsg_data(nlh);
+    int if_idx = *(int*)arg;
+    if (nlh->nlmsg_type == RTM_NEWQDISC && tcm->tcm_ifindex == if_idx) {
+        if (tcm->tcm_handle == TC_H_MAKE(TC_H_INGRESS, 0)) {
+            qdisc_exists = true; 
+        }
+    }
+
     return NL_OK;
 }
 
@@ -895,14 +905,14 @@ int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned i
             // don't return error for this tcnl_talk instance.
             // it is expect to delete a filter that doesn't exist on tc (when override is used)
             // this will through an error of object not found
-            ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,false);
+            ret = tcnl_talk(&msg,ctx,rcv_default_cb,NULL,false);
         }
     }
     ret = tcnl_set_filter_msg(&msg,request_type,flags,acl_id,ace);
     if (ret < 0){
         return ret;
     }
-    ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
+    ret = tcnl_talk(&msg,ctx,rcv_default_cb,NULL,true);
     return ret;
 }
 int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id, onm_tc_ctx_t * ctx, int request_type, unsigned int flags){
@@ -941,7 +951,7 @@ bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id){
 	tcm.tcm_block_index = acl_id;
     SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK BLOCK] Checking if acl block ID %d exits on linux tc",acl_id);
     ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
-    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
+    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,NULL,true);
     SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK BLOCK %d] Block %s",acl_id, filter_exists ? "exists" : "does not exist");
     return filter_exists;
 }
@@ -960,7 +970,7 @@ bool tcnl_filter_prio_exists(onm_tc_ctx_t * ctx, unsigned int acl_id, unsigned i
 	tcm.tcm_block_index = acl_id;
     SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK FILTER] Checking if acl block ID %d filter priority %d exits on linux tc",acl_id,prio);
     ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
-    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,true);
+    ret = tcnl_talk(&msg,ctx,rcv_is_filter_cb,NULL,true);
     SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK FILTER][%d] Filter priority %d %s",acl_id, prio, filter_exists ? "exists" : "does not exist");
     return filter_exists;
 }
@@ -1012,23 +1022,39 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
     unsigned int flags = 0;
     if(request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE | NLM_F_REPLACE ;
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d",qdisc_kind,if_idx);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d, ingress block %d, egress block %d",qdisc_kind,if_idx,ingress_block_id,egress_block_id);
     }
     if(!override && request_type == RTM_NEWQDISC){
         flags = NLM_F_CREATE;
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d",qdisc_kind,if_idx);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC] Set %s qdisc on interface %d, ingress block %d, egress block %d",qdisc_kind,if_idx,ingress_block_id,egress_block_id);
     }
     if (request_type == RTM_DELQDISC){
-        SRPLG_LOG_INF(PLUGIN_NAME, "[TCNL][QDISC] Delete %s qdisc on interface %d",qdisc_kind,if_idx);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC] Delete %s qdisc on interface %d",qdisc_kind,if_idx);
     }
     ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
     if (ret < 0) return ret;
     
-    ret = tcnl_talk(&msg,ctx,nl_msg_recv_cb,true);
+    ret = tcnl_talk(&msg,ctx,rcv_default_cb,NULL,true);
     return ret;
 }
 
-int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear){
+bool tcnl_qdisc_exists(onm_tc_ctx_t * ctx, int if_idx, char * qdisc_kind){
+    int ret = 0;
+    qdisc_exists = false;
+    unsigned int request_type = RTM_GETQDISC;
+    unsigned int flags = NLM_F_DUMP;
+    struct nl_msg *msg = nlmsg_alloc_simple(request_type, flags);
+    
+    struct tcmsg tcm = {0};
+    tcm.tcm_family = AF_UNSPEC;
+    tcm.tcm_ifindex = if_idx;
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL] CHECK QDISC");
+    ret = nlmsg_append(msg, &tcm, sizeof(tcm), NLMSG_ALIGNTO);
+    ret = tcnl_talk(&msg,ctx,rcv_is_qdisc_found_cb,&if_idx,true);
+    SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][CHECK QDISC] qdisc kind %s %s on interface ID %d",qdisc_kind, qdisc_exists ? "exists" : "does not exist",if_idx);
+    return qdisc_exists;
+}
+int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, void * cb_arg, bool clear_msg){
     int ret = 0;
     // Initialize and connect to Netlink
     struct nl_sock * sock = ctx->nl_ctx.socket;
@@ -1044,7 +1070,7 @@ int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool
     SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][TALK] Send netlink message success");
     
     // Receive message callabck
-    nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, rcv_callback, NULL);
+    nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, rcv_callback, cb_arg);
     // Receive messages
     ret = nl_recvmsgs_default(sock);
     if (ret < 0) {
@@ -1054,7 +1080,7 @@ int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool
     }
     SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][TALK] Send netlink message response is '%s'",nl_geterror(ret));
     // Clean up
-    if (msg_clear){
+    if (clear_msg){
         nlmsg_free(*msg);
     }
     
