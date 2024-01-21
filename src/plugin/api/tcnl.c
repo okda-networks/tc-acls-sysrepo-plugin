@@ -920,8 +920,7 @@ int tcnl_block_modify(onm_tc_acl_hash_element_t * acls_hash, unsigned int acl_id
     int ret = -11;
     HASH_ITER(hh, acls_hash, iter, tmp)
     {   
-        if (iter->acl.acl_id == acl_id)
-        {
+        if (iter->acl.acl_id == acl_id){
             ret = 0;
             onm_tc_ace_element_t* ace_iter = NULL;
             // iterate over aces

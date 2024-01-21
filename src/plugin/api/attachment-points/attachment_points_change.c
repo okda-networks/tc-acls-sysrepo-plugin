@@ -7,6 +7,7 @@
 #include "plugin/api/tcnl.h"
 #include "plugin/api/attachment-points/attachment_points_change.h"
 #include "plugin/store.h"
+#include "plugin/data/acls/acl.h"
 
 int reload_running_aps_list(onm_tc_ctx_t * ctx){
 	SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Reloading running attachment points list from sysrepo");
@@ -159,13 +160,22 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 
 	if (ingress_acl_id != 0){
 		if (!tcnl_block_exists(ctx,ingress_acl_id)){
+			SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][QDISC] reconfigure interface ingress ACL ID %d",ingress_acl_id);
 			error = tcnl_block_modify(ctx->running_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
-        	if (error < 0) return error;
+        	if (error == -11) {
+				error = tcnl_block_modify(ctx->events_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+			}
+			if (error < 0) return error;
 		}
 	}
 	if (egress_acl_id != 0){
 		if (!tcnl_block_exists(ctx,egress_acl_id)){
+			SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][QDISC] reconfigure interface egress ACL ID %d",egress_acl_id);
+
 			error = tcnl_block_modify(ctx->running_acls_list, egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+			if (error == -11) {
+				error = tcnl_block_modify(ctx->events_acls_list, egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+			}
         	if (error < 0) return error;
 		}
 	}

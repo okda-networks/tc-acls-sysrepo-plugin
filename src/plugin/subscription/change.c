@@ -154,13 +154,12 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	goto out;
 
 error_out:
-	
 	error = SR_ERR_CALLBACK_FAILED;
-
-out:
 	if (&ctx->events_acls_list){
 		onm_tc_acls_list_hash_free(&ctx->events_acls_list);
 	}
+
+out:
 	return error;
 }
 
@@ -204,10 +203,10 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
-
-out:
 	if (&ctx->events_attachment_points_list){
 		onm_tc_aps_interface_hash_free(&ctx->events_attachment_points_list);
 	}
+
+out:
 	return error;
 }
