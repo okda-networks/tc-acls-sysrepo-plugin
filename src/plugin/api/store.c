@@ -55,12 +55,12 @@ int acls_store_api(onm_tc_ctx_t *ctx)
             error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC,DEFAULT_QDISC_KIND,if_idx,ingress_acl_id,egress_acl_id,true);
             if (error < 0) goto out;
 
-            // apply acl ingress tc block
+            // apply ingress acl tc block
             if (ingress_acl_id != 0){
                 error = tcnl_block_modify(ctx->running_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
                 if (error < 0) goto out;
             }
-            // apply egress acl tc bock
+            // apply egress acl tc block
             if (egress_acl_id != 0 && egress_acl_id != ingress_acl_id){
                 error = tcnl_block_modify(ctx->running_acls_list, egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
                 if (error < 0) goto out;

@@ -82,6 +82,19 @@ int apply_attachment_points_events_acl_set_deleted(void *priv, const onm_tc_aps_
 	if (running_ingress_acl_id != 0 || running_egress_acl_id !=0){
 		error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, DEFAULT_QDISC_KIND, if_idx, running_ingress_acl_id,running_egress_acl_id,true);
 		if (error < 0 ) return error;
+
+		if (running_ingress_acl_id != 0){
+			if (!tcnl_block_exists(ctx,running_ingress_acl_id)){
+				error = tcnl_block_modify(ctx->running_acls_list, running_ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+				if (error < 0) return error;
+			}
+		}
+		if (running_egress_acl_id != 0){
+			if (!tcnl_block_exists(ctx,running_egress_acl_id)){
+				error = tcnl_block_modify(ctx->running_acls_list, running_egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+				if (error < 0) return error;
+			}
+		}
 	}
 	return 0;
 }
@@ -143,6 +156,19 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 	}
 	error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, DEFAULT_QDISC_KIND, if_idx, ingress_acl_id,egress_acl_id,true);
 	if (error < 0) return error;
+
+	if (ingress_acl_id != 0){
+		if (!tcnl_block_exists(ctx,ingress_acl_id)){
+			error = tcnl_block_modify(ctx->running_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+        	if (error < 0) return error;
+		}
+	}
+	if (egress_acl_id != 0){
+		if (!tcnl_block_exists(ctx,egress_acl_id)){
+			error = tcnl_block_modify(ctx->running_acls_list, egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
+        	if (error < 0) return error;
+		}
+	}
 
 	return 0;
 }
