@@ -581,13 +581,14 @@ bool qdisc_exists = false;
 static int rcv_is_qdisc_found_cb(struct nl_msg *msg, void *arg) {
     struct nlmsghdr *nlh = nlmsg_hdr(msg);
     struct tcmsg *tcm = nlmsg_data(nlh);
-    int if_idx = *(int*)arg;
-    if (nlh->nlmsg_type == RTM_NEWQDISC && tcm->tcm_ifindex == if_idx) {
-        if (tcm->tcm_handle == TC_H_MAKE(TC_H_INGRESS, 0)) {
-            qdisc_exists = true; 
+    if (arg){
+        int if_idx = *(int*)arg;
+        if (nlh->nlmsg_type == RTM_NEWQDISC && tcm->tcm_ifindex == if_idx) {
+            if (tcm->tcm_handle == TC_H_MAKE(TC_H_INGRESS, 0)) {
+                qdisc_exists = true; 
+            }
         }
     }
-
     return NL_OK;
 }
 

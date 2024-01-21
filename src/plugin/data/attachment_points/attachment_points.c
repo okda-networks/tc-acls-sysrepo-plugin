@@ -101,6 +101,30 @@ onm_tc_aps_interface_hash_element_t* onm_tc_aps_interface_hash_get_element(onm_t
     return found_element;
 }
 
+bool acl_set_exists_on_aps(onm_tc_aps_interface_hash_element_t* aps_hash, char * acl_set){
+    const onm_tc_aps_interface_hash_element_t *iter = NULL, *tmp = NULL;
+    onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
+    SRPLG_LOG_DBG(PLUGIN_NAME, "Checking if acl %s is applied on any of the interfaces attachment points",acl_set);
+    HASH_ITER(hh, aps_hash, iter, tmp){
+        if (iter->interface.ingress.acl_sets.acl_set){
+            LL_FOREACH(iter->interface.ingress.acl_sets.acl_set, acl_set_iter){
+                if(strcmp(acl_set_iter->acl_set.name,acl_set)==0){
+                    return true;
+                    SRPLG_LOG_DBG(PLUGIN_NAME, "ACL %s found applied on interface %s ingress",acl_set,iter->interface.interface_id);
+                }
+            }
+        }
+        if (iter->interface.egress.acl_sets.acl_set){
+            LL_FOREACH(iter->interface.egress.acl_sets.acl_set, acl_set_iter){
+                if(strcmp(acl_set_iter->acl_set.name,acl_set)==0){
+                    return true;
+                    SRPLG_LOG_DBG(PLUGIN_NAME, "ACL %s found applied on interface %s egress",acl_set,iter->interface.interface_id);
+                }
+            }
+        }
+    }
+    return false;
+}
 int onm_tc_aps_interface_hash_element_set_interface_id (onm_tc_aps_interface_hash_element_t** el, const char* interface_id) {
     if ((*el)->interface.interface_id) {
         FREE_SAFE((*el)->interface.interface_id);
