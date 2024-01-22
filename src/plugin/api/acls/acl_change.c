@@ -56,7 +56,7 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 					// first apply ace delete changes
 					LL_FOREACH(iter->acl.aces.ace, ace_iter){
 						if (ace_iter->ace.name_change_op == SR_OP_DELETED){
-							SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event, ace name %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
+							SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event, ace name %s priority %u",ace_iter->ace.name,ace_iter->ace.priority);
 							ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
 							if (ret < 0){
 								SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event changes failed");
@@ -67,7 +67,7 @@ int apply_events_acls_changes(onm_tc_ctx_t * ctx){
 					// then apply all other event types
 					LL_FOREACH(iter->acl.aces.ace, ace_iter){
 						if (ace_iter->ace.name_change_op != SR_OP_DELETED){
-							SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Apply ace change event, ace name %s priority %d",ace_iter->ace.name,ace_iter->ace.priority);
+							SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Apply ace change event, ace name %s priority %u",ace_iter->ace.name,ace_iter->ace.priority);
 							ret = apply_events_ace_changes(ctx,acl_name,acl_id,ace_iter);
 							if (ret < 0){
 								SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Apply ace delete event changes failed");

@@ -762,7 +762,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
     {
         SRPLG_LOG_DBG(PLUGIN_NAME, "| \t+ ACL %s:", iter->acl.name);
         SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\tName = %s (change operation %d)", iter->acl.name,iter->acl.name_change_op);
-        SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\tACL ID = %d", iter->acl.acl_id);
+        SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\tACL ID = %u", iter->acl.acl_id);
         if(iter->acl.type){
             SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\tType = %s (change operation %d)", iter->acl.type,iter->acl.type_change_op);
         }
@@ -772,8 +772,8 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
         {
             SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t+ ACE %s", ace_iter->ace.name);
             SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     ACE Name = %s (change operation %d)", ace_iter->ace.name,ace_iter->ace.name_change_op);
-            SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     ACE Priority = %d", ace_iter->ace.priority);
-            SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     ACE Handle = %d", ace_iter->ace.handle);
+            SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     ACE Priority = %u", ace_iter->ace.priority);
+            SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     ACE Handle = %u", ace_iter->ace.handle);
             SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     + Matches:");
             if(ace_iter->ace.matches.eth.source_address){
                 SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- Source mac address = %s (change operation %d)",
@@ -796,7 +796,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
                 ace_iter->ace.matches.eth.destination_address_mask_change_op);
             }
             if(ace_iter->ace.matches.eth.ethertype != 0){
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- EtherType = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- EtherType = %u (change operation %d)",
                 ace_iter->ace.matches.eth.ethertype,
                 ace_iter->ace.matches.eth.ethertype_change_op);
             }
@@ -822,7 +822,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             // TCP Source Port
             if (ace_iter->ace.matches.tcp.source_port.port != 0 ||
                 (ace_iter->ace.matches.tcp.source_port.port_operator != PORT_NOOP)){
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port = %d Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port = %u Operator = %d (change operation %d)",
                 ace_iter->ace.matches.tcp.source_port.port, 
                 ace_iter->ace.matches.tcp.source_port.port_operator,
                 ace_iter->ace.matches.tcp.source_port.single_port_change_op);
@@ -830,7 +830,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             // TCP Source Port Range
             if(ace_iter->ace.matches.tcp.source_port.lower_port != 0  || ace_iter->ace.matches.tcp.source_port.upper_port != 0)
             {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port Range = [%d-%d] Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Source Port Range = [%u-%u] Operator = %d (change operation %d)",
                 ace_iter->ace.matches.tcp.source_port.lower_port, 
                 ace_iter->ace.matches.tcp.source_port.upper_port,
                 ace_iter->ace.matches.tcp.source_port.port_operator,
@@ -840,14 +840,14 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             // UDP Source Port
             if (ace_iter->ace.matches.udp.source_port.port != 0 ||
                 (ace_iter->ace.matches.udp.source_port.port_operator != PORT_NOOP)) {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port = %d Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port = %u Operator = %u (change operation %d)",
                 ace_iter->ace.matches.udp.source_port.port,
                 ace_iter->ace.matches.udp.source_port.port_operator,
                 ace_iter->ace.matches.udp.source_port.single_port_change_op);
             }
             // UDP Source Port Range
             if (ace_iter->ace.matches.udp.source_port.lower_port != 0 || ace_iter->ace.matches.udp.source_port.upper_port != 0) {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port Range = [%d-%d] Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Source Port Range = [%u-%u] Operator = %d (change operation %d)",
                 ace_iter->ace.matches.udp.source_port.lower_port,
                 ace_iter->ace.matches.udp.source_port.upper_port,
                 ace_iter->ace.matches.udp.source_port.port_operator,
@@ -856,14 +856,14 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             // TCP Destination Port
             if (ace_iter->ace.matches.tcp.destination_port.port != 0 ||
             (ace_iter->ace.matches.tcp.destination_port.port_operator != PORT_NOOP)) {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port = %d Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port = %u Operator = %d (change operation %d)",
                 ace_iter->ace.matches.tcp.destination_port.port,
                 ace_iter->ace.matches.tcp.destination_port.port_operator,
                 ace_iter->ace.matches.tcp.destination_port.single_port_change_op);
             }
             // TCP Destination Port Range
             if (ace_iter->ace.matches.tcp.destination_port.lower_port != 0 || ace_iter->ace.matches.tcp.destination_port.upper_port != 0) {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Range = [%d-%d] Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- TCP Destination Port Range = [%u-%u] Operator = %d (change operation %d)",
                 ace_iter->ace.matches.tcp.destination_port.lower_port,
                 ace_iter->ace.matches.tcp.destination_port.upper_port,
                 ace_iter->ace.matches.tcp.destination_port.port_operator,
@@ -873,7 +873,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
             // UDP Destination Port
             if (ace_iter->ace.matches.udp.destination_port.port != 0 ||
                 (ace_iter->ace.matches.udp.destination_port.port_operator != PORT_NOOP)) {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port = %d Operator = %d (change operation %d)",
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port = %u Operator = %d (change operation %d)",
                 ace_iter->ace.matches.udp.destination_port.port,
                 ace_iter->ace.matches.udp.destination_port.port_operator,
                 ace_iter->ace.matches.udp.destination_port.single_port_change_op);
@@ -881,7 +881,7 @@ void onm_tc_acls_list_print_debug(const onm_tc_acl_hash_element_t* acl_hash)
 
             // UDP Destination Port Range
             if (ace_iter->ace.matches.udp.destination_port.lower_port != 0 || ace_iter->ace.matches.udp.destination_port.upper_port != 0) {
-                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Range = [%d-%d] Operator = %d (change operation %d)", 
+                SRPLG_LOG_DBG(PLUGIN_NAME, "| \t|\t|     |---- UDP Destination Port Range = [%u-%u] Operator = %d (change operation %d)", 
                 ace_iter->ace.matches.udp.destination_port.lower_port,
                 ace_iter->ace.matches.udp.destination_port.upper_port,
                 ace_iter->ace.matches.udp.destination_port.port_operator,

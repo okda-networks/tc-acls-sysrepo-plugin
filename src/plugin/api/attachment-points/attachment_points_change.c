@@ -109,7 +109,7 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 		LL_FOREACH(interface_element->interface.ingress.acl_sets.acl_set, acl_set_iter){
 			if (acl_set_iter->acl_set.name_change_op == SR_OP_CREATED) {
 				ingress_acl_id = acl_name2id(acl_set_iter->acl_set.name);
-				SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][CREATED] Add ingress ACL %s for interface %s qdisc",acl_set_iter->acl_set.name,interface_element->interface.interface_id);
+				SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][CREATED] Add ingress ACL %s , ACL ID %u for interface %s qdisc",acl_set_iter->acl_set.name, ingress_acl_id ,interface_element->interface.interface_id);
 				onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
 				// get first element only
 				break;
@@ -120,7 +120,7 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 		LL_FOREACH(interface_element->interface.egress.acl_sets.acl_set, acl_set_iter){
 			if (acl_set_iter->acl_set.name_change_op == SR_OP_CREATED) {
 				egress_acl_id = acl_name2id(acl_set_iter->acl_set.name);
-				SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][CREATED] Add egress ACL %s for interface %s qdisc",acl_set_iter->acl_set.name,interface_element->interface.interface_id);
+				SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][CREATED] Add egress ACL %s, ACL ID %u for interface %s qdisc",acl_set_iter->acl_set.name, egress_acl_id,interface_element->interface.interface_id);
 				onm_tc_aps_acl_set_element_t* acl_set_iter = NULL;
 				// get first element only
 				break;
@@ -160,7 +160,7 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 
 	if (ingress_acl_id != 0){
 		if (!tcnl_block_exists(ctx,ingress_acl_id)){
-			SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][QDISC] reconfigure interface ingress ACL ID %d",ingress_acl_id);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][QDISC] reconfigure interface ingress ACL ID %u",ingress_acl_id);
 			error = tcnl_block_modify(ctx->running_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
         	if (error == -11) {
 				error = tcnl_block_modify(ctx->events_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
@@ -170,7 +170,7 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 	}
 	if (egress_acl_id != 0){
 		if (!tcnl_block_exists(ctx,egress_acl_id)){
-			SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][QDISC] reconfigure interface egress ACL ID %d",egress_acl_id);
+			SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT][QDISC] reconfigure interface egress ACL ID %u",egress_acl_id);
 
 			error = tcnl_block_modify(ctx->running_acls_list, egress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
 			if (error == -11) {
