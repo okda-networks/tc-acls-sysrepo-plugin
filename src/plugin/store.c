@@ -70,7 +70,7 @@ int onm_tc_store(onm_tc_ctx_t *ctx, sr_session_ctx_t *session, bool store_acls, 
 	goto out;
 
 error_out:
-	error = error;
+	SRPLG_LOG_ERR(PLUGIN_NAME, "Store failed");
 
 out:
 	if (subtree) {
@@ -98,9 +98,6 @@ static int onm_tc_store_attachment_points(void *priv, const struct lyd_node *par
 
     // map libyang data to the interfaces hash
     SRPC_SAFE_CALL_ERR(error, onm_tc_aps_interface_hash_from_ly(&aps_interface_hash, aps_interface_list_node), error_out);
-
-    //onm_tc_aps_interface_hash_print_debug(aps_interface_hash);
-
 	ctx->attachment_points_interface_hash_element = aps_interface_hash;
     // check startup data
 

@@ -15,5 +15,6 @@
 int acls_attachment_points_change_interface_init(void *priv);
 int apply_attachment_points_events_list_changes(void *priv);
 void acls_attachment_points_change_interface_free(void *priv);
+int reload_running_aps_list(onm_tc_ctx_t * ctx);
 
 #endif // ONM_TC_PLUGIN_API_ACLS_ATTACHMENT_POINTS_CHANGE_H

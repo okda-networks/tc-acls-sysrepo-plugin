@@ -75,5 +75,6 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
 int tcnl_filter_modify(onm_tc_ctx_t * ctx, onm_tc_ace_element_t* ace, unsigned int acl_id,unsigned int request_type, unsigned int flags, bool override_exisitng);
 bool tcnl_block_exists(onm_tc_ctx_t * ctx, unsigned int acl_id);
 bool tcnl_filter_prio_exists(onm_tc_ctx_t * ctx, unsigned int acl_id, unsigned int prio);
+bool tcnl_qdisc_exists(onm_tc_ctx_t * ctx, int if_idx, char * qdisc_kind);
 
-int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, bool msg_clear);
+int tcnl_talk(struct nl_msg** msg, onm_tc_ctx_t * ctx, void * rcv_callback, void * cb_arg, bool msg_clear);

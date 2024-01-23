@@ -154,8 +154,10 @@ int onm_tc_subscription_change_acls_acl(sr_session_ctx_t *session, uint32_t subs
 	goto out;
 
 error_out:
-	onm_tc_acl_element_hash_free(&ctx->events_acls_list);
 	error = SR_ERR_CALLBACK_FAILED;
+	if (&ctx->events_acls_list){
+		onm_tc_acls_list_hash_free(&ctx->events_acls_list);
+	}
 
 out:
 	return error;
@@ -176,12 +178,9 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 	}
 	else if (event == SR_EV_DONE)
 	{
-		// error = sr_copy_config(ctx->startup_session, BASE_YANG_MODEL, SR_DS_RUNNING, 0);
-		onm_tc_aps_interface_hash_free(&ctx->events_attachment_points_list);
-		if (error)
-		{
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to free events attachment points list, error (%d)", error);
-			goto error_out;
+		reload_running_aps_list(ctx);
+		if (&ctx->events_attachment_points_list){
+			onm_tc_aps_interface_hash_free(&ctx->events_attachment_points_list);
 		}
 	}
 	else if (event == SR_EV_CHANGE){
@@ -194,8 +193,7 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 		
 
 		error = apply_attachment_points_events_list_changes(ctx);
-		if (error)
-		{
+		if (error){
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Attachment points change failed %d", error);
 			goto error_out;
 		}
@@ -205,6 +203,9 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 
 error_out:
 	error = SR_ERR_CALLBACK_FAILED;
+	if (&ctx->events_attachment_points_list){
+		onm_tc_aps_interface_hash_free(&ctx->events_attachment_points_list);
+	}
 
 out:
 	return error;

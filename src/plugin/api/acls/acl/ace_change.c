@@ -154,14 +154,14 @@ onm_tc_ace_element_t* extract_ace_elements_with_change_ops(const onm_tc_ace_elem
 	}
 
 	if (is_updated){
-		SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Change event extract change operation set success, ACE name %s, Priority %d",ace->ace.name,ace->ace.priority);
+		SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Change event extract change operation set success, ACE name %s, Priority %u",ace->ace.name,ace->ace.priority);
 		error = onm_tc_ace_hash_element_set_ace_name(&ret_ace,ace->ace.name, ace->ace.name_change_op);
 		if (error) return NULL;
 		onm_tc_ace_hash_element_set_ace_priority(&ret_ace,ace->ace.priority, ace->ace.prio_change_op);
 		onm_tc_ace_hash_element_set_ace_handle(&ret_ace,ace->ace.handle);
 	}
 	else {
-		SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Change event extract change operation set, found no matching operation element, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+		SRPLG_LOG_DBG(PLUGIN_NAME, "[CHANGE EVENT] Change event extract change operation set, found no matching operation element, ACE Name %s, Priority %u",ace->ace.name,ace->ace.priority);
 		onm_tc_ace_free(&ret_ace);
 		return NULL;
 	}
@@ -190,7 +190,7 @@ int apply_ace_deleted_operation(onm_tc_ctx_t * ctx, onm_tc_ace_element_t * ace, 
 		return -1;
 	}
 
-	SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply 'ACE Deleted' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+	SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply 'ACE Deleted' operation, ACE Name %s, Priority %u",ace->ace.name,ace->ace.priority);
 	ret = tcnl_filter_modify(ctx, ace,acl_id,RTM_DELTFILTER,0,false);
 	return ret;
 }
@@ -212,9 +212,9 @@ int apply_ace_modified_operation(onm_tc_ctx_t * ctx, onm_tc_ace_element_t * ace,
 		}
 	}
 	if (ret<0){
-		SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Change operation 'ACE Deleted' failed, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+		SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Change operation 'ACE Deleted' failed, ACE Name %s, Priority %u",ace->ace.name,ace->ace.priority);
 	}
-	SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply 'ACE Modifed' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+	SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply 'ACE Modifed' operation, ACE Name %s, Priority %u",ace->ace.name,ace->ace.priority);
 	ret = tcnl_filter_modify(ctx, modified_ace,acl_id,RTM_NEWTFILTER,NLM_F_CREATE,true);
 	onm_tc_ace_element_free(&modified_ace);
 	return ret;
@@ -226,7 +226,7 @@ int apply_events_ace_changes(onm_tc_ctx_t * ctx, const char * acl_name, unsigned
 	switch (ace->ace.name_change_op) {
 		case SR_OP_CREATED:
 			// handle complete ACE creation
-			SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply 'ACE Created' operation, ACE Name %s, Priority %d",ace->ace.name,ace->ace.priority);
+			SRPLG_LOG_INF(PLUGIN_NAME, "[CHANGE EVENT] Apply 'ACE Created' operation, ACE Name %s, Priority %u",ace->ace.name,ace->ace.priority);
 			ret = apply_ace_created_operation(ctx,ace,acl_id);
 			if (ret < 0){
 				return ret;
