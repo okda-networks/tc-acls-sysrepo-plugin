@@ -143,7 +143,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 	ctx->startup_session = startup_session;
 	ctx->running_session = running_session;
 
-	error = srpc_check_empty_datastore(running_session, ONM_TC_ACLS_ACL_YANG_PATH, &empty_running_ds);
+	error = srpc_check_empty_datastore(ctx->running_session, ONM_TC_ACLS_ACL_YANG_PATH, &empty_running_ds);
 	if (error) {
 		SRPLG_LOG_ERR(PLUGIN_NAME, "Failed checking datastore contents: %d", error);
 		goto error_out;
@@ -180,7 +180,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 			}
 			// successfully applied startup config on netlink tc
 			// copy contents of the startup ds to running ds
-			error = sr_copy_config(running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
+			error = sr_copy_config(ctx->running_session, BASE_YANG_MODEL, SR_DS_STARTUP, 0);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "Failed to copy startup config into running config, error (%d): %s", error, sr_strerror(error));
 				goto error_out;
@@ -193,7 +193,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		SRPLG_LOG_INF(PLUGIN_NAME, "Running datastore contains data");
 		SRPLG_LOG_INF(PLUGIN_NAME, "Reconfiguring running datastore data in the system");
 
-		error = onm_tc_store(ctx, running_session,true,true,true);
+		error = onm_tc_store(ctx, ctx->running_session,true,true,true);
 		if (error) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "Error applying initial data from running datastore to the system... exiting");
 			goto error_out;
@@ -206,7 +206,7 @@ int sr_plugin_init_cb(sr_session_ctx_t *running_session, void **private_data)
 		SRPLG_LOG_INF(PLUGIN_NAME, "Subscribing module change callback %s", change->path);
 		// in case of work on a specific callback set it to NULL
 		if (change->cb) {
-			error = sr_module_change_subscribe(running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
+			error = sr_module_change_subscribe(ctx->running_session, BASE_YANG_MODEL, change->path, change->cb, *private_data, 0, SR_SUBSCR_DEFAULT, &subscription);
 			if (error) {
 				SRPLG_LOG_ERR(PLUGIN_NAME, "sr_module_change_subscribe() error for \"%s\" (%d): %s", change->path, error, sr_strerror(error));
 				goto error_out;

@@ -1032,7 +1032,9 @@ int tcnl_qdisc_modify(onm_tc_ctx_t * ctx, int request_type, char * qdisc_kind, i
         SRPLG_LOG_DBG(PLUGIN_NAME, "[TCNL][QDISC] Delete %s qdisc on interface %d",qdisc_kind,if_idx);
     }
     ret = tcnl_set_qdisc_msg(&msg, request_type, flags, qdisc_kind, if_idx, ingress_block_id, egress_block_id);
-    if (ret < 0) return ret;
+    if (ret < 0){
+        return ret;
+    }
     
     ret = tcnl_talk(&msg,ctx,rcv_default_cb,NULL,true);
     return ret;
