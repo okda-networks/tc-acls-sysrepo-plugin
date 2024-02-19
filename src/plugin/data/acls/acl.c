@@ -192,7 +192,7 @@ int onm_tc_events_acls_hash_add_acl_element(void *priv, sr_session_ctx_t *sessio
 	{
 		SRPLG_LOG_INF(PLUGIN_NAME, "Processing new ACL change, ACL Name: %s, Change operation: %d.",node_value,change_ctx->operation);
 		SRPC_SAFE_CALL_ERR(error, onm_tc_acl_hash_element_set_name(&event_acl_hash, node_value,change_ctx->operation), error_out);
-
+        sr_get_change_diff
         //init aces list inside temp change acl hash element
         ONM_TC_ACL_LIST_NEW(event_acl_hash->acl.aces.ace);
 

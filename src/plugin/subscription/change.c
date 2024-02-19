@@ -15,6 +15,8 @@
 #include "plugin/data/acls/acl.h"
 #include "plugin/data/acls/acl/aces.h"
 
+#include <sysrepo/error_format.h>
+
 int change_path_print(void *priv, sr_session_ctx_t *session, const srpc_change_ctx_t *change_ctx)
 {
 	int error = 0;
@@ -167,7 +169,7 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 {
 	int error = SR_ERR_OK;
 	onm_tc_ctx_t *ctx = (onm_tc_ctx_t *)private_data;
-
+	ctx->running_session = session;
 	// sysrepo
 	char change_xpath_buffer[PATH_MAX] = {0};
 
@@ -194,7 +196,7 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 
 		error = apply_attachment_points_events_list_changes(ctx);
 		if (error){
-			SRPLG_LOG_ERR(PLUGIN_NAME, "Attachment points change failed %d", error);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "Attachment points change failed, error %d", error);
 			goto error_out;
 		}
 	}
@@ -202,7 +204,10 @@ int onm_tc_subscription_change_acls_attachment_points_interface(sr_session_ctx_t
 	goto out;
 
 error_out:
-	error = SR_ERR_CALLBACK_FAILED;
+	if (error < 0){
+		error = SR_ERR_CALLBACK_FAILED;
+	}
+	
 	if (&ctx->events_attachment_points_list){
 		onm_tc_aps_interface_hash_free(&ctx->events_attachment_points_list);
 	}

@@ -2,6 +2,7 @@
 #include "plugin/common.h"
 
 #include <sysrepo.h>
+#include <sysrepo/error_format.h>
 
 #include <linux/limits.h>
 #include "plugin/api/tcnl.h"
@@ -153,10 +154,18 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
 	}
 	if (tcnl_qdisc_exists(ctx,if_idx,DEFAULT_QDISC_KIND)){
 		error = tcnl_qdisc_modify(ctx,RTM_DELQDISC, DEFAULT_QDISC_KIND, if_idx, 0,0,true);
-		if (error < 0) return error;
+		if (error < 0) {
+			SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] Failed to apply interface '%s' attachment points, removing existing qdisc failed");
+			sr_session_set_error_message(ctx->running_session,"[%s] Failed to apply interface '%s' attachment points, removing exiting qdisc failed",PLUGIN_NAME, interface_element->interface.interface_id);
+			return error;
+		}
 	}
 	error = tcnl_qdisc_modify(ctx,RTM_NEWQDISC, DEFAULT_QDISC_KIND, if_idx, ingress_acl_id,egress_acl_id,true);
-	if (error < 0) return error;
+	if (error < 0) {
+		SRPLG_LOG_ERR(PLUGIN_NAME, "[%s] Failed to apply interface '%s' attachment points, creating qdisc failed");
+		sr_session_set_error_message(ctx->running_session,"[%s] Failed to apply interface '%s' attachment points, creating qdisc failed",PLUGIN_NAME, interface_element->interface.interface_id);
+		return error;
+	}
 
 	if (ingress_acl_id != 0){
 		if (!tcnl_block_exists(ctx,ingress_acl_id)){
@@ -165,7 +174,10 @@ unsigned int ingress_acl_id = 0, egress_acl_id = 0;
         	if (error == -11) {
 				error = tcnl_block_modify(ctx->events_acls_list, ingress_acl_id,ctx, RTM_NEWTFILTER, NLM_F_CREATE);
 			}
-			if (error < 0) return error;
+			if (error < 0) {
+				
+				return error;
+			}
 		}
 	}
 	if (egress_acl_id != 0){
@@ -245,7 +257,8 @@ int apply_attachment_points_events_list_changes(void *priv)
         /* lookup interface index of interface_id */
         link = rtnl_link_get_by_name(nl_ctx->link_cache, interface_id);
 		if (!link) {
-			SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Error deleting ACL qdisc from interface %s, error getting interface link info",interface_id);
+			SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT] Error getting interface '%s' link info",interface_id);
+			sr_session_set_error_message(ctx->running_session,"[%s] Error getting interface '%s' link info",PLUGIN_NAME, interface_id);
 			if (nl_ctx->link_cache != NULL) nl_cache_free(nl_ctx->link_cache);
 			return -1;
 		}
@@ -256,12 +269,14 @@ int apply_attachment_points_events_list_changes(void *priv)
 
 		if (count_total_ingress_acls_set(ctx,interface_element) > 1) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT][%s] Only one ingress acl is supported", interface_element->interface.interface_id);
-			return -1;
+			sr_session_set_error_message(ctx->running_session,"[%s] Failed to apply interface '%s' attachment points, one ingress ACL is supported per-interface",PLUGIN_NAME, interface_element->interface.interface_id);
+			return SR_ERR_UNSUPPORTED;
 		}
 
 		if (count_total_egress_acls_set(ctx,interface_element) > 1) {
 			SRPLG_LOG_ERR(PLUGIN_NAME, "[CHANGE EVENT][%s] Only one egress acl is supported", interface_element->interface.interface_id);
-			return -1;
+			sr_session_set_error_message(ctx->running_session,"[%s] Failed to apply interface '%s' attachment points, one egress ACL is supported per-interface",PLUGIN_NAME, interface_element->interface.interface_id);
+			return SR_ERR_UNSUPPORTED;
 		}
 
 		ret = apply_attachment_points_events_acl_set_created(ctx, interface_element,if_idx);
